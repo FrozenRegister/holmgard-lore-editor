@@ -95,6 +95,13 @@ if (pendingDeletes.length) {
           showToast(`Conflict detected on "${key}" — review required`, 'warning');
           return;
         }
+
+        // ── Sync meta forward if remote is newer ─────────────────────────────────
+        if ((rTopic.meta.version ?? 0) > (local.meta.version ?? 0)) {
+          const updated: Topic = { ...local, meta: { ...rTopic.meta } };
+          await saveTopic(updated);
+          topics.update(ts => ts.map(t => t.key === key ? updated : t));
+        }
       }
     }
 
