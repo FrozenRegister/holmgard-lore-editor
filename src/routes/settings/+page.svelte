@@ -186,14 +186,26 @@
           {/if}
         </label>
         <div class="input-row">
-          <input
-            id="adminSecret"
-            type={showSecret ? 'text' : 'password'}
-            bind:value={adminSecretInput}
-            placeholder="Enter admin secret…"
-            class="text-input"
-            autocomplete="new-password"
-          />
+          {#if showSecret}
+            <input
+              id="adminSecret"
+              type="text"
+              bind:value={adminSecretInput}
+              placeholder="Enter admin secret…"
+              class="text-input"
+              autocomplete="new-password"
+            />
+          {:else}
+            <input
+              id="adminSecret"
+              type="password"
+              bind:value={adminSecretInput}
+              placeholder="Enter admin secret…"
+              class="text-input"
+              autocomplete="new-password"
+            />
+          {/if}
+
           <button
             type="button"
             class="btn btn-ghost btn-sm"
