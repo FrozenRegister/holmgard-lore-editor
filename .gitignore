@@ -1,0 +1,11 @@
+node_modules/
+build/
+.svelte-kit/
+dist/
+src-tauri/target/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.secret

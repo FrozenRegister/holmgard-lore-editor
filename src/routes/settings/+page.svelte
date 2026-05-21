@@ -1,0 +1,318 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { settings, showToast } from '$lib/stores';
+  import { loadSettings, saveSettings } from '$lib/storage';
+  import { encryptSecret, decryptSecret } from '$lib/crypto';
+  import type { AppSettings } from '$lib/types';
+
+  const IS_TAURI = typeof window !== 'undefined' && '__TAURI__' in window;
+
+  let workerHost = '';
+  let adminSecretInput = '';
+  let masterKeyInput = '';
+  let showSecret = false;
+  let saving = false;
+  let secretLoaded = false;
+  let masterKeySet = false;
+
+  onMount(async () => {
+    const s = await loadSettings();
+    workerHost = s.workerHost;
+    settings.set(s);
+
+    if (IS_TAURI) {
+      try {
+        const { invoke } = await import('@tauri-apps/api/tauri');
+        const mk: string | null = await invoke('keyring_get', { account: 'master_key' });
+        masterKeySet = !!mk;
+
+        // Try to decrypt the stored secret if we have a master key and backup
+        if (mk && s.encryptedSecret && s.iv) {
+          try {
+            adminSecretInput = await decryptSecret(s.encryptedSecret, s.iv, mk);
+            secretLoaded = true;
+          } catch {
+            adminSecretInput = '';
+          }
+        }
+      } catch { /* running in browser */ }
+    }
+  });
+
+  async function saveAll() {
+    if (!workerHost.trim()) {
+      showToast('Worker host URL is required', 'error');
+      return;
+    }
+
+    saving = true;
+    try {
+      let updatedSettings: AppSettings = { ...$settings, workerHost: workerHost.trim() };
+
+      if (IS_TAURI) {
+        const { invoke } = await import('@tauri-apps/api/tauri');
+
+        // Save / update master key
+        if (masterKeyInput.trim()) {
+          await invoke('keyring_set', { account: 'master_key', value: masterKeyInput.trim() });
+          masterKeySet = true;
+        }
+
+        const mk: string | null = await invoke('keyring_get', { account: 'master_key' });
+
+        // Encrypt + store admin secret
+        if (adminSecretInput.trim() && mk) {
+          const { ciphertext, iv } = await encryptSecret(adminSecretInput.trim(), mk);
+          updatedSettings = { ...updatedSettings, encryptedSecret: ciphertext, iv };
+          // Also store in keyring for easy access
+          await invoke('keyring_set', { account: 'admin_secret', value: adminSecretInput.trim() });
+        } else if (adminSecretInput.trim() && !mk) {
+          showToast('Set a master key first to encrypt your admin secret', 'warning');
+        }
+      }
+
+      await saveSettings(updatedSettings);
+      settings.set(updatedSettings);
+      showToast('Settings saved', 'success');
+    } catch (err: any) {
+      showToast(`Save failed: ${err.message}`, 'error');
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function clearMasterKey() {
+    if (!confirm('Clear the master key from OS keyring? The encrypted secret backup will no longer be accessible.')) return;
+    if (IS_TAURI) {
+      try {
+        const { invoke } = await import('@tauri-apps/api/tauri');
+        await invoke('keyring_delete', { account: 'master_key' });
+        await invoke('keyring_delete', { account: 'admin_secret' });
+        masterKeySet = false;
+        masterKeyInput = '';
+        adminSecretInput = '';
+        showToast('Keyring cleared', 'success');
+      } catch (err: any) {
+        showToast(`Failed: ${err.message}`, 'error');
+      }
+    }
+  }
+
+  async function testConnection() {
+    try {
+      const res = await fetch(`${workerHost}/mcp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'list_topics', params: {} }),
+      });
+      if (res.ok) {
+        showToast('Connection successful ✓', 'success');
+      } else {
+        showToast(`Connection failed: HTTP ${res.status}`, 'error');
+      }
+    } catch (err: any) {
+      showToast(`Connection error: ${err.message}`, 'error');
+    }
+  }
+</script>
+
+<div class="page settings-page">
+  <header class="page-header">
+    <h1>Settings</h1>
+  </header>
+
+  <form class="settings-form" on:submit|preventDefault={saveAll}>
+
+    <!-- Worker connection -->
+    <section class="settings-section">
+      <h2>Worker Connection</h2>
+      <p class="section-desc">MCP worker that hosts your Holmgard lore topics.</p>
+
+      <div class="field">
+        <label for="workerHost">Worker Host URL</label>
+        <div class="input-row">
+          <input
+            id="workerHost"
+            type="url"
+            bind:value={workerHost}
+            placeholder="https://holmgard-lore-mcp.frozenregister.workers.dev"
+            class="text-input"
+            required
+          />
+          <button type="button" class="btn btn-ghost btn-sm" on:click={testConnection}>
+            Test
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security -->
+    <section class="settings-section">
+      <h2>Security</h2>
+      <p class="section-desc">
+        Your admin secret is encrypted with AES-GCM using a master key stored in the OS keyring.
+        No secrets are stored in plain text on disk.
+      </p>
+
+      <div class="field">
+        <label for="masterKey">
+          Master Key
+          {#if masterKeySet}
+            <span class="badge badge-ok">Set ✓</span>
+          {:else}
+            <span class="badge badge-warn">Not set</span>
+          {/if}
+        </label>
+        <input
+          id="masterKey"
+          type="password"
+          bind:value={masterKeyInput}
+          placeholder={masterKeySet ? '(leave blank to keep current)' : 'Enter a strong passphrase…'}
+          class="text-input"
+          autocomplete="new-password"
+        />
+        {#if masterKeySet}
+          <button type="button" class="btn btn-ghost btn-sm danger" on:click={clearMasterKey}>
+            Clear keyring
+          </button>
+        {/if}
+      </div>
+
+      <div class="field">
+        <label for="adminSecret">
+          Admin Secret
+          {#if secretLoaded}
+            <span class="badge badge-ok">Loaded from keyring ✓</span>
+          {/if}
+        </label>
+        <div class="input-row">
+          <input
+            id="adminSecret"
+            type={showSecret ? 'text' : 'password'}
+            bind:value={adminSecretInput}
+            placeholder="Enter admin secret…"
+            class="text-input"
+            autocomplete="new-password"
+          />
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            on:click={() => (showSecret = !showSecret)}
+          >
+            {showSecret ? 'Hide' : 'Show'}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" disabled={saving}>
+        {saving ? 'Saving…' : 'Save Settings'}
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<style>
+  .settings-page {
+    padding: 2rem;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  .settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+
+  .settings-section h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent2);
+    margin: 0;
+  }
+
+  .section-desc {
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .text-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+
+  .text-input:focus { border-color: var(--accent); }
+
+  .input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .input-row .text-input { flex: 1; }
+
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+  }
+  .badge-ok   { background: rgba(76,175,80,0.18); color: #81c784; }
+  .badge-warn { background: rgba(255,183,77,0.18); color: #ffb74d; }
+
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .danger { color: #e57373; }
+  .danger:hover { background: rgba(229,115,115,0.12); }
+</style>
