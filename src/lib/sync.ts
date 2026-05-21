@@ -76,6 +76,43 @@ export async function adminSave(
   }
 }
 
+// ── Admin delete ──────────────────────────────────────────────────────────────
+
+export async function adminDelete(
+  host: string,
+  key: string,
+  secret: string
+): Promise<void> {
+  const url = `${host}/admin/delete-lore`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, secret }),
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Admin delete failed (${res.status}): ${msg}`);
+  }
+}
+
+// ── Pending-delete queue (persisted to localStorage) ──────────────────────────
+
+const PENDING_DELETES_KEY = 'lore_pending_deletes';
+
+export function enqueuePendingDelete(key: string): void {
+  const existing: string[] = JSON.parse(localStorage.getItem(PENDING_DELETES_KEY) ?? '[]');
+  if (!existing.includes(key)) {
+    existing.push(key);
+    localStorage.setItem(PENDING_DELETES_KEY, JSON.stringify(existing));
+  }
+}
+
+export function dequeuePendingDeletes(): string[] {
+  const keys: string[] = JSON.parse(localStorage.getItem(PENDING_DELETES_KEY) ?? '[]');
+  localStorage.removeItem(PENDING_DELETES_KEY);
+  return keys;
+}
+
 // ── Conflict detection ────────────────────────────────────────────────────────
 
 export function detectConflict(
