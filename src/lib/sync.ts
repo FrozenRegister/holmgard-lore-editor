@@ -9,6 +9,28 @@ const JSON_RPC_VERSION = '2.0';
 let _reqId = 1;
 const nextId = () => _reqId++;
 
+// Handles both old (raw string) and new ({ text, meta }) KV formats
+function parseKvEntry(raw: string): { text: string; meta: TopicMeta } {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.text === 'string') {
+      return {
+        text: parsed.text,
+        meta: {
+          version:   typeof parsed.meta?.version   === 'number' ? parsed.meta.version   : 1,
+          updatedAt: typeof parsed.meta?.updatedAt === 'string' ? parsed.meta.updatedAt : new Date().toISOString(),
+        },
+      };
+    }
+  } catch {}
+  return {
+    text: raw,
+    meta: { version: 1, updatedAt: new Date().toISOString() },
+  };
+}
+
+
+
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
 
 async function rpc<T>(
@@ -49,12 +71,15 @@ export async function listTopicsRemote(host: string): Promise<string[]> {
 
 export async function getTopicRemote(host: string, key: string): Promise<RemoteTopic | null> {
   try {
-    const result = await rpc<RemoteTopic>(host, 'get_lore', { key });
-    return result;
+    const result = await rpc<{ key: string; text: string; meta: Record<string, unknown> }>(host, 'get_lore', { key });
+    if (!result) return null;
+    const { text, meta } = parseKvEntry(result.text);
+    return { ...result, text, meta };
   } catch {
     return null;
   }
 }
+
 
 // ── Admin save ────────────────────────────────────────────────────────────────
 
@@ -112,6 +137,8 @@ export function dequeuePendingDeletes(): string[] {
   localStorage.removeItem(PENDING_DELETES_KEY);
   return keys;
 }
+
+
 
 // ── Conflict detection ────────────────────────────────────────────────────────
 
