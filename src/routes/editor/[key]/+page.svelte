@@ -120,13 +120,13 @@
   }
 
   async function getAdminSecret(): Promise<string | null> {
-    try {
+    if ('__TAURI__' in window) {
       const { invoke } = await import('@tauri-apps/api/tauri');
       return await invoke<string | null>('keyring_get', { account: 'admin_secret' });
-    } catch {
-      return null;
     }
+    return localStorage.getItem('hle:adminSecret');
   }
+
 
   // ── Version history ───────────────────────────────────────────────────────
   async function openHistory() {

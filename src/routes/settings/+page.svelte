@@ -69,7 +69,12 @@
         } else if (adminSecretInput.trim() && !mk) {
           showToast('Set a master key first to encrypt your admin secret', 'warning');
         }
-      }
+        } else {
+          // Browser fallback — store plaintext in localStorage
+          if (adminSecretInput.trim()) {
+            localStorage.setItem('hle:adminSecret', adminSecretInput.trim());
+          }
+        }
 
       await saveSettings(updatedSettings);
       settings.set(updatedSettings);
