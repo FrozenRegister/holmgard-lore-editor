@@ -163,14 +163,25 @@
             <span class="badge badge-warn">Not set</span>
           {/if}
         </label>
-        <input
-          id="masterKey"
-          type="password"
-          bind:value={masterKeyInput}
-          placeholder={masterKeySet ? '(leave blank to keep current)' : 'Enter a strong passphrase…'}
-          class="text-input"
-          autocomplete="new-password"
-        />
+        {#if showSecret}
+            <input
+              id="adminSecret"
+              type="text"
+              bind:value={adminSecretInput}
+              placeholder="Enter admin secret…"
+              class="text-input"
+              autocomplete="new-password"
+            />
+          {:else}
+            <input
+              id="adminSecret"
+              type="password"
+              bind:value={adminSecretInput}
+              placeholder="Enter admin secret…"
+              class="text-input"
+              autocomplete="new-password"
+            />
+        {/if}
         {#if masterKeySet}
           <button type="button" class="btn btn-ghost btn-sm danger" on:click={clearMasterKey}>
             Clear keyring
