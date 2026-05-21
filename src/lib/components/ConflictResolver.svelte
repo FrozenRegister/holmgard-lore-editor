@@ -12,6 +12,7 @@
 
   type Tab = 'base' | 'local' | 'remote' | 'manual';
   let activeTab: Tab = 'local';
+  function setTab(t: string) { activeTab = t as Tab; }
   let manualText = conflict.local;
   let resolving = false;
 
@@ -107,7 +108,7 @@
           class:active={activeTab === id}
           role="tab"
           aria-selected={activeTab === id}
-          on:click={() => (activeTab = id)}
+          on:click={() => setTab(id)}
         >
           {label}
         </button>

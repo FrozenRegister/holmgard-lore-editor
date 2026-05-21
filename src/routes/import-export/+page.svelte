@@ -6,7 +6,7 @@
 
   let importing = false;
   let exporting = false;
-  let fileInput: HTMLInputElement;
+  let fileInput: HTMLInputElement = undefined!;
 
   // ── Export JSON bundle ────────────────────────────────────────────────────
 
