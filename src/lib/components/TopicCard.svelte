@@ -26,7 +26,7 @@
   }
 
   $: preview = getPreview(topic.text);
-  $: updatedLabel = timeAgo(topic.meta.updatedAt);
+  $: updatedLabel = topic.meta?.updatedAt ? timeAgo(topic.meta.updatedAt as string) : '—';
 
   // Detect content type hints
   $: hasJson = /```json/i.test(topic.text);
@@ -45,7 +45,7 @@
   <p class="topic-preview">{preview}</p>
 
   <div class="card-footer">
-    <span class="updated">v{topic.meta.version} · {updatedLabel}</span>
+    <span class="updated">v{topic.meta?.version ?? '?'} · {updatedLabel}</span>
     <button
       class="btn-delete"
       on:click|stopPropagation={() => dispatch('delete')}

@@ -23,10 +23,7 @@ function parseKvEntry(raw: string): { text: string; meta: TopicMeta } {
       };
     }
   } catch {}
-  return {
-    text: raw,
-    meta: { version: 1, updatedAt: new Date().toISOString() },
-  };
+  return { text: raw, meta: { version: 1, updatedAt: new Date().toISOString() } };
 }
 
 
@@ -71,14 +68,21 @@ export async function listTopicsRemote(host: string): Promise<string[]> {
 
 export async function getTopicRemote(host: string, key: string): Promise<RemoteTopic | null> {
   try {
-    const result = await rpc<{ key: string; text: string; meta: Record<string, unknown> }>(host, 'get_lore', { key });
+    const result = await rpc<{ key: string; text: string; meta: TopicMeta | undefined }>(
+      host, 'get_lore', { key }
+    );
     if (!result) return null;
-    const { text, meta } = parseKvEntry(result.text);
-    return { ...result, text, meta };
+    return {
+      key: result.key,
+      text: result.text,
+      meta: result.meta ?? { version: 0, updatedAt: new Date().toISOString() },
+    };
   } catch {
     return null;
   }
 }
+
+
 
 
 // ── Admin save ────────────────────────────────────────────────────────────────
