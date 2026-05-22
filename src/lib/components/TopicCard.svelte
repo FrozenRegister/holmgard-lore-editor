@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import type { Topic } from '$lib/types';
+  import { createEventDispatcher } from "svelte";
+  import type { Topic } from "$lib/types";
 
   export let topic: Topic;
 
@@ -10,30 +10,44 @@
   function getPreview(text: string): string {
     const headingMatch = text.match(/^#{1,3}\s+(.+)$/m);
     if (headingMatch) return headingMatch[1];
-    return text.replace(/```[\s\S]*?```/g, '').replace(/[#*_`]/g, '').trim().slice(0, 120);
+    return text
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/[#*_`]/g, "")
+      .trim()
+      .slice(0, 120);
   }
 
   function timeAgo(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1)  return 'just now';
+    if (mins < 1) return "just now";
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24)  return `${hrs}h ago`;
+    if (hrs < 24) return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
     if (days < 30) return `${days}d ago`;
     return new Date(iso).toLocaleDateString();
   }
 
   $: preview = getPreview(topic.text);
-  $: updatedLabel = topic.meta?.updatedAt ? timeAgo(topic.meta.updatedAt as string) : '—';
+  $: updatedLabel = topic.meta?.updatedAt
+    ? timeAgo(topic.meta.updatedAt as string)
+    : "—";
 
   // Detect content type hints
   $: hasJson = /```json/i.test(topic.text);
-  $: hasXml  = /```xml/i.test(topic.text);
+  $: hasXml = /```xml/i.test(topic.text);
 </script>
 
-<article class="topic-card" on:click={() => dispatch('open')} on:keydown={(e) => e.key === 'Enter' && dispatch('open')} tabindex="0" role="button" aria-label="Open topic {topic.key}">
+<article
+  class="topic-card"
+  class:removed={topic.meta.removedFromRemote}
+  on:click={() => dispatch("open")}
+  on:keydown={(e) => e.key === "Enter" && dispatch("open")}
+  tabindex="0"
+  role="button"
+  aria-label="Open topic {topic.key}"
+>
   <div class="card-top">
     <h3 class="topic-key">{topic.key}</h3>
     <div class="tag-row">
@@ -45,10 +59,10 @@
   <p class="topic-preview">{preview}</p>
 
   <div class="card-footer">
-    <span class="updated">v{topic.meta?.version ?? '?'} · {updatedLabel}</span>
+    <span class="updated">v{topic.meta?.version ?? "?"} · {updatedLabel}</span>
     <button
       class="btn-delete"
-      on:click|stopPropagation={() => dispatch('delete')}
+      on:click|stopPropagation={() => dispatch("delete")}
       aria-label="Delete topic {topic.key}"
       title="Delete"
     >
@@ -67,7 +81,10 @@
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s,
+      transform 0.1s;
     outline: none;
   }
 
@@ -109,8 +126,14 @@
     letter-spacing: 0.04em;
   }
 
-  .tag-json { background: rgba(79, 195, 247, 0.18); color: #4fc3f7; }
-  .tag-xml  { background: rgba(255, 183, 77, 0.18); color: #ffb74d; }
+  .tag-json {
+    background: rgba(79, 195, 247, 0.18);
+    color: #4fc3f7;
+  }
+  .tag-xml {
+    background: rgba(255, 183, 77, 0.18);
+    color: #ffb74d;
+  }
 
   .topic-preview {
     font-size: 0.82rem;
@@ -144,12 +167,20 @@
     opacity: 0.4;
     padding: 0.2rem;
     border-radius: 4px;
-    transition: opacity 0.15s, background 0.15s;
+    transition:
+      opacity 0.15s,
+      background 0.15s;
     line-height: 1;
   }
 
   .btn-delete:hover {
     opacity: 1;
     background: rgba(229, 115, 115, 0.18);
+  }
+
+  .topic-card.removed {
+    background-color: #3d1f1f; /* muted dark rose, not aggressive */
+    border-color: #6b2e2e;
+    opacity: 0.85;
   }
 </style>

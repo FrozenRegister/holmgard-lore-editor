@@ -4,6 +4,7 @@ export interface TopicMeta {
   updatedAt: string; // ISO-8601
   version: number;
   syncedAt?: string;
+  removedFromRemote?: boolean;
 }
 
 export interface Topic {
