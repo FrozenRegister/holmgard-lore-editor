@@ -85,6 +85,14 @@
 
   $: diffLocalRemote = diff(conflict.local, conflict.remote);
 </script>
+<svelte:window on:keydown={(e) => {
+  if (resolving) return;
+  // Don't fire when typing in the manual editor textarea
+  if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+  if (e.key === 'd' || e.key === 'D') dismiss();
+  if (e.key === 'r' || e.key === 'R') resolve(conflict.remote);
+  if (e.key === 'l' || e.key === 'L') resolve(conflict.local);
+}} />
 
 <div class="overlay" role="dialog" aria-modal="true" aria-label="Conflict Resolver">
   <div class="modal">
@@ -143,14 +151,14 @@
     <!-- Actions -->
     <div class="modal-actions">
       <button class="btn btn-ghost" on:click={dismiss} disabled={resolving}>
-        Dismiss
+        Dismiss [D]
       </button>
       <button
         class="btn btn-secondary"
         on:click={() => resolve(conflict.remote)}
         disabled={resolving}
       >
-        Accept Remote
+        Accept Remote [R]
       </button>
       <button
         class="btn btn-secondary"

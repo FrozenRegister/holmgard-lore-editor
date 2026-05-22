@@ -149,6 +149,12 @@
     }
   }
 </script>
+<svelte:window on:keydown={(e) => {
+  if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    if (!syncing) syncAll();
+  }
+}} />
 
 <div class="page topic-list-page">
   <header class="page-header">
