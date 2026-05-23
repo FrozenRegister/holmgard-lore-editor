@@ -16,6 +16,16 @@
   --radius:      6px;
   --sidebar-w:   260px;
   --header-h:    46px;
+
+  /* aliases used by page/component styles */
+  --surface:     var(--bg2);
+  --surface2:    var(--bg3);
+  --fg:          var(--text);
+  --fg-muted:    var(--text-muted);
+  --font-mono:   'JetBrains Mono', monospace;
+  --font-display: 'Inter', system-ui, sans-serif;
+
+  color-scheme: dark;
   font-size: 14px;
 }
 

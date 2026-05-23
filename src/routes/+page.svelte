@@ -27,6 +27,7 @@
   let syncing = false;
   let activeType: string | null = null;
   let activeStatus: string | null = null;
+  let sortBy = "name-asc";
 
   $: typePrefixes = (() => {
     const counts = new Map<string, number>();
@@ -66,7 +67,23 @@
         !searchQuery ||
         t.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.text.slice(0, 200).toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    )
+    .sort((a, b) => {
+      if (sortBy === "name-desc") return b.key.localeCompare(a.key);
+      if (sortBy === "updated-desc")
+        return new Date(b.meta.updatedAt as string).getTime() - new Date(a.meta.updatedAt as string).getTime();
+      if (sortBy === "updated-asc")
+        return new Date(a.meta.updatedAt as string).getTime() - new Date(b.meta.updatedAt as string).getTime();
+      if (sortBy === "version-desc")
+        return (b.meta.version ?? 0) - (a.meta.version ?? 0);
+      if (sortBy === "type") {
+        const aPrefix = a.key.includes(":") ? a.key.slice(0, a.key.indexOf(":")) : "￿";
+        const bPrefix = b.key.includes(":") ? b.key.slice(0, b.key.indexOf(":")) : "￿";
+        const cmp = aPrefix.localeCompare(bPrefix);
+        return cmp !== 0 ? cmp : a.key.localeCompare(b.key);
+      }
+      return a.key.localeCompare(b.key); // name-asc default
+    });
 
   async function createNewTopic() {
     const key = prompt('Enter a unique topic key (e.g. "my-character"):');
@@ -234,6 +251,15 @@
       class="search-input"
       aria-label="Search topics"
     />
+    <span class="sort-label">Sort:</span>
+    <select bind:value={sortBy} class="sort-select" aria-label="Sort topics">
+      <option value="name-asc">Name A→Z</option>
+      <option value="name-desc">Name Z→A</option>
+      <option value="updated-desc">Last Updated (newest)</option>
+      <option value="updated-asc">Last Updated (oldest)</option>
+      <option value="version-desc">Version (highest)</option>
+      <option value="type">Type</option>
+    </select>
   </div>
 
   <div class="filter-bar">
@@ -349,7 +375,33 @@
   }
 
   .search-bar {
-    max-width: 480px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .sort-label {
+    font-size: 0.82rem;
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+
+  .sort-select {
+    padding: 0.48rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--fg);
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .sort-select:focus {
+    border-color: var(--accent);
   }
 
   .search-input {

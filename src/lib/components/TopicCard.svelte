@@ -6,15 +6,14 @@
 
   const dispatch = createEventDispatcher<{ open: void; delete: void }>();
 
-  // Extract first heading or first 120 chars as preview
   function getPreview(text: string): string {
-    const headingMatch = text.match(/^#{1,3}\s+(.+)$/m);
-    if (headingMatch) return headingMatch[1];
     return text
       .replace(/```[\s\S]*?```/g, "")
-      .replace(/[#*_`]/g, "")
+      .replace(/^#{1,6}\s.*$/mg, "")
+      .replace(/[*_`]/g, "")
+      .replace(/\n{3,}/g, "\n\n")
       .trim()
-      .slice(0, 120);
+      .slice(0, 400);
   }
 
   function timeAgo(iso: string): string {
@@ -34,6 +33,8 @@
     ? timeAgo(topic.meta.updatedAt as string)
     : "—";
 
+  $: typePrefix = topic.key.includes(":") ? topic.key.slice(0, topic.key.indexOf(":")) : null;
+
   // Detect content type hints
   $: hasJson = /```json/i.test(topic.text);
   $: hasXml = /```xml/i.test(topic.text);
@@ -51,6 +52,7 @@
   <div class="card-top">
     <h3 class="topic-key">{topic.key}</h3>
     <div class="tag-row">
+      {#if typePrefix}<span class="tag tag-type">{typePrefix}</span>{/if}
       {#if hasJson}<span class="tag tag-json">JSON</span>{/if}
       {#if hasXml}<span class="tag tag-xml">XML</span>{/if}
     </div>
@@ -126,6 +128,12 @@
     letter-spacing: 0.04em;
   }
 
+  .tag-type {
+    background: var(--surface2);
+    color: var(--fg-muted);
+    border-radius: 999px;
+  }
+
   .tag-json {
     background: rgba(79, 195, 247, 0.18);
     color: #4fc3f7;
@@ -140,11 +148,9 @@
     color: var(--fg-muted);
     margin: 0;
     line-height: 1.5;
-    display: -webkit-box;
-    line-clamp: 3;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    max-height: calc(1.5em * 3);
+    overflow-y: auto;
+    white-space: pre-wrap;
   }
 
   .card-footer {
