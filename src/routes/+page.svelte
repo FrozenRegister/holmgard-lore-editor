@@ -25,12 +25,48 @@
   let searchQuery = "";
   let showTemplateModal = false;
   let syncing = false;
+  let activeType: string | null = null;
+  let activeStatus: string | null = null;
 
-  $: filtered = $topics.filter(
-    (t) =>
-      t.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.text.slice(0, 200).toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  $: typePrefixes = (() => {
+    const counts = new Map<string, number>();
+    for (const t of $topics) {
+      const idx = t.key.indexOf(":");
+      const prefix = idx !== -1 ? t.key.slice(0, idx) : "other";
+      counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort(([a], [b]) => {
+      if (a === "other") return 1;
+      if (b === "other") return -1;
+      return a.localeCompare(b);
+    });
+  })();
+
+  $: filtered = $topics
+    .filter(
+      (t) =>
+        !activeType ||
+        t.key.startsWith(activeType + ":") ||
+        (activeType === "other" && !t.key.includes(":")),
+    )
+    .filter((t) => {
+      if (!activeStatus) return true;
+      if (activeStatus === "conflicts")
+        return $conflictQueue.some((c) => c.key === t.key);
+      if (activeStatus === "removed") return t.meta.removedFromRemote === true;
+      if (activeStatus === "recent")
+        return (
+          new Date(t.meta.updatedAt) >
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        );
+      return true;
+    })
+    .filter(
+      (t) =>
+        !searchQuery ||
+        t.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.text.slice(0, 200).toLowerCase().includes(searchQuery.toLowerCase()),
+    );
 
   async function createNewTopic() {
     const key = prompt('Enter a unique topic key (e.g. "my-character"):');
@@ -200,14 +236,50 @@
     />
   </div>
 
+  <div class="filter-bar">
+    <button
+      class="chip"
+      class:chip-active={activeType === null}
+      on:click={() => (activeType = null)}
+    >All</button>
+    {#each typePrefixes as [prefix, count]}
+      <button
+        class="chip"
+        class:chip-active={activeType === prefix}
+        on:click={() => (activeType = activeType === prefix ? null : prefix)}
+      >{prefix} <span class="chip-count">{count}</span></button>
+    {/each}
+
+    <span class="chip-divider" aria-hidden="true"></span>
+
+    <button
+      class="chip"
+      class:chip-active={activeStatus === "conflicts"}
+      on:click={() =>
+        (activeStatus = activeStatus === "conflicts" ? null : "conflicts")}
+    >⚠ Conflicts</button>
+    <button
+      class="chip"
+      class:chip-active={activeStatus === "removed"}
+      on:click={() =>
+        (activeStatus = activeStatus === "removed" ? null : "removed")}
+    >🗑 Removed from Remote</button>
+    <button
+      class="chip"
+      class:chip-active={activeStatus === "recent"}
+      on:click={() =>
+        (activeStatus = activeStatus === "recent" ? null : "recent")}
+    >🕐 Recent</button>
+  </div>
+
   {#if $syncState.status === "error"}
     <div class="alert alert-error">{$syncState.error ?? "Sync error"}</div>
   {/if}
 
   {#if filtered.length === 0}
     <div class="empty-state">
-      {#if searchQuery}
-        <p>No topics match "<strong>{searchQuery}</strong>"</p>
+      {#if searchQuery || activeType || activeStatus}
+        <p>No topics match the current filters.</p>
       {:else}
         <p>No topics yet. Create one or import a bundle.</p>
       {/if}
@@ -294,6 +366,49 @@
 
   .search-input:focus {
     border-color: var(--accent);
+  }
+
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.78rem;
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    white-space: nowrap;
+  }
+
+  .chip:hover {
+    border-color: var(--accent);
+    color: var(--fg);
+  }
+
+  .chip-active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  .chip-count {
+    opacity: 0.7;
+  }
+
+  .chip-divider {
+    display: inline-block;
+    width: 1px;
+    height: 1rem;
+    background: var(--border);
+    margin: 0 0.25rem;
+    flex-shrink: 0;
   }
 
   .topic-grid {
