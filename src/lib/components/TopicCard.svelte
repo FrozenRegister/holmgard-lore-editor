@@ -39,7 +39,7 @@
   $: hasXml = /```xml/i.test(topic.text);
 </script>
 
-<article
+<div
   class="topic-card"
   class:removed={topic.meta.removedFromRemote}
   on:click={() => dispatch("open")}
@@ -69,7 +69,7 @@
       🗑
     </button>
   </div>
-</article>
+</div>
 
 <style>
   .topic-card {
@@ -141,6 +141,7 @@
     margin: 0;
     line-height: 1.5;
     display: -webkit-box;
+    line-clamp: 3;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;

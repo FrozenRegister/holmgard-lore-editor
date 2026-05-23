@@ -206,6 +206,7 @@
 
   .modal-header {
     padding: 1.25rem 1.5rem 0;
+    flex-shrink: 0;
   }
 
   .modal-header h2 {
@@ -236,6 +237,7 @@
     padding: 0.75rem 1.5rem 0;
     border-bottom: 1px solid var(--border);
     overflow-x: auto;
+    flex-shrink: 0;
   }
 
   .tab {
