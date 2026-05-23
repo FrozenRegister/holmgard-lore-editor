@@ -26,7 +26,8 @@ export const syncState = writable<SyncState>({ status: 'idle' });
 
 // ── Active conflict waiting for resolution ────────────────────────────────────
 
-export const activeConflict = writable<ConflictInfo | null>(null);
+export const conflictQueue = writable<ConflictInfo[]>([]);
+export const activeConflict = derived(conflictQueue, $q => $q[0] ?? null);
 
 // ── UI state ──────────────────────────────────────────────────────────────────
 

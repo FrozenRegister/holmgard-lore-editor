@@ -16,10 +16,11 @@
     dequeuePendingDeletes,
   } from "$lib/sync";
   import { getAdminSecret } from "$lib/auth";
-  import { activeConflict } from "$lib/stores";
+  import { conflictQueue } from "$lib/stores";
   import TopicCard from "$lib/components/TopicCard.svelte";
   import NewFromTemplate from "$lib/components/NewFromTemplate.svelte";
-  import type { Topic } from "$lib/types";
+  // Add ConflictInfo to the types import:
+  import type { Topic, ConflictInfo } from "$lib/types";
 
   let searchQuery = "";
   let showTemplateModal = false;
@@ -87,6 +88,7 @@
       // ── Pull remote state (deleted keys are now gone from KV) ───────────────
       const remote = await pullAll($settings.workerHost);
       const localMap = new Map($topics.map((t) => [t.key, t]));
+      const conflicts: ConflictInfo[] = [];
 
       // Merge in new remote topics
       const newTopics: Topic[] = [];
@@ -103,13 +105,8 @@
           const local = localMap.get(key)!;
           const conflict = detectConflict(local, rTopic, null);
           if (conflict) {
-            activeConflict.set(conflict);
-            syncState.set({ status: "conflict" });
-            showToast(
-              `Conflict detected on "${key}" — review required`,
-              "warning",
-            );
-            return;
+            conflicts.push(conflict);
+            continue; // keep processing remaining topics instead of bailing
           }
 
           // ── Sync meta forward if remote is newer ─────────────────────────────────
@@ -119,6 +116,15 @@
             topics.update((ts) => ts.map((t) => (t.key === key ? updated : t)));
           }
         }
+      }
+      // After the `for (const [key, rTopic] of remote)` loop closes, add:
+      if (conflicts.length) {
+        conflictQueue.set(conflicts);
+        syncState.set({ status: "conflict" });
+        showToast(
+          `${conflicts.length} conflict${conflicts.length > 1 ? "s" : ""} detected — review required`,
+          "warning",
+        );
       }
 
       if (newTopics.length) {
@@ -138,9 +144,11 @@
         }
       }
 
-      const now = new Date().toISOString();
-      syncState.set({ status: "success", lastSync: now });
-      showToast(`Synced ${remote.size} remote topics`, "success");
+      if (!conflicts.length) {
+        const now = new Date().toISOString();
+        syncState.set({ status: "success", lastSync: now });
+        showToast(`Synced ${remote.size} remote topics`, "success");
+      }
     } catch (err: any) {
       syncState.set({ status: "error", error: err.message });
       showToast("Sync failed — check connection", "error");
@@ -149,12 +157,15 @@
     }
   }
 </script>
-<svelte:window on:keydown={(e) => {
-  if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    if (!syncing) syncAll();
-  }
-}} />
+
+<svelte:window
+  on:keydown={(e) => {
+    if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (!syncing) syncAll();
+    }
+  }}
+/>
 
 <div class="page topic-list-page">
   <header class="page-header">

@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import Sidebar from '$lib/components/Sidebar.svelte';
-  import { topics, settings, syncState, toasts, initialising, showToast, activeConflict } from '$lib/stores';
+  import { topics, settings, syncState, toasts, initialising, showToast, conflictQueue } from '$lib/stores';
   import { loadAllTopics, loadSettings } from '$lib/storage';
   import { setupMarked } from '$lib/marked-config';
   import { loadDemoData } from '$lib/demo-data';
@@ -53,9 +53,7 @@
 </div>
 
 <!-- Conflict resolver modal -->
-{#if $activeConflict}
-  <ConflictResolver conflict={$activeConflict} />
-{/if}
+<ConflictResolver />
 
 <!-- Toast notifications -->
 <div class="toast-stack" aria-live="polite">
