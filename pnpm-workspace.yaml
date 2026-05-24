@@ -4,3 +4,7 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - svelte-preprocess
+
+allowBuilds:
+  esbuild: true
+  svelte-preprocess: true
