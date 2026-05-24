@@ -2,7 +2,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { topics, syncState, settings, showToast, activeConflict } from '$lib/stores';
+  import { topics, syncState, settings, showToast } from '$lib/stores';
   import { saveTopic, loadTopic } from '$lib/storage';
   import { pushHistory, loadHistory } from '$lib/history';
   import { adminSave, enqueue } from '$lib/sync';
