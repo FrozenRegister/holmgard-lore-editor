@@ -15,10 +15,11 @@
   let resizeObserver: ResizeObserver | null = null;
 
   onMount(async () => {
-    monaco = await loader.init();
+    const m = await loader.init();
+    monaco = m;
 
     // Define the Holmgard dark theme
-    monaco.editor.defineTheme('holmgard-dark', {
+    m.editor.defineTheme('holmgard-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [
@@ -45,7 +46,7 @@
       },
     });
 
-    editor = monaco.editor.create(container, {
+    const e = m.editor.create(container, {
       value,
       language,
       theme: 'holmgard-dark',
@@ -65,9 +66,10 @@
       tabSize: 2,
       insertSpaces: true,
     });
+    editor = e;
 
-    editor.onDidChangeModelContent(() => {
-      const newValue = editor!.getValue();
+    e.onDidChangeModelContent(() => {
+      const newValue = e.getValue();
       if (newValue !== value) {
         value = newValue;
         dispatch('change', newValue);

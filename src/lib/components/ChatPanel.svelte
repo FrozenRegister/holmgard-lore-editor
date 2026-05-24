@@ -4,10 +4,8 @@
   import { chatOpen, chatMessages, showToast } from '$lib/stores';
   import { streamChat } from '$lib/claude';
   import { getClaudeApiKey } from '$lib/auth';
-  import type { ChatMessage, ConversationMessage } from '$lib/stores';
-
-  // Re-export type so it resolves (ConversationMessage comes from claude.ts)
-  import type { ConversationMessage as ApiMsg } from '$lib/claude';
+  import type { ChatMessage } from '$lib/stores';
+  import type { ConversationMessage } from '$lib/claude';
 
   let messagesEl: HTMLElement;
   let inputEl: HTMLTextAreaElement;
@@ -16,7 +14,7 @@
   let hasApiKey: boolean | null = null; // null = not checked yet
 
   // Simple string-based history for the API (no tool call blocks in user-facing history)
-  let apiHistory: ApiMsg[] = [];
+  let apiHistory: ConversationMessage[] = [];
 
   // Check key whenever panel opens
   $: if ($chatOpen) checkApiKey();
