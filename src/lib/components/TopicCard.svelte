@@ -8,10 +8,13 @@
 
   function getPreview(text: string): string {
     return text
-      .replace(/```[\s\S]*?```/g, "")
-      .replace(/^#{1,6}\s.*$/mg, "")
-      .replace(/[*_`]/g, "")
-      .replace(/\n{3,}/g, "\n\n")
+      .replace(/```[\s\S]*?```/g, "")   // fenced code blocks
+      .replace(/^#{1,6}\s.*$/mg, "")    // heading lines
+      .replace(/^>\s+/mg, "")           // blockquote markers
+      .replace(/^[-*]\s+/mg, "")        // unordered list markers
+      .replace(/^\d+\.\s+/mg, "")       // ordered list markers
+      .replace(/[*_`]/g, "")            // inline formatting
+      .replace(/\s+/g, " ")             // collapse all whitespace to single space
       .trim()
       .slice(0, 400);
   }

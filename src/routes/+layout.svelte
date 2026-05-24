@@ -8,6 +8,7 @@
   import { setupMarked } from '$lib/marked-config';
   import { loadDemoData } from '$lib/demo-data';
   import ConflictResolver from '$lib/components/ConflictResolver.svelte';
+  import ChatPanel from '$lib/components/ChatPanel.svelte';
   import '../app.css';
 
   onMount(async () => {
@@ -54,6 +55,9 @@
 
 <!-- Conflict resolver modal -->
 <ConflictResolver />
+
+<!-- Claude chat panel -->
+<ChatPanel />
 
 <!-- Toast notifications -->
 <div class="toast-stack" aria-live="polite">

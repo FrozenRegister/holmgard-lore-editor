@@ -3,6 +3,7 @@
   import { settings, showToast } from '$lib/stores';
   import { loadSettings, saveSettings } from '$lib/storage';
   import { encryptSecret, decryptSecret } from '$lib/crypto';
+  import { getClaudeApiKey, setClaudeApiKey, clearClaudeApiKey } from '$lib/auth';
   import type { AppSettings } from '$lib/types';
 
   const IS_TAURI = typeof window !== 'undefined' && '__TAURI__' in window;
@@ -14,6 +15,10 @@
   let saving = false;
   let secretLoaded = false;
   let masterKeySet = false;
+
+  let claudeApiKeyInput = '';
+  let claudeApiKeySet = false;
+  let savingClaudeKey = false;
 
   onMount(async () => {
     const s = await loadSettings();
@@ -37,6 +42,9 @@
         }
       } catch { /* running in browser */ }
     }
+
+    const existingKey = await getClaudeApiKey();
+    claudeApiKeySet = !!existingKey;
   });
 
   async function saveAll() {
@@ -100,6 +108,36 @@
       } catch (err: any) {
         showToast(`Failed: ${err.message}`, 'error');
       }
+    }
+  }
+
+  async function saveClaudeKey() {
+    if (!claudeApiKeyInput.trim()) {
+      showToast('Paste your API key first', 'error');
+      return;
+    }
+    savingClaudeKey = true;
+    try {
+      await setClaudeApiKey(claudeApiKeyInput.trim());
+      claudeApiKeySet = true;
+      claudeApiKeyInput = '';
+      showToast('Claude API key saved', 'success');
+    } catch (err: any) {
+      showToast(`Failed: ${err.message}`, 'error');
+    } finally {
+      savingClaudeKey = false;
+    }
+  }
+
+  async function removeClaudeKey() {
+    if (!confirm('Remove the Claude API key?')) return;
+    try {
+      await clearClaudeApiKey();
+      claudeApiKeySet = false;
+      claudeApiKeyInput = '';
+      showToast('Claude API key removed', 'success');
+    } catch (err: any) {
+      showToast(`Failed: ${err.message}`, 'error');
     }
   }
 
@@ -229,6 +267,50 @@
           >
             {showSecret ? 'Hide' : 'Show'}
           </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Claude API -->
+    <section class="settings-section">
+      <h2>Claude AI</h2>
+      <p class="section-desc">
+        Used for the in-app lore assistant. Get your key at
+        <strong>console.anthropic.com</strong> → API Keys.
+        Stored securely in the OS keyring — never written to disk.
+      </p>
+
+      <div class="field">
+        <label for="claudeApiKey">
+          API Key
+          {#if claudeApiKeySet}
+            <span class="badge badge-ok">Set ✓</span>
+          {:else}
+            <span class="badge badge-warn">Not set</span>
+          {/if}
+        </label>
+        <div class="input-row">
+          <input
+            id="claudeApiKey"
+            type="password"
+            bind:value={claudeApiKeyInput}
+            placeholder="sk-ant-api03-…"
+            class="text-input"
+            autocomplete="new-password"
+          />
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            on:click={saveClaudeKey}
+            disabled={savingClaudeKey}
+          >
+            {savingClaudeKey ? 'Saving…' : 'Save'}
+          </button>
+          {#if claudeApiKeySet}
+            <button type="button" class="btn btn-ghost btn-sm danger" on:click={removeClaudeKey}>
+              Remove
+            </button>
+          {/if}
         </div>
       </div>
     </section>

@@ -1,8 +1,15 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { topics, syncState } from '$lib/stores';
+  import { topics, syncState, chatOpen } from '$lib/stores';
+  import { getClaudeApiKey } from '$lib/auth';
 
   export let currentPath: string = '/';
+
+  let hasClaudeKey = false;
+  onMount(async () => {
+    hasClaudeKey = !!(await getClaudeApiKey());
+  });
 
   const navItems = [
     { href: '/',              label: 'Topics',        icon: '📚' },
@@ -42,6 +49,20 @@
       </li>
     {/each}
   </ul>
+
+  {#if hasClaudeKey}
+  <div class="chat-toggle-wrap">
+    <button
+      class="chat-toggle"
+      class:chat-toggle-active={$chatOpen}
+      on:click={() => chatOpen.update((v) => !v)}
+      title="Claude chat (lore assistant)"
+    >
+      <span class="nav-icon" aria-hidden="true">✦</span>
+      <span>Claude</span>
+    </button>
+  </div>
+  {/if}
 
   <div class="sidebar-footer">
     <div class="sync-status" title="Sync status: {$syncState.status}">
@@ -142,6 +163,39 @@
   }
 
   .nav-icon { font-size: 1rem; line-height: 1; }
+
+  .chat-toggle-wrap {
+    padding: 0.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .chat-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 7px;
+    border: none;
+    background: none;
+    color: var(--fg-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    text-align: left;
+  }
+
+  .chat-toggle:hover {
+    background: var(--surface2);
+    color: var(--fg);
+  }
+
+  .chat-toggle-active {
+    background: rgba(201, 168, 76, 0.15);
+    color: var(--accent);
+    font-weight: 600;
+  }
 
   .sidebar-footer {
     display: flex;

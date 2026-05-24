@@ -151,7 +151,8 @@ export function detectConflict(
   remote: RemoteTopic,
   base: string | null
 ): ConflictInfo | null {
-  if (remote.text === local.text) return null;
+  if (local.text === remote.text) return null;
+  if (remote.meta.version > local.meta.version) return null; // remote is ahead — clean update, not a conflict
   if (base !== null && remote.text === base) return null; // remote unchanged since last sync
 
   return {
@@ -217,6 +218,20 @@ export async function flushQueue(
 
 // ── Full sync cycle ───────────────────────────────────────────────────────────
 
+async function withConcurrency<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>
+): Promise<void> {
+  const queue = [...items];
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (queue.length) {
+      await fn(queue.shift()!);
+    }
+  });
+  await Promise.all(workers);
+}
+
 /**
  * Pull all topics from remote and return a map of remote topics.
  * Callers compare with local state to detect conflicts.
@@ -224,11 +239,9 @@ export async function flushQueue(
 export async function pullAll(host: string): Promise<Map<string, RemoteTopic>> {
   const keys = await listTopicsRemote(host);
   const map = new Map<string, RemoteTopic>();
-  await Promise.all(
-    keys.map(async (key) => {
-      const t = await getTopicRemote(host, key);
-      if (t) map.set(key, t);
-    })
-  );
+  await withConcurrency(keys, 5, async (key) => {
+    const t = await getTopicRemote(host, key);
+    if (t) map.set(key, t);
+  });
   return map;
 }
