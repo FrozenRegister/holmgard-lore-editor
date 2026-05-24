@@ -26,6 +26,13 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
 
+      - name: Debug workspace
+        run: |
+          echo "PWD: $(pwd)"
+          echo "Files at root:"; ls -la
+          echo "pnpm-workspace.yaml:"; [ -f pnpm-workspace.yaml ] && sed -n '1,120p' pnpm-workspace.yaml || echo "MISSING"
+          echo "pnpm-lock.yaml present?"; [ -f pnpm-lock.yaml ] && echo "FOUND" || echo "MISSING"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -47,6 +54,13 @@ jobs:
         with:
           node-version: '20'
           cache: pnpm
+
+      - name: Debug workspace
+        run: |
+          echo "PWD: $(pwd)"
+          echo "Files at root:"; ls -la
+          echo "pnpm-workspace.yaml:"; [ -f pnpm-workspace.yaml ] && sed -n '1,120p' pnpm-workspace.yaml || echo "MISSING"
+          echo "pnpm-lock.yaml present?"; [ -f pnpm-lock.yaml ] && echo "FOUND" || echo "MISSING"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -113,6 +127,13 @@ jobs:
         with:
           node-version: '20'
           cache: pnpm
+
+      - name: Debug workspace
+        run: |
+          echo "PWD: $(pwd)"
+          echo "Files at root:"; ls -la
+          echo "pnpm-workspace.yaml:"; [ -f pnpm-workspace.yaml ] && sed -n '1,120p' pnpm-workspace.yaml || echo "MISSING"
+          echo "pnpm-lock.yaml present?"; [ -f pnpm-lock.yaml ] && echo "FOUND" || echo "MISSING"
 
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
