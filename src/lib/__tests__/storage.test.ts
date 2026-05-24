@@ -6,7 +6,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ── Mock @tauri-apps/api/tauri ─────────────────────────────────────────────
 
 const invokeMap: Record<string, unknown> = {};
-const invokeMock = vi.fn(async (cmd: string, args?: Record<string, unknown>) => {
+
+const { invokeMock } = vi.hoisted(() => {
+  // Must run before storage.ts is imported so IS_TAURI evaluates to true
+  Object.defineProperty(globalThis, '__TAURI__', { value: {}, configurable: true });
+  const invokeMock = vi.fn();
+  return { invokeMock };
+});
+
+invokeMock.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
   if (cmd === 'fs_read') {
     const key = `${args?.path}`;
     const val = invokeMap[key];
@@ -31,9 +39,6 @@ const invokeMock = vi.fn(async (cmd: string, args?: Record<string, unknown>) => 
 });
 
 vi.mock('@tauri-apps/api/tauri', () => ({ invoke: invokeMock }));
-
-// Trick the IS_TAURI check
-Object.defineProperty(globalThis, '__TAURI__', { value: {}, configurable: true });
 
 // Import AFTER mocking
 import {

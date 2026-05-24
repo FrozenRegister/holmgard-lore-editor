@@ -152,7 +152,6 @@ export function detectConflict(
   base: string | null
 ): ConflictInfo | null {
   if (local.text === remote.text) return null;
-  if (remote.meta.version > local.meta.version) return null; // remote is ahead — clean update, not a conflict
   if (base !== null && remote.text === base) return null; // remote unchanged since last sync
 
   return {
