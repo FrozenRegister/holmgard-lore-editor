@@ -62,6 +62,7 @@ export interface AppSettings {
   encryptedSecret?: string; // AES-GCM ciphertext (base64), backed up on disk
   iv?: string;              // base64 IV used during encryption
   autoSyncIntervalSecs: number; // 0 = disabled; default 30
+  autoSync: boolean;
   syncHistory: boolean;  // when false, remote syncs skip writing history entries
 }
 

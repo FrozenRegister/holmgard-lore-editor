@@ -21,7 +21,7 @@
   let saving = false;
   let secretLoaded = false;
   let masterKeySet = false;
-
+  let autoSync = true;
   let claudeApiKeyInput = "";
   let claudeApiKeySet = false;
   let savingClaudeKey = false;
@@ -30,6 +30,7 @@
     const s = await loadSettings();
     workerHost = s.workerHost;
     autoSyncIntervalSecs = s.autoSyncIntervalSecs ?? 30;
+    autoSync = s.autoSync ?? true;
     syncHistory = s.syncHistory ?? false;
     settings.set(s);
 
@@ -71,6 +72,7 @@
         ...$settings,
         workerHost: workerHost.trim(),
         autoSyncIntervalSecs,
+        autoSync,
         syncHistory,
       };
 
@@ -249,13 +251,30 @@
       </p>
 
       <div class="field">
+        <label class="toggle-label" for="autoSync">
+          Enable auto-sync
+          <span class="toggle-desc">
+            Automatically pull remote changes on the interval below.
+            Disable to sync manually only.
+          </span>
+        </label>
+        <label class="toggle">
+          <input id="autoSync" type="checkbox" bind:checked={autoSync} />
+          <span class="toggle-track">
+            <span class="toggle-thumb" />
+          </span>
+          <span class="toggle-value">{autoSync ? "On" : "Off"}</span>
+        </label>
+      </div>
+
+      <div class="field">
         <label for="autoSyncInterval">Pull interval</label>
         <select
           id="autoSyncInterval"
           bind:value={autoSyncIntervalSecs}
           class="select-input"
+          disabled={!autoSync}
         >
-          <option value={0}>Off</option>
           <option value={10}>Every 10 seconds</option>
           <option value={15}>Every 15 seconds</option>
           <option value={30}>Every 30 seconds</option>
@@ -424,6 +443,7 @@
     </div>
   </form>
 </div>
+
 
 <style>
   .settings-page {

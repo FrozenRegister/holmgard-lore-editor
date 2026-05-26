@@ -16,13 +16,13 @@
   let dataLoaded = false;
 
   // Restart interval whenever the setting changes (or when data first loads)
-  $: if (dataLoaded) {
-    if (autoSyncTimer) clearInterval(autoSyncTimer);
-    autoSyncTimer = null;
-    if ($settings.autoSyncIntervalSecs > 0) {
-      autoSyncTimer = setInterval(runSync, $settings.autoSyncIntervalSecs * 1000);
-    }
-  }
+ $: if (dataLoaded) {
+   if (autoSyncTimer) clearInterval(autoSyncTimer);
+   autoSyncTimer = null;
+   if ($settings.autoSync && $settings.autoSyncIntervalSecs > 0) {
+     autoSyncTimer = setInterval(runSync, $settings.autoSyncIntervalSecs * 1000);
+   }
+ }
 
   onDestroy(() => {
     if (autoSyncTimer) clearInterval(autoSyncTimer);
