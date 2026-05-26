@@ -1,20 +1,21 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { topics, syncState, settings, showToast } from '$lib/stores';
   import { saveTopic, loadTopic } from '$lib/storage';
   import { pushHistory, loadHistory } from '$lib/history';
   import { adminSave, enqueue } from '$lib/sync';
+  import { getAdminSecret } from '$lib/auth';
   import { renderMarkdown } from '$lib/marked-config';
   import MonacoEditor from '$lib/components/MonacoEditor.svelte';
   import MarkdownPreview from '$lib/components/MarkdownPreview.svelte';
   import type { Topic, HistoryEntry } from '$lib/types';
 
-  // ── Route param ───────────────────────────────────────────────────────────
+  // ── Route param ───────────────────────────────────────────────────────────────
   $: key = $page.params.key ? decodeURIComponent($page.params.key) : '';
 
-  // ── State ─────────────────────────────────────────────────────────────────
+  // ── State ─────────────────────────────────────────────────────────────────────
   let topic: Topic | null = null;
   let editorText = '';
   let isSaving = false;
@@ -26,17 +27,14 @@
   let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   const AUTOSAVE_DELAY = 5000;
 
-  // ── Load topic ────────────────────────────────────────────────────────────
-  onMount(async () => {
-    await loadCurrent();
-  });
-
+  // ── Load topic ────────────────────────────────────────────────────────────────
+  // Single load trigger — reactive statement handles both initial mount and
+  // SPA navigation (avoids the double-fire that onMount + $: caused).
   $: if (key) loadCurrent();
 
   async function loadCurrent() {
     const t = await loadTopic(key);
     if (!t) {
-      // Try from store
       const found = $topics.find((x) => x.key === key);
       if (found) {
         topic = found;
@@ -52,7 +50,7 @@
     isDirty = false;
   }
 
-  // ── Autosave ──────────────────────────────────────────────────────────────
+  // ── Autosave ──────────────────────────────────────────────────────────────────
   function scheduleAutosave() {
     if (autosaveTimer) clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(performSave, AUTOSAVE_DELAY);
@@ -81,9 +79,7 @@
       await pushHistory(key, editorText, updated.meta.version, 'local');
       topic = updated;
       isDirty = false;
-      topics.update((ts) =>
-        ts.map((t) => (t.key === key ? updated : t))
-      );
+      topics.update((ts) => ts.map((t) => (t.key === key ? updated : t)));
     } catch (err) {
       console.error('Save error:', err);
       showToast('Save failed', 'error');
@@ -92,10 +88,10 @@
     }
   }
 
-  // ── Sync to remote ────────────────────────────────────────────────────────
+  // ── Sync to remote ────────────────────────────────────────────────────────────
   async function syncTopic() {
     if (!topic) return;
-    // Save locally first
+
     if (isDirty) await performSave();
 
     isSyncing = true;
@@ -108,6 +104,13 @@
       }
       await adminSave($settings.workerHost, topic!.key, topic!.text, secret);
       const now = new Date().toISOString();
+
+      // Update syncedAt locally so the footer timestamp reflects reality
+      const synced: Topic = { ...topic!, meta: { ...topic!.meta, syncedAt: now } };
+      await saveTopic(synced);
+      topic = synced;
+      topics.update((ts) => ts.map((t) => (t.key === key ? synced : t)));
+
       syncState.set({ status: 'success', lastSync: now });
       showToast('Synced to remote', 'success');
     } catch (err: any) {
@@ -119,16 +122,7 @@
     }
   }
 
-  async function getAdminSecret(): Promise<string | null> {
-    if ('__TAURI__' in window) {
-      const { invoke } = await import('@tauri-apps/api/tauri');
-      return await invoke<string | null>('keyring_get', { account: 'admin_secret' });
-    }
-    return localStorage.getItem('hle:adminSecret');
-  }
-
-
-  // ── Version history ───────────────────────────────────────────────────────
+  // ── Version history ───────────────────────────────────────────────────────────
   async function openHistory() {
     historyEntries = await loadHistory(key);
     showHistory = true;
@@ -142,21 +136,14 @@
     showToast(`Restored version ${entry.version}`, 'info');
   }
 
-  // ── Cleanup ───────────────────────────────────────────────────────────────
+  // ── Cleanup ───────────────────────────────────────────────────────────────────
   onDestroy(() => {
     if (autosaveTimer) clearTimeout(autosaveTimer);
     if (isDirty) performSave();
   });
 </script>
 
-<svelte:window
-  on:beforeunload={(e) => {
-    if (isDirty) {
-      e.preventDefault();
-      e.returnValue = '';
-    }
-  }}
-/>
+<svelte:window on:beforeunload={(e) => { if (isDirty) { e.preventDefault(); e.returnValue = ''; } }} />
 
 <div class="editor-page">
   <!-- Toolbar -->
@@ -165,7 +152,6 @@
       ← Topics
     </button>
     <h2 class="topic-key">{key}</h2>
-
     <div class="toolbar-right">
       {#if isSaving}
         <span class="status-badge saving">Saving…</span>
@@ -174,13 +160,10 @@
       {:else}
         <span class="status-badge saved">Saved</span>
       {/if}
-
       <button class="btn btn-ghost btn-sm" on:click={() => (showPreview = !showPreview)}>
         {showPreview ? 'Hide Preview' : 'Show Preview'}
       </button>
-      <button class="btn btn-ghost btn-sm" on:click={openHistory}>
-        History
-      </button>
+      <button class="btn btn-ghost btn-sm" on:click={openHistory}>History</button>
       <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
         Save
       </button>
@@ -197,7 +180,6 @@
         <MonacoEditor value={editorText} on:change={handleEditorChange} />
       {/if}
     </div>
-
     {#if showPreview}
       <div class="preview-pane">
         <MarkdownPreview markdown={editorText} />
@@ -259,7 +241,6 @@
     height: 100%;
     overflow: hidden;
   }
-
   .editor-toolbar {
     display: flex;
     align-items: center;
@@ -269,7 +250,6 @@
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }
-
   .topic-key {
     font-size: 1rem;
     font-weight: 600;
@@ -280,13 +260,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
-  .toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
+  .toolbar-right { display: flex; align-items: center; gap: 0.4rem; }
   .status-badge {
     font-size: 0.75rem;
     padding: 0.15rem 0.5rem;
@@ -296,30 +270,20 @@
   .saving  { background: rgba(201, 168, 76, 0.2); color: var(--accent); }
   .dirty   { background: rgba(255, 183, 77, 0.2); color: #ffb74d; }
   .saved   { background: rgba(76, 175, 80, 0.15); color: #81c784; }
-
   .editor-body {
     flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
     overflow: hidden;
   }
-
-  .editor-body.preview-hidden {
-    grid-template-columns: 1fr;
-  }
-
+  .editor-body.preview-hidden { grid-template-columns: 1fr; }
   .editor-pane {
     display: flex;
     flex-direction: column;
     overflow: hidden;
     border-right: 1px solid var(--border);
   }
-
-  .preview-pane {
-    overflow: auto;
-    background: var(--bg);
-  }
-
+  .preview-pane { overflow: auto; background: var(--bg); }
   .editor-footer {
     display: flex;
     gap: 0.5rem;
@@ -330,8 +294,6 @@
     border-top: 1px solid var(--border);
     flex-shrink: 0;
   }
-
-  /* History overlay */
   .history-overlay {
     position: fixed;
     inset: 0;
@@ -340,7 +302,6 @@
     display: flex;
     justify-content: flex-end;
   }
-
   .history-panel {
     width: min(380px, 90vw);
     background: var(--surface);
@@ -349,7 +310,6 @@
     flex-direction: column;
     border-left: 1px solid var(--border);
   }
-
   .history-header {
     display: flex;
     align-items: center;
@@ -357,9 +317,7 @@
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border);
   }
-
   .history-header h3 { margin: 0; font-size: 1rem; }
-
   .history-list {
     list-style: none;
     margin: 0;
@@ -367,7 +325,6 @@
     overflow-y: auto;
     flex: 1;
   }
-
   .history-list li {
     display: flex;
     align-items: center;
@@ -376,14 +333,12 @@
     border-radius: 6px;
     gap: 0.5rem;
   }
-
   .history-list li:hover { background: var(--surface2); }
-
   .hist-meta { display: flex; flex-direction: column; gap: 0.15rem; }
-  .hist-top { display: flex; align-items: center; gap: 0.4rem; }
+  .hist-top  { display: flex; align-items: center; gap: 0.4rem; }
   .hist-version { font-weight: 700; font-size: 0.85rem; color: var(--accent); }
-  .hist-date { font-size: 0.75rem; color: var(--fg-muted); }
-  .hist-source {
+  .hist-date    { font-size: 0.75rem; color: var(--fg-muted); }
+  .hist-source  {
     font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -393,13 +348,7 @@
   }
   .hist-source--remote   { background: rgba(100, 180, 255, 0.15); color: #64b4ff; }
   .hist-source--conflict { background: rgba(255, 183, 77, 0.15);  color: #ffb74d; }
-
-  .empty-hist {
-    text-align: center;
-    color: var(--fg-muted);
-    padding: 2rem;
-  }
-
+  .empty-hist { text-align: center; color: var(--fg-muted); padding: 2rem; }
   .btn-icon {
     background: none;
     border: none;
