@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { invokeMock, fetchMock } = vi.hoisted(() => {
   Object.defineProperty(globalThis, '__TAURI__', { value: {}, configurable: true });
   const invokeMock = vi.fn();
-  const fetchMock  = vi.fn();
+  const fetchMock = vi.fn();
   globalThis.fetch = fetchMock as any;
   return { invokeMock, fetchMock };
 });
@@ -32,7 +32,7 @@ function makeRemote(key: string, text: string, version: number): Topic {
 }
 
 function makeSettings(host = 'http://worker'): AppSettings {
-  return { workerHost: host, autoSyncIntervalSecs: 0 };
+  return { workerHost: host, autoSyncIntervalSecs: 0, syncHistory: false };
 }
 
 function okFetch(data: object) {
@@ -161,7 +161,7 @@ describe('flushQueue', () => {
   it('sends a POST for each queued item', async () => {
     fetchMock.mockResolvedValue({ ok: true } as Response);
     await enqueue('dragons', 'text');
-    await flushQueue(makeSettings(), 'secret', () => {});
+    await flushQueue(makeSettings(), 'secret', () => { });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/admin/set-lore'),
       expect.objectContaining({ method: 'POST' })
@@ -171,20 +171,20 @@ describe('flushQueue', () => {
   it('clears the queue on success', async () => {
     fetchMock.mockResolvedValue({ ok: true } as Response);
     await enqueue('elves', 'text');
-    await flushQueue(makeSettings(), 'secret', () => {});
+    await flushQueue(makeSettings(), 'secret', () => { });
     const q = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
     expect(q).toHaveLength(0);
   });
 
   it('does nothing when queue is empty', async () => {
-    await flushQueue(makeSettings(), 'secret', () => {});
+    await flushQueue(makeSettings(), 'secret', () => { });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('increments attempts on failure', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
     await enqueue('orcs', 'text');
-    await flushQueue(makeSettings(), 'secret', () => {});
+    await flushQueue(makeSettings(), 'secret', () => { });
     const q = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
     expect(q[0].attempts).toBe(1);
   });

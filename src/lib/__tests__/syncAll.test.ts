@@ -1,176 +1,280 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// ── Must run before any import that touches storage or stores ─────────────────
-const { invokeMock, fetchMock } = vi.hoisted(() => {
-  Object.defineProperty(globalThis, '__TAURI__', { value: {}, configurable: true });
-  const invokeMock = vi.fn();
-  const fetchMock  = vi.fn();
-  globalThis.fetch = fetchMock as any;
-  return { invokeMock, fetchMock };
+// ── Hoisted: all mock dependencies created before any import runs ─────────────
+const mocks = vi.hoisted(() => {
+  function makeStore<T>(initial: T) {
+    let _val = initial;
+    return {
+      get val() { return _val; },
+      set(v: T)                     { _val = v; },
+      update(fn: (v: T) => T)       { _val = fn(_val); },
+      subscribe(fn: (v: T) => void) { fn(_val); return () => {}; },
+    };
+  }
+
+  const conflictEvents: any[][] = [];
+
+  return {
+    invokeMock:         vi.fn(),
+    pullAllMock:        vi.fn(),
+    detectConflictMock: vi.fn(),
+    adminDeleteMock:    vi.fn(),
+    saveTopicMock:      vi.fn(),
+    pushHistoryMock:    vi.fn(),
+    flushQueueMock:     vi.fn(),
+    getAdminSecretMock: vi.fn(),
+    enqueuePendingDeleteMock: vi.fn(),
+    dequeueMock:        vi.fn(),
+    showToastMock:      vi.fn(),
+
+    topicsStore:   makeStore<any[]>([]),
+    settingsStore: makeStore<any>({
+      workerHost: 'http://worker',
+      autoSyncIntervalSecs: 0,
+      syncHistory: false,
+    }),
+    syncStateStore: makeStore<any>({ status: 'idle' }),
+
+    conflictEvents,
+    conflictQueueMock: {
+      set:    vi.fn((v: any) => { conflictEvents.push(v); }),
+      update: vi.fn((fn: any) => { conflictEvents.push(fn([])); }),
+    },
+  };
 });
 
-vi.mock('@tauri-apps/api/tauri', () => ({ invoke: invokeMock }));
+// ── Replace svelte/store get() so our makeStore objects work with it ──────────
+vi.mock('svelte/store', async () => {
+  const actual = await vi.importActual<typeof import('svelte/store')>('svelte/store');
+  return { ...actual, get: (store: { val: unknown }) => store.val };
+});
 
-// ── Controllable store state ──────────────────────────────────────────────────
-import { readable, writable, get } from 'svelte/store';
-import type { Topic, AppSettings } from '../types';
-
-const localTopics   = writable<Topic[]>([]);
-const localSettings = writable<AppSettings>({ workerHost: 'http://worker', autoSyncIntervalSecs: 0 });
-const conflictEvents: any[] = [];
+vi.mock('@tauri-apps/api/tauri', () => ({ invoke: mocks.invokeMock }));
 
 vi.mock('../stores', () => ({
-  topics:        localTopics,
-  settings:      localSettings,
-  syncState:     { set: vi.fn() },
-  conflictQueue: { set: vi.fn((v: any) => conflictEvents.push(v)), update: vi.fn() },
-  showToast:     vi.fn(),
+  topics:        mocks.topicsStore,
+  settings:      mocks.settingsStore,
+  syncState:     mocks.syncStateStore,
+  conflictQueue: mocks.conflictQueueMock,
+  showToast:     mocks.showToastMock,
 }));
 
-// ── Mock ../sync so runSync doesn't make real network calls ───────────────────
-const pullAllMock       = vi.fn();
-const detectConflictMock = vi.fn();
-const enqueueMock        = vi.fn();
-const flushQueueMock     = vi.fn();
-const dequeueMock        = vi.fn();
-
 vi.mock('../sync', () => ({
-  pullAll:               pullAllMock,
-  detectConflict:        detectConflictMock,
-  enqueue:               enqueueMock,
-  flushQueue:            flushQueueMock,
-  dequeuePendingDeletes: dequeueMock,
-  enqueuePendingDelete:  vi.fn(),
+  pullAll:               mocks.pullAllMock,
+  detectConflict:        mocks.detectConflictMock,
+  adminDelete:           mocks.adminDeleteMock,
+  enqueue:               vi.fn(),
+  flushQueue:            mocks.flushQueueMock,
+  dequeuePendingDeletes: mocks.dequeueMock,
+  enqueuePendingDelete:  mocks.enqueuePendingDeleteMock,
+}));
+
+vi.mock('../storage', () => ({
+  saveTopic:     mocks.saveTopicMock,
+  loadAllTopics: vi.fn(async () => mocks.topicsStore.val),
+}));
+
+vi.mock('../history', () => ({
+  pushHistory: mocks.pushHistoryMock,
+}));
+
+vi.mock('../auth', () => ({
+  getAdminSecret: mocks.getAdminSecretMock,
 }));
 
 // Import AFTER all mocks
 import { runSync } from '../syncAll';
+import type { Topic } from '../types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function makeTopic(key: string, text: string, version: number): Topic {
   return { key, text, meta: { version, updatedAt: '2026-01-01T00:00:00.000Z' } };
 }
 
-const invokeStore: Record<string, string> = {};
-
 beforeEach(() => {
-  Object.keys(invokeStore).forEach((k) => delete invokeStore[k]);
-  localStorage.clear();
-  fetchMock.mockReset();
-  invokeMock.mockReset();
-  pullAllMock.mockReset();
-  detectConflictMock.mockReset();
-  enqueueMock.mockReset();
-  flushQueueMock.mockReset();
-  dequeueMock.mockReset();
-  conflictEvents.length = 0;
-
-  localTopics.set([]);
-  localSettings.set({ workerHost: 'http://worker', autoSyncIntervalSecs: 0 });
-
-  dequeueMock.mockReturnValue([]);
-
-  invokeMock.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
-    if (cmd === 'fs_read') {
-      const val = invokeStore[`${args?.path}`];
-      if (val === undefined) throw new Error('Not found');
-      return val;
-    }
-    if (cmd === 'fs_write') { invokeStore[`${args?.path}`] = args?.content as string; return; }
-    if (cmd === 'fs_delete') { delete invokeStore[`${args?.path}`]; return; }
-    throw new Error(`Unknown: ${cmd}`);
-  });
+  vi.clearAllMocks();
+  mocks.conflictEvents.length = 0;
+  mocks.topicsStore.set([]);
+  mocks.settingsStore.set({ workerHost: 'http://worker', autoSyncIntervalSecs: 0, syncHistory: false });
+  mocks.syncStateStore.set({ status: 'idle' });
+  mocks.dequeueMock.mockReturnValue([]);
+  mocks.saveTopicMock.mockResolvedValue(undefined);
+  mocks.pushHistoryMock.mockResolvedValue(undefined);
+  mocks.flushQueueMock.mockResolvedValue(undefined);
+  mocks.pullAllMock.mockResolvedValue(new Map());
+  mocks.detectConflictMock.mockReturnValue(null);
+  mocks.getAdminSecretMock.mockResolvedValue(null);
 });
 
-// ── Clean remote-ahead update ─────────────────────────────────────────────────
-describe('runSync — clean remote-ahead update', () => {
-  it('saves updated topic when remote version is higher', async () => {
-    const local = makeTopic('dragons', 'old text', 2);
-    localTopics.set([local]);
-    pullAllMock.mockResolvedValue(new Map([
-      ['dragons', makeTopic('dragons', 'new text', 3)]
-    ]));
-    detectConflictMock.mockReturnValue(null);
+// ── Remote-ahead update (texts match, only meta differs) ──────────────────────
+describe('runSync — remote-ahead update', () => {
+  it('saves updated meta when remote version is higher and text matches', async () => {
+    // detectConflict returns null only when texts match — so text must be the same
+    const local = makeTopic('dragons', 'same text', 2);
+    const remote = makeTopic('dragons', 'same text', 3);
+    mocks.topicsStore.set([local]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['dragons', remote]]));
+    mocks.detectConflictMock.mockReturnValue(null);
 
     await runSync();
 
-    const saved = JSON.parse(invokeStore['topics/dragons.json'] ?? 'null');
-    expect(saved?.text).toBe('new text');
-    expect(saved?.meta.version).toBe(3);
+    expect(mocks.saveTopicMock).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'dragons', meta: expect.objectContaining({ version: 3 }) })
+    );
   });
 
-  it('does not raise a conflict for clean remote-ahead update', async () => {
-    localTopics.set([makeTopic('elves', 'old', 1)]);
-    pullAllMock.mockResolvedValue(new Map([['elves', makeTopic('elves', 'new', 5)]]));
-    detectConflictMock.mockReturnValue(null);
+  it('does not raise a conflict for a clean remote-ahead update', async () => {
+    const local = makeTopic('elves', 'same', 1);
+    mocks.topicsStore.set([local]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['elves', makeTopic('elves', 'same', 5)]]));
+    mocks.detectConflictMock.mockReturnValue(null);
 
     await runSync();
 
-    expect(conflictEvents).toHaveLength(0);
+    expect(mocks.conflictEvents).toHaveLength(0);
   });
-});
 
-// ── Identical text — no-op ────────────────────────────────────────────────────
-describe('runSync — identical text', () => {
-  it('does not save when text is identical', async () => {
-    localTopics.set([makeTopic('dwarves', 'same text', 1)]);
-    pullAllMock.mockResolvedValue(new Map([['dwarves', makeTopic('dwarves', 'same text', 1)]]));
-    detectConflictMock.mockReturnValue(null);
+  it('does not save when remote version is not higher than local', async () => {
+    const local = makeTopic('dwarves', 'same text', 3);
+    mocks.topicsStore.set([local]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['dwarves', makeTopic('dwarves', 'same text', 3)]]));
+    mocks.detectConflictMock.mockReturnValue(null);
 
     await runSync();
 
-    expect(invokeStore['topics/dwarves.json']).toBeUndefined();
-    expect(conflictEvents).toHaveLength(0);
+    expect(mocks.saveTopicMock).not.toHaveBeenCalled();
   });
 });
 
 // ── True conflict ─────────────────────────────────────────────────────────────
 describe('runSync — true conflict', () => {
-  it('raises a conflict when detectConflict returns ConflictInfo', async () => {
+  it('raises conflict when detectConflict returns ConflictInfo', async () => {
     const conflict = { key: 'orcs', local: 'local', remote: 'remote', base: '', remoteMeta: {} };
-    localTopics.set([makeTopic('orcs', 'local version', 3)]);
-    pullAllMock.mockResolvedValue(new Map([['orcs', makeTopic('orcs', 'remote version', 3)]]));
-    detectConflictMock.mockReturnValue(conflict);
+    mocks.topicsStore.set([makeTopic('orcs', 'local version', 3)]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['orcs', makeTopic('orcs', 'remote version', 3)]]));
+    mocks.detectConflictMock.mockReturnValue(conflict);
 
     await runSync();
 
-    expect(conflictEvents.length).toBeGreaterThan(0);
+    expect(mocks.conflictEvents.length).toBeGreaterThan(0);
   });
 
   it('does not auto-save a conflicted topic', async () => {
     const conflict = { key: 'orcs', local: 'local', remote: 'remote', base: '', remoteMeta: {} };
-    localTopics.set([makeTopic('orcs', 'local version', 3)]);
-    pullAllMock.mockResolvedValue(new Map([['orcs', makeTopic('orcs', 'remote version', 3)]]));
-    detectConflictMock.mockReturnValue(conflict);
+    mocks.topicsStore.set([makeTopic('orcs', 'local version', 3)]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['orcs', makeTopic('orcs', 'remote version', 3)]]));
+    mocks.detectConflictMock.mockReturnValue(conflict);
 
     await runSync();
 
-    expect(invokeStore['topics/orcs.json']).toBeUndefined();
+    expect(mocks.saveTopicMock).not.toHaveBeenCalled();
+  });
+
+  it('sets syncState to conflict when conflicts exist', async () => {
+    const conflict = { key: 'orcs', local: 'a', remote: 'b', base: '', remoteMeta: {} };
+    mocks.topicsStore.set([makeTopic('orcs', 'a', 1)]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['orcs', makeTopic('orcs', 'b', 1)]]));
+    mocks.detectConflictMock.mockReturnValue(conflict);
+
+    await runSync();
+
+    expect(mocks.syncStateStore.val.status).toBe('conflict');
   });
 });
 
 // ── New remote topic ──────────────────────────────────────────────────────────
 describe('runSync — new remote topic', () => {
   it('saves a topic that exists remotely but not locally', async () => {
-    localTopics.set([]);
-    pullAllMock.mockResolvedValue(new Map([
-      ['new-topic', makeTopic('new-topic', 'brand new', 1)]
-    ]));
-    detectConflictMock.mockReturnValue(null);
+    mocks.topicsStore.set([]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['new-topic', makeTopic('new-topic', 'brand new', 1)]]));
 
     await runSync();
 
-    const saved = JSON.parse(invokeStore['topics/new-topic.json'] ?? 'null');
-    expect(saved?.text).toBe('brand new');
+    expect(mocks.saveTopicMock).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'new-topic', text: 'brand new' })
+    );
+  });
+
+  it('calls pushHistory for new remote topics when syncHistory is true', async () => {
+    mocks.settingsStore.set({ workerHost: 'http://worker', autoSyncIntervalSecs: 0, syncHistory: true });
+    mocks.topicsStore.set([]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['elves', makeTopic('elves', 'new', 1)]]));
+
+    await runSync();
+
+    expect(mocks.pushHistoryMock).toHaveBeenCalled();
+  });
+
+  it('does not call pushHistory when syncHistory is false', async () => {
+    mocks.settingsStore.set({ workerHost: 'http://worker', autoSyncIntervalSecs: 0, syncHistory: false });
+    mocks.topicsStore.set([]);
+    mocks.pullAllMock.mockResolvedValue(new Map([['elves', makeTopic('elves', 'new', 1)]]));
+
+    await runSync();
+
+    expect(mocks.pushHistoryMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── Concurrent sync guard ─────────────────────────────────────────────────────
+describe('runSync — concurrency guard', () => {
+  it('exits immediately when already syncing', async () => {
+    mocks.syncStateStore.set({ status: 'syncing' });
+
+    await runSync();
+
+    expect(mocks.pullAllMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── Pending deletes ───────────────────────────────────────────────────────────
+describe('runSync — pending deletes', () => {
+  it('calls adminDelete for each pending key when secret is available', async () => {
+    mocks.dequeueMock.mockReturnValue(['old-topic']);
+    mocks.getAdminSecretMock.mockResolvedValue('secret');
+    mocks.adminDeleteMock.mockResolvedValue(undefined);
+
+    await runSync();
+
+    expect(mocks.adminDeleteMock).toHaveBeenCalledWith('http://worker', 'old-topic', 'secret');
+  });
+
+  it('re-queues failed deletes', async () => {
+    mocks.dequeueMock.mockReturnValue(['bad-topic']);
+    mocks.getAdminSecretMock.mockResolvedValue('secret');
+    mocks.adminDeleteMock.mockRejectedValue(new Error('network'));
+
+    await runSync();
+
+    expect(mocks.enqueuePendingDeleteMock).toHaveBeenCalledWith('bad-topic');
+  });
+
+  it('re-queues all pending deletes when no secret available', async () => {
+    mocks.dequeueMock.mockReturnValue(['key-a', 'key-b']);
+    mocks.getAdminSecretMock.mockResolvedValue(null);
+
+    await runSync();
+
+    expect(mocks.enqueuePendingDeleteMock).toHaveBeenCalledWith('key-a', 0, expect.any(Array));
+    expect(mocks.enqueuePendingDeleteMock).toHaveBeenCalledWith('key-b', 1, expect.any(Array));
+    expect(mocks.adminDeleteMock).not.toHaveBeenCalled();
   });
 });
 
 // ── Empty remote ──────────────────────────────────────────────────────────────
 describe('runSync — empty remote', () => {
   it('does not throw when pullAll returns an empty map', async () => {
-    localTopics.set([makeTopic('dragons', 'text', 1)]);
-    pullAllMock.mockResolvedValue(new Map());
+    mocks.topicsStore.set([makeTopic('dragons', 'text', 1)]);
+    mocks.pullAllMock.mockResolvedValue(new Map());
 
     await expect(runSync()).resolves.not.toThrow();
+  });
+
+  it('sets syncState to success when no conflicts', async () => {
+    mocks.pullAllMock.mockResolvedValue(new Map());
+
+    await runSync();
+
+    expect(mocks.syncStateStore.val.status).toBe('success');
   });
 });

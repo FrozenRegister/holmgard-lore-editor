@@ -19,6 +19,7 @@ export const topicMap = derived(topics, ($topics) => {
 export const settings = writable<AppSettings>({
   workerHost: 'https://holmgard-lore-mcp.frozenregister.workers.dev',
   autoSyncIntervalSecs: 30,
+  syncHistory: false,
 });
 
 // ── Sync state ────────────────────────────────────────────────────────────────

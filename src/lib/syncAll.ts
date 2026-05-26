@@ -49,7 +49,9 @@ export async function runSync(): Promise<void> {
       if (!localMap.has(key)) {
         const t: Topic = { key, text: rTopic.text, meta: { ...rTopic.meta } };
         await saveTopic(t);
-        await pushHistory(key, rTopic.text, rTopic.meta.version, 'remote');
+        if ($settings.syncHistory) {
+          await pushHistory(key, rTopic.text, rTopic.meta.version, 'remote');
+        }
         newTopics.push(t);
       } else {
         const local = localMap.get(key)!;
