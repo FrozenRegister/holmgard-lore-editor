@@ -11,7 +11,7 @@
   import ChatPanel from '$lib/components/ChatPanel.svelte';
   import { runSync, runSmartSync } from '$lib/syncAll';
   import '../app.css';
-
+ 
   let autoSyncTimer: ReturnType<typeof setInterval> | null = null;
   let dataLoaded = false;
 
