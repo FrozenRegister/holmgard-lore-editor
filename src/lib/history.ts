@@ -37,13 +37,15 @@ export async function loadHistory(key: string): Promise<HistoryEntry[]> {
 export async function pushHistory(
   key: string,
   text: string,
-  version: number
+  version: number,
+  source?: HistoryEntry['source']
 ): Promise<void> {
   const entries = await loadHistory(key);
   const entry: HistoryEntry = {
     savedAt: new Date().toISOString(),
     version,
     text,
+    ...(source ? { source } : {}),
   };
   // Newest first; trim to MAX_ENTRIES
   const updated = [entry, ...entries].slice(0, MAX_ENTRIES);

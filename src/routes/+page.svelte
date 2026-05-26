@@ -1,26 +1,12 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import {
-    topics,
-    syncState,
-    settings,
-    showToast,
-    initialising,
-  } from "$lib/stores";
+  import { topics, syncState, showToast, conflictQueue } from "$lib/stores";
   import { saveTopic, deleteTopic } from "$lib/storage";
-  import {
-    pullAll,
-    adminDelete,
-    detectConflict,
-    enqueuePendingDelete,
-    dequeuePendingDeletes,
-  } from "$lib/sync";
-  import { getAdminSecret } from "$lib/auth";
-  import { conflictQueue } from "$lib/stores";
+  import { enqueuePendingDelete } from "$lib/sync";
+  import { runSync } from "$lib/syncAll";
   import TopicCard from "$lib/components/TopicCard.svelte";
   import NewFromTemplate from "$lib/components/NewFromTemplate.svelte";
-  // Add ConflictInfo to the types import:
-  import type { Topic, ConflictInfo } from "$lib/types";
+  import type { Topic } from "$lib/types";
 
   let searchQuery = "";
   let showTemplateModal = false;
@@ -115,96 +101,8 @@
 
   async function syncAll() {
     syncing = true;
-    syncState.set({ status: "syncing" });
     try {
-      // ── Flush pending deletes to KV before pulling ──────────────────────────
-      // ── Flush pending deletes to KV before pulling ──────────────────────────
-      const pendingDeletes = dequeuePendingDeletes();
-      if (pendingDeletes.length) {
-        const secret = await getAdminSecret();
-        if (secret) {
-          for (const key of pendingDeletes) {
-            try {
-              await adminDelete($settings.workerHost, key, secret);
-            } catch (err) {
-              enqueuePendingDelete(key); // re-queue so next sync retries it
-              console.warn(`Delete failed for "${key}", re-queued:`, err);
-            }
-          }
-        } else {
-          // No secret available — re-queue everything and skip
-          pendingDeletes.forEach(enqueuePendingDelete);
-          console.warn("No admin secret available, skipping pending deletes");
-        }
-      }
-
-      // ── Pull remote state (deleted keys are now gone from KV) ───────────────
-      const remote = await pullAll($settings.workerHost);
-      const localMap = new Map($topics.map((t) => [t.key, t]));
-      const conflicts: ConflictInfo[] = [];
-
-      // Merge in new remote topics
-      const newTopics: Topic[] = [];
-      for (const [key, rTopic] of remote) {
-        if (!localMap.has(key)) {
-          const t: Topic = {
-            key,
-            text: rTopic.text,
-            meta: { ...rTopic.meta },
-          };
-          await saveTopic(t);
-          newTopics.push(t);
-        } else {
-          const local = localMap.get(key)!;
-          const conflict = detectConflict(local, rTopic, null);
-          if (conflict) {
-            conflicts.push(conflict);
-            continue; // keep processing remaining topics instead of bailing
-          }
-
-          // ── Sync meta forward if remote is newer ─────────────────────────────────
-          if ((rTopic.meta.version ?? 0) > (local.meta.version ?? 0)) {
-            const updated: Topic = { ...local, meta: { ...rTopic.meta } };
-            await saveTopic(updated);
-            topics.update((ts) => ts.map((t) => (t.key === key ? updated : t)));
-          }
-        }
-      }
-      // After the `for (const [key, rTopic] of remote)` loop closes, add:
-      if (conflicts.length) {
-        conflictQueue.set(conflicts);
-        syncState.set({ status: "conflict" });
-        showToast(
-          `${conflicts.length} conflict${conflicts.length > 1 ? "s" : ""} detected — review required`,
-          "warning",
-        );
-      }
-
-      if (newTopics.length) {
-        topics.update((ts) =>
-          [...ts, ...newTopics].sort((a, b) => a.key.localeCompare(b.key)),
-        );
-      }
-      // ── Flag local topics no longer present on remote ──────────────────────
-      for (const [key, local] of localMap) {
-        if (!remote.has(key) && !local.meta.removedFromRemote) {
-          const flagged: Topic = {
-            ...local,
-            meta: { ...local.meta, removedFromRemote: true },
-          };
-          await saveTopic(flagged);
-          topics.update((ts) => ts.map((t) => (t.key === key ? flagged : t)));
-        }
-      }
-
-      if (!conflicts.length) {
-        const now = new Date().toISOString();
-        syncState.set({ status: "success", lastSync: now });
-        showToast(`Synced ${remote.size} remote topics`, "success");
-      }
-    } catch (err: any) {
-      syncState.set({ status: "error", error: err.message });
-      showToast("Sync failed — check connection", "error");
+      await runSync();
     } finally {
       syncing = false;
     }

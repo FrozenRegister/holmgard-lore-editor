@@ -94,6 +94,7 @@ export async function deleteTopic(key: string): Promise<void> {
 const SETTINGS_PATH = 'settings.json';
 const DEFAULT_SETTINGS: AppSettings = {
   workerHost: 'https://holmgard-lore-mcp.frozenregister.workers.dev',
+  autoSyncIntervalSecs: 30,
 };
 
 export async function loadSettings(): Promise<AppSettings> {

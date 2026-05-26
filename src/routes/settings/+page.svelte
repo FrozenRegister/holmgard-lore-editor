@@ -9,6 +9,7 @@
   const IS_TAURI = typeof window !== 'undefined' && '__TAURI__' in window;
 
   let workerHost = '';
+  let autoSyncIntervalSecs = 30;
   let adminSecretInput = '';
   let masterKeyInput = '';
   let showSecret = false;
@@ -23,6 +24,7 @@
   onMount(async () => {
     const s = await loadSettings();
     workerHost = s.workerHost;
+    autoSyncIntervalSecs = s.autoSyncIntervalSecs ?? 30;
     settings.set(s);
 
     if (IS_TAURI) {
@@ -55,7 +57,7 @@
 
     saving = true;
     try {
-      let updatedSettings: AppSettings = { ...$settings, workerHost: workerHost.trim() };
+      let updatedSettings: AppSettings = { ...$settings, workerHost: workerHost.trim(), autoSyncIntervalSecs };
 
       if (IS_TAURI) {
         const { invoke } = await import('@tauri-apps/api/tauri');
@@ -186,6 +188,28 @@
             Test
           </button>
         </div>
+      </div>
+    </section>
+
+    <!-- Auto-sync -->
+    <section class="settings-section">
+      <h2>Auto-Sync</h2>
+      <p class="section-desc">
+        Automatically pull updates from the remote worker on a schedule.
+        Conflicts are always queued for manual review — nothing is silently overwritten.
+      </p>
+
+      <div class="field">
+        <label for="autoSyncInterval">Pull interval</label>
+        <select id="autoSyncInterval" bind:value={autoSyncIntervalSecs} class="select-input">
+          <option value={0}>Off</option>
+          <option value={10}>Every 10 seconds</option>
+          <option value={15}>Every 15 seconds</option>
+          <option value={30}>Every 30 seconds</option>
+          <option value={60}>Every minute</option>
+          <option value={120}>Every 2 minutes</option>
+          <option value={300}>Every 5 minutes</option>
+        </select>
       </div>
     </section>
 
@@ -400,6 +424,21 @@
   }
 
   .text-input:focus { border-color: var(--accent); }
+
+  .select-input {
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .select-input:focus { border-color: var(--accent); }
 
   .input-row {
     display: flex;

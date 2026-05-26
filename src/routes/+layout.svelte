@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import Sidebar from '$lib/components/Sidebar.svelte';
@@ -9,7 +9,24 @@
   import { loadDemoData } from '$lib/demo-data';
   import ConflictResolver from '$lib/components/ConflictResolver.svelte';
   import ChatPanel from '$lib/components/ChatPanel.svelte';
+  import { runSync } from '$lib/syncAll';
   import '../app.css';
+
+  let autoSyncTimer: ReturnType<typeof setInterval> | null = null;
+  let dataLoaded = false;
+
+  // Restart interval whenever the setting changes (or when data first loads)
+  $: if (dataLoaded) {
+    if (autoSyncTimer) clearInterval(autoSyncTimer);
+    autoSyncTimer = null;
+    if ($settings.autoSyncIntervalSecs > 0) {
+      autoSyncTimer = setInterval(runSync, $settings.autoSyncIntervalSecs * 1000);
+    }
+  }
+
+  onDestroy(() => {
+    if (autoSyncTimer) clearInterval(autoSyncTimer);
+  });
 
   onMount(async () => {
     setupMarked();
@@ -32,6 +49,7 @@
       showToast('Failed to load local data', 'error');
     } finally {
       initialising.set(false);
+      dataLoaded = true;
     }
   });
 

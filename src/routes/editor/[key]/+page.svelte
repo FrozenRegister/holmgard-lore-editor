@@ -78,7 +78,7 @@
         },
       };
       await saveTopic(updated);
-      await pushHistory(key, editorText, updated.meta.version);
+      await pushHistory(key, editorText, updated.meta.version, 'local');
       topic = updated;
       isDirty = false;
       topics.update((ts) =>
@@ -233,7 +233,12 @@
           {#each historyEntries as entry}
             <li>
               <div class="hist-meta">
-                <span class="hist-version">v{entry.version}</span>
+                <div class="hist-top">
+                  <span class="hist-version">v{entry.version}</span>
+                  {#if entry.source && entry.source !== 'local'}
+                    <span class="hist-source hist-source--{entry.source}">{entry.source}</span>
+                  {/if}
+                </div>
                 <span class="hist-date">{new Date(entry.savedAt).toLocaleString()}</span>
               </div>
               <button class="btn btn-secondary btn-sm" on:click={() => restoreVersion(entry)}>
@@ -375,8 +380,19 @@
   .history-list li:hover { background: var(--surface2); }
 
   .hist-meta { display: flex; flex-direction: column; gap: 0.15rem; }
+  .hist-top { display: flex; align-items: center; gap: 0.4rem; }
   .hist-version { font-weight: 700; font-size: 0.85rem; color: var(--accent); }
   .hist-date { font-size: 0.75rem; color: var(--fg-muted); }
+  .hist-source {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+  }
+  .hist-source--remote   { background: rgba(100, 180, 255, 0.15); color: #64b4ff; }
+  .hist-source--conflict { background: rgba(255, 183, 77, 0.15);  color: #ffb74d; }
 
   .empty-hist {
     text-align: center;

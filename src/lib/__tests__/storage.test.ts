@@ -137,6 +137,7 @@ describe('loadSettings', () => {
       workerHost: 'https://custom.example.com',
       encryptedSecret: 'abc',
       iv: 'iv123',
+      autoSyncIntervalSecs: 60,
     };
     await saveSettings(saved);
     const loaded = await loadSettings();

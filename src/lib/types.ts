@@ -19,6 +19,7 @@ export interface HistoryEntry {
   savedAt: string;
   version: number;
   text: string;
+  source?: 'local' | 'remote' | 'conflict';
 }
 
 // ── Sync ──────────────────────────────────────────────────────────────────────
@@ -60,6 +61,7 @@ export interface AppSettings {
   workerHost: string; // e.g. https://holmgard-lore-mcp.frozenregister.workers.dev
   encryptedSecret?: string; // AES-GCM ciphertext (base64), backed up on disk
   iv?: string;              // base64 IV used during encryption
+  autoSyncIntervalSecs: number; // 0 = disabled; default 30
 }
 
 // ── Import / Export bundle ────────────────────────────────────────────────────

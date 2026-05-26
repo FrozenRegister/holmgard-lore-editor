@@ -1,6 +1,7 @@
 <script lang="ts">
   import { conflictQueue, topics, showToast, settings } from "$lib/stores";
   import { saveTopic } from "$lib/storage";
+  import { pushHistory } from "$lib/history";
   import { adminSave, enqueue } from "$lib/sync";
   import { getAdminSecret } from "$lib/auth";
   import type { Topic } from "$lib/types";
@@ -57,6 +58,7 @@
       },
     };
     await saveTopic(updated);
+    await pushHistory(c.key, chosenText, updated.meta.version, 'conflict');
     topics.update((ts) => ts.map((t) => (t.key === c.key ? updated : t)));
     try {
       const secret = await getAdminSecret();
