@@ -244,3 +244,24 @@ export async function pullAll(host: string): Promise<Map<string, RemoteTopic>> {
   });
   return map;
 }
+
+// ── Changelog (delta sync) ─────────────────────────────────────────────────────
+export interface ChangelogEntry {
+  key: string
+  version: number
+  updatedAt: string
+  op: 'write' | 'delete' | string
+}
+
+/**
+ * Fetch only the write events that occurred after `since`.
+ * Costs exactly 1 KV read on the server — no per-topic reads.
+ * Throws on network failure so callers can fall back to a full sync.
+ */
+export async function getChanges(host: string, since: string): Promise<ChangelogEntry[]> {
+  const url = `${host}/changes?since=${encodeURIComponent(since)}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+  const json = await res.json() as { changes?: ChangelogEntry[] }
+  return json.changes ?? []
+}

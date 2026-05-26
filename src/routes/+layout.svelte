@@ -9,20 +9,31 @@
   import { loadDemoData } from '$lib/demo-data';
   import ConflictResolver from '$lib/components/ConflictResolver.svelte';
   import ChatPanel from '$lib/components/ChatPanel.svelte';
-  import { runSync } from '$lib/syncAll';
+  import { runSync, runSmartSync } from '$lib/syncAll';
   import '../app.css';
 
   let autoSyncTimer: ReturnType<typeof setInterval> | null = null;
   let dataLoaded = false;
 
   // Restart interval whenever the setting changes (or when data first loads)
- $: if (dataLoaded) {
-   if (autoSyncTimer) clearInterval(autoSyncTimer);
-   autoSyncTimer = null;
-   if ($settings.autoSync && $settings.autoSyncIntervalSecs > 0) {
-     autoSyncTimer = setInterval(runSync, $settings.autoSyncIntervalSecs * 1000);
-   }
- }
+  $: if (dataLoaded) {
+    if (autoSyncTimer) clearInterval(autoSyncTimer)
+    autoSyncTimer = null
+    if ($settings.autoSyncIntervalSecs > 0) {
+      autoSyncTimer = setInterval(async () => {
+        // Use smart sync (changelog-first) for auto-sync — costs 1 KV read
+        // when nothing changed instead of N reads for every topic.
+        const lastSync = $syncState.lastSync
+        if (lastSync) {
+          const ok = await runSmartSync(lastSync)
+          if (ok) return // handled delta-only, no full pull needed
+        }
+        // First run (no lastSync yet) or changelog fetch failed — do a full pull
+        await runSync()
+      }, $settings.autoSyncIntervalSecs * 1000)
+    }
+  }
+
 
   onDestroy(() => {
     if (autoSyncTimer) clearInterval(autoSyncTimer);
