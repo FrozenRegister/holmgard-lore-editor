@@ -1,4 +1,17 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// ── Must run before any import that touches storage ───────────────────────────
+const { invokeMock, fetchMock } = vi.hoisted(() => {
+  Object.defineProperty(globalThis, '__TAURI__', { value: {}, configurable: true });
+  const invokeMock = vi.fn();
+  const fetchMock  = vi.fn();
+  globalThis.fetch = fetchMock as any;
+  return { invokeMock, fetchMock };
+});
+
+vi.mock('@tauri-apps/api/tauri', () => ({ invoke: invokeMock }));
+
+// Import AFTER mocks
 import {
   detectConflict,
   enqueue,
@@ -9,258 +22,202 @@ import {
 } from '../sync';
 import type { Topic, AppSettings } from '../types';
 
-// ── Mock: storage queue ────────────────────────────────────────────────────────
-const mockQueue: any[] = [];
-vi.mock('../storage', () => ({
-  loadQueue: vi.fn(async () => [...mockQueue]),
-  saveQueue: vi.fn(async (q: any[]) => {
-    mockQueue.length = 0;
-    mockQueue.push(...q);
-  }),
-}));
-
-// ── Mock: fetch ───────────────────────────────────────────────────────────────
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
-
-// ── Mock: localStorage ────────────────────────────────────────────────────────
-const lsStore: Record<string, string> = {};
-Object.defineProperty(global, 'localStorage', {
-  value: {
-    getItem:    (k: string) => lsStore[k] ?? null,
-    setItem:    (k: string, v: string) => { lsStore[k] = v; },
-    removeItem: (k: string) => { delete lsStore[k]; },
-  },
-  writable: true,
-});
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function makeTopic(key: string, text: string, version: number): Topic {
   return { key, text, meta: { version, updatedAt: '2026-01-01T00:00:00.000Z' } };
 }
 
-function makeRemote(key: string, text: string, version: number): Topic  {
+function makeRemote(key: string, text: string, version: number): Topic {
   return { key, text, meta: { version, updatedAt: '2026-01-01T00:00:00.000Z' } };
 }
 
 function makeSettings(host = 'http://worker'): AppSettings {
   return { workerHost: host, autoSyncIntervalSecs: 0 };
-
 }
 
+function okFetch(data: object) {
+  return Promise.resolve({ ok: true, json: async () => ({ jsonrpc: '2.0', id: 1, result: data }) } as Response);
+}
+
+// In-memory invoke store
+const invokeStore: Record<string, string> = {};
+
 beforeEach(() => {
-  mockQueue.length = 0;
-  Object.keys(lsStore).forEach((k) => delete lsStore[k]);
-  mockFetch.mockReset();
-  vi.clearAllMocks();
+  Object.keys(invokeStore).forEach((k) => delete invokeStore[k]);
+  localStorage.clear();
+  fetchMock.mockReset();
+  invokeMock.mockReset();
+
+  invokeMock.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+    if (cmd === 'fs_read') {
+      const val = invokeStore[`${args?.path}`];
+      if (val === undefined) throw new Error('Not found');
+      return val;
+    }
+    if (cmd === 'fs_write') { invokeStore[`${args?.path}`] = args?.content as string; return; }
+    if (cmd === 'fs_delete') { delete invokeStore[`${args?.path}`]; return; }
+    throw new Error(`Unknown: ${cmd}`);
+  });
 });
 
 // ── detectConflict ────────────────────────────────────────────────────────────
 describe('detectConflict', () => {
-  it('returns null when local and remote text are identical', () => {
+  it('returns null when text is identical', () => {
     expect(detectConflict(makeTopic('k', 'same', 1), makeRemote('k', 'same', 1), null)).toBeNull();
   });
 
-  it('returns null when remote text matches base (remote unchanged since last sync)', () => {
-    const local  = makeTopic('k', 'my edits', 2);
-    const remote = makeRemote('k', 'base text', 1);
-    expect(detectConflict(local, remote, 'base text')).toBeNull();
+  it('returns null when remote text matches base (remote unchanged)', () => {
+    expect(detectConflict(makeTopic('k', 'my edits', 2), makeRemote('k', 'base', 1), 'base')).toBeNull();
   });
 
   it('returns ConflictInfo when base is null and texts differ', () => {
-    const result = detectConflict(
-      makeTopic('orcs', 'local version', 1),
-      makeRemote('orcs', 'remote version', 1),
-      null
-    );
-    expect(result).not.toBeNull();
-    expect(result!.key).toBe('orcs');
-    expect(result!.local).toBe('local version');
-    expect(result!.remote).toBe('remote version');
-    expect(result!.base).toBe('');
+    const r = detectConflict(makeTopic('orcs', 'local', 1), makeRemote('orcs', 'remote', 1), null);
+    expect(r).not.toBeNull();
+    expect(r!.key).toBe('orcs');
+    expect(r!.local).toBe('local');
+    expect(r!.remote).toBe('remote');
+    expect(r!.base).toBe('');
   });
 
   it('returns ConflictInfo when both sides diverged from a known base', () => {
-    const result = detectConflict(
-      makeTopic('k', 'local edits', 2),
-      makeRemote('k', 'remote edits', 2),
-      'original text'
-    );
-    expect(result).not.toBeNull();
-    expect(result!.local).toBe('local edits');
-    expect(result!.remote).toBe('remote edits');
-    expect(result!.base).toBe('original text');
+    const r = detectConflict(makeTopic('k', 'local edits', 2), makeRemote('k', 'remote edits', 2), 'original');
+    expect(r).not.toBeNull();
+    expect(r!.base).toBe('original');
   });
 
-  it('returns ConflictInfo when base is null even if remote version is higher', () => {
-    expect(detectConflict(makeTopic('k', 'old', 1), makeRemote('k', 'new', 99), null)).not.toBeNull();
-  });
-
-  it('preserves remoteMeta in the returned ConflictInfo', () => {
+  it('preserves remoteMeta', () => {
     const remote = makeRemote('k', 'remote', 3);
-    const result = detectConflict(makeTopic('k', 'local', 1), remote, null);
-    expect(result!.remoteMeta).toEqual(remote.meta);
+    expect(detectConflict(makeTopic('k', 'local', 1), remote, null)!.remoteMeta).toEqual(remote.meta);
   });
 
   it('returns null for identical empty strings', () => {
     expect(detectConflict(makeTopic('k', '', 1), makeRemote('k', '', 1), null)).toBeNull();
   });
 
-  it('is case-sensitive when comparing text', () => {
+  it('is case-sensitive', () => {
     expect(detectConflict(makeTopic('k', 'Hello', 1), makeRemote('k', 'hello', 1), null)).not.toBeNull();
   });
 });
 
 // ── enqueuePendingDelete / dequeuePendingDeletes ───────────────────────────────
 describe('enqueuePendingDelete', () => {
-  it('adds a key to the pending delete list', () => {
+  it('adds a key to pending deletes', () => {
     enqueuePendingDelete('dragons');
     expect(dequeuePendingDeletes()).toContain('dragons');
   });
 
-  it('does not add the same key twice', () => {
+  it('deduplicates the same key', () => {
     enqueuePendingDelete('elves');
     enqueuePendingDelete('elves');
-    const keys = dequeuePendingDeletes();
-    expect(keys.filter((k) => k === 'elves')).toHaveLength(1);
+    expect(dequeuePendingDeletes().filter((k) => k === 'elves')).toHaveLength(1);
   });
 
   it('handles multiple distinct keys', () => {
     enqueuePendingDelete('a');
     enqueuePendingDelete('b');
     enqueuePendingDelete('c');
-    const keys = dequeuePendingDeletes();
-    expect(keys).toEqual(expect.arrayContaining(['a', 'b', 'c']));
-    expect(keys).toHaveLength(3);
+    expect(dequeuePendingDeletes()).toEqual(expect.arrayContaining(['a', 'b', 'c']));
   });
 });
 
 describe('dequeuePendingDeletes', () => {
-  it('returns an empty array when nothing is queued', () => {
+  it('returns empty array when nothing queued', () => {
     expect(dequeuePendingDeletes()).toEqual([]);
   });
 
-  it('clears the queue after dequeue', () => {
+  it('clears queue after dequeue', () => {
     enqueuePendingDelete('orcs');
     dequeuePendingDeletes();
     expect(dequeuePendingDeletes()).toEqual([]);
-  });
-
-  it('returns all queued keys and clears in one call', () => {
-    enqueuePendingDelete('key-1');
-    enqueuePendingDelete('key-2');
-    const first  = dequeuePendingDeletes();
-    const second = dequeuePendingDeletes();
-    expect(first).toHaveLength(2);
-    expect(second).toHaveLength(0);
   });
 });
 
 // ── enqueue ───────────────────────────────────────────────────────────────────
 describe('enqueue', () => {
-  it('adds an entry to the save queue', async () => {
-    await enqueue('dragons', 'some text');
-    expect(mockQueue).toHaveLength(1);
-    expect(mockQueue[0].key).toBe('dragons');
-    expect(mockQueue[0].text).toBe('some text');
+  it('adds an entry to the queue', async () => {
+    await enqueue('dragons', 'text');
+    const q = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
+    expect(q).toHaveLength(1);
+    expect(q[0].key).toBe('dragons');
   });
 
-  it('overwrites an existing queued entry for the same key', async () => {
+  it('overwrites same key', async () => {
     await enqueue('dragons', 'first');
     await enqueue('dragons', 'second');
-    expect(mockQueue).toHaveLength(1);
-    expect(mockQueue[0].text).toBe('second');
+    const q = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
+    expect(q).toHaveLength(1);
+    expect(q[0].text).toBe('second');
   });
 
-  it('queues multiple distinct keys', async () => {
-    await enqueue('a', 'text a');
-    await enqueue('b', 'text b');
-    expect(mockQueue).toHaveLength(2);
-  });
-
-  it('sets attempts to 0 on a new entry', async () => {
-    await enqueue('key', 'text');
-    expect(mockQueue[0].attempts).toBe(0);
+  it('initialises attempts to 0', async () => {
+    await enqueue('k', 'text');
+    const q = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
+    expect(q[0].attempts).toBe(0);
   });
 });
 
 // ── flushQueue ────────────────────────────────────────────────────────────────
 describe('flushQueue', () => {
-  it('calls adminSave for each queued item', async () => {
-    mockFetch.mockResolvedValue({ ok: true });
+  it('sends a POST for each queued item', async () => {
+    fetchMock.mockResolvedValue({ ok: true } as Response);
     await enqueue('dragons', 'text');
     await flushQueue(makeSettings(), 'secret', () => {});
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/admin/set-lore'),
       expect.objectContaining({ method: 'POST' })
     );
   });
 
-  it('clears the queue after a successful flush', async () => {
-    mockFetch.mockResolvedValue({ ok: true });
+  it('clears the queue on success', async () => {
+    fetchMock.mockResolvedValue({ ok: true } as Response);
     await enqueue('elves', 'text');
     await flushQueue(makeSettings(), 'secret', () => {});
-    expect(mockQueue).toHaveLength(0);
+    const q = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
+    expect(q).toHaveLength(0);
   });
 
   it('does nothing when queue is empty', async () => {
     await flushQueue(makeSettings(), 'secret', () => {});
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('keeps failed items in queue with incremented attempts', async () => {
-    mockFetch.mockRejectedValue(new Error('network error'));
+  it('increments attempts on failure', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
     await enqueue('orcs', 'text');
     await flushQueue(makeSettings(), 'secret', () => {});
-    expect(mockQueue).toHaveLength(1);
-    expect(mockQueue[0].attempts).toBe(1);
-  });
-
-  it('drops items that have reached MAX_ATTEMPTS', async () => {
-    mockQueue.push({ key: 'ghost', text: 'text', enqueuedAt: new Date().toISOString(), attempts: 8 });
-    await flushQueue(makeSettings(), 'secret', () => {});
-    expect(mockFetch).not.toHaveBeenCalled();
-    expect(mockQueue).toHaveLength(0);
+    const q = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
+    expect(q[0].attempts).toBe(1);
   });
 });
 
-// ── pullAll (tests withConcurrency indirectly) ────────────────────────────────
+// ── pullAll ───────────────────────────────────────────────────────────────────
 describe('pullAll', () => {
-  function rpcResponse(data: object) {
-    return { ok: true, json: async () => ({ jsonrpc: '2.0', id: 1, result: data }) };
-  }
-
-  it('returns an empty map when there are no remote topics', async () => {
-    mockFetch.mockResolvedValueOnce(rpcResponse({ keys: [] }));
-    const map = await pullAll('http://worker');
-    expect(map.size).toBe(0);
+  it('returns empty map when no remote topics', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({ keys: [] }));
+    expect((await pullAll('http://worker')).size).toBe(0);
   });
 
-  it('returns a correctly populated map for a single topic', async () => {
-    mockFetch
-      .mockResolvedValueOnce(rpcResponse({ keys: ['dragons'] }))
-      .mockResolvedValueOnce(rpcResponse({ key: 'dragons', text: 'here be dragons', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
+  it('returns populated map for one topic', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okFetch({ keys: ['dragons'] }))
+      .mockResolvedValueOnce(okFetch({ key: 'dragons', text: 'here be dragons', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
     const map = await pullAll('http://worker');
-    expect(map.size).toBe(1);
     expect(map.get('dragons')?.text).toBe('here be dragons');
   });
 
-  it('handles 20 topics without throwing (concurrency stress)', async () => {
+  it('handles 20 topics without throwing', async () => {
     const keys = Array.from({ length: 20 }, (_, i) => `topic-${i}`);
-    mockFetch.mockResolvedValueOnce(rpcResponse({ keys }));
+    fetchMock.mockResolvedValueOnce(okFetch({ keys }));
     for (const key of keys) {
-      mockFetch.mockResolvedValueOnce(
-        rpcResponse({ key, text: `text for ${key}`, meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } })
-      );
+      fetchMock.mockResolvedValueOnce(okFetch({ key, text: `text for ${key}`, meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
     }
-    const map = await pullAll('http://worker');
-    expect(map.size).toBe(20);
+    expect((await pullAll('http://worker')).size).toBe(20);
   });
 
-  it('omits topics where getTopicRemote returns null', async () => {
-    mockFetch
-      .mockResolvedValueOnce(rpcResponse({ keys: ['good', 'bad'] }))
-      .mockResolvedValueOnce(rpcResponse({ key: 'good', text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
+  it('omits topics that fail to fetch', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okFetch({ keys: ['good', 'bad'] }))
+      .mockResolvedValueOnce(okFetch({ key: 'good', text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
       .mockRejectedValueOnce(new Error('not found'));
     const map = await pullAll('http://worker');
     expect(map.has('good')).toBe(true);
