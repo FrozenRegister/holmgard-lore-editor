@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { topics, syncState, showToast, conflictQueue } from "$lib/stores";
+  import { topics, syncState, showToast, conflictQueue, isMobile } from "$lib/stores";
   import { saveTopic, deleteTopic } from "$lib/storage";
   import { enqueuePendingDelete } from "$lib/sync";
   import { runSync } from "$lib/syncAll";
@@ -129,15 +129,17 @@
         <span class="icon">{syncing ? "↻" : "⇅"}</span>
         {syncing ? "Syncing…" : "Sync"}
       </button>
-      <button
-        class="btn btn-secondary"
-        on:click={() => (showTemplateModal = true)}
-      >
-        ＋ From Template
-      </button>
-      <button class="btn btn-primary" on:click={createNewTopic}>
-        ＋ New Topic
-      </button>
+      {#if !$isMobile}
+        <button
+          class="btn btn-secondary"
+          on:click={() => (showTemplateModal = true)}
+        >
+          ＋ From Template
+        </button>
+        <button class="btn btn-primary" on:click={createNewTopic}>
+          ＋ New Topic
+        </button>
+      {/if}
     </div>
   </header>
 
@@ -213,6 +215,7 @@
       {#each filtered as topic (topic.key)}
         <TopicCard
           {topic}
+          readOnly={$isMobile}
           on:open={() => goto(`/editor/${encodeURIComponent(topic.key)}`)}
           on:delete={() => handleDelete(topic.key)}
         />
@@ -233,6 +236,15 @@
     gap: 1.25rem;
     height: 100%;
     overflow: auto;
+  }
+
+  @media (max-width: 768px) {
+    .topic-list-page { padding: 1rem; gap: 0.85rem; }
+    h1 { font-size: 1.35rem; }
+    .topic-grid { grid-template-columns: 1fr; }
+    .search-bar { grid-template-columns: 1fr; }
+    .sort-label { display: none; }
+    .sort-select { width: 100%; }
   }
 
   .page-header {

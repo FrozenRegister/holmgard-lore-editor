@@ -48,6 +48,9 @@ conflictQueue.subscribe(($q) => {
 /** Key of the topic currently open in the editor */
 export const activeTopicKey = writable<string | null>(null);
 
+/** True when the viewport is mobile-width (≤768px). Set by the root layout. */
+export const isMobile = writable(false);
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
 export interface ChatMessage {

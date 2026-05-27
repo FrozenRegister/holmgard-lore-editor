@@ -1,10 +1,14 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { topics, syncState, chatOpen } from '$lib/stores';
   import { getClaudeApiKey } from '$lib/auth';
 
   export let currentPath: string = '/';
+  /** On mobile the sidebar slides in/out; `open` controls visibility. */
+  export let open: boolean = true;
+
+  const dispatch = createEventDispatcher<{ close: void }>();
 
   let hasClaudeKey = false;
   onMount(async () => {
@@ -33,15 +37,25 @@
       ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   })();
+
+  function handleNavClick() {
+    dispatch('close');
+  }
 </script>
 
-<nav class="sidebar" aria-label="Main navigation">
+<nav class="sidebar" class:mobile-open={open} aria-label="Main navigation">
   <div class="sidebar-brand">
     <span class="brand-rune">⚔</span>
     <div class="brand-text">
       <span class="brand-title">Holmgard</span>
       <span class="brand-sub">Lore Editor</span>
     </div>
+    <!-- Close button shown only on mobile -->
+    <button
+      class="sidebar-close"
+      on:click={() => dispatch('close')}
+      aria-label="Close menu"
+    >✕</button>
   </div>
 
   <ul class="nav-list" role="list">
@@ -52,6 +66,7 @@
           class="nav-link"
           class:active={currentPath === item.href}
           aria-current={currentPath === item.href ? 'page' : undefined}
+          on:click={handleNavClick}
         >
           <span class="nav-icon" aria-hidden="true">{item.icon}</span>
           <span>{item.label}</span>
@@ -121,6 +136,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
+    flex: 1;
   }
 
   .brand-title {
@@ -137,6 +153,27 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
+
+  /* Close button — hidden on desktop, visible on mobile */
+  .sidebar-close {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--fg-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: 6px;
+    line-height: 1;
+    min-width: 36px;
+    min-height: 36px;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.12s, color 0.12s;
+  }
+
+  .sidebar-close:hover { color: var(--fg); background: var(--surface2); }
 
   .nav-list {
     list-style: none;
@@ -238,5 +275,35 @@
     font-size: 0.7rem;
     color: var(--fg-muted);
     opacity: 0.6;
+  }
+
+  /* ── Mobile: sidebar becomes a fixed slide-in overlay ───────── */
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed;
+      top: 48px; /* height of .mobile-topbar */
+      left: 0;
+      height: calc(100vh - 48px);
+      z-index: 200;
+      width: 260px;
+      min-width: 260px;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .sidebar.mobile-open {
+      transform: translateX(0);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .sidebar-close {
+      display: flex;
+    }
+
+    /* Larger touch targets for nav links */
+    .nav-link {
+      padding: 0.75rem 0.85rem;
+      font-size: 1rem;
+    }
   }
 </style>

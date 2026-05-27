@@ -3,6 +3,7 @@
   import type { Topic } from "$lib/types";
 
   export let topic: Topic;
+  export let readOnly = false;
 
   const dispatch = createEventDispatcher<{ open: void; delete: void }>();
 
@@ -65,14 +66,16 @@
 
   <div class="card-footer">
     <span class="updated">v{topic.meta?.version ?? "?"} · {updatedLabel}</span>
-    <button
-      class="btn-delete"
-      on:click|stopPropagation={() => dispatch("delete")}
-      aria-label="Delete topic {topic.key}"
-      title="Delete"
-    >
-      🗑
-    </button>
+    {#if !readOnly}
+      <button
+        class="btn-delete"
+        on:click|stopPropagation={() => dispatch("delete")}
+        aria-label="Delete topic {topic.key}"
+        title="Delete"
+      >
+        🗑
+      </button>
+    {/if}
   </div>
 </div>
 

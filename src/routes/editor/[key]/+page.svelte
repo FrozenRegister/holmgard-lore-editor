@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { onDestroy, tick } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { topics, syncState, settings, showToast } from '$lib/stores';
+  import { topics, syncState, settings, showToast, isMobile } from '$lib/stores';
   import { saveTopic, loadTopic } from '$lib/storage';
   import { pushHistory, loadHistory } from '$lib/history';
   import { adminSave, enqueue } from '$lib/sync';
@@ -28,8 +28,6 @@
   const AUTOSAVE_DELAY = 5000;
 
   // ── Load topic ────────────────────────────────────────────────────────────────
-  // Single load trigger — reactive statement handles both initial mount and
-  // SPA navigation (avoids the double-fire that onMount + $: caused).
   $: if (key) loadCurrent();
 
   async function loadCurrent() {
@@ -91,9 +89,7 @@
   // ── Sync to remote ────────────────────────────────────────────────────────────
   async function syncTopic() {
     if (!topic) return;
-
     if (isDirty) await performSave();
-
     isSyncing = true;
     syncState.set({ status: 'syncing' });
     try {
@@ -104,13 +100,10 @@
       }
       await adminSave($settings.workerHost, topic!.key, topic!.text, secret);
       const now = new Date().toISOString();
-
-      // Update syncedAt locally so the footer timestamp reflects reality
       const synced: Topic = { ...topic!, meta: { ...topic!.meta, syncedAt: now } };
       await saveTopic(synced);
       topic = synced;
       topics.update((ts) => ts.map((t) => (t.key === key ? synced : t)));
-
       syncState.set({ status: 'success', lastSync: now });
       showToast('Synced to remote', 'success');
     } catch (err: any) {
@@ -143,7 +136,7 @@
   });
 </script>
 
-<svelte:window on:beforeunload={(e) => { if (isDirty) { e.preventDefault(); e.returnValue = ''; } }} />
+<svelte:window on:beforeunload={(e) => { if (!$isMobile && isDirty) { e.preventDefault(); e.returnValue = ''; } }} />
 
 <div class="editor-page">
   <!-- Toolbar -->
@@ -152,40 +145,54 @@
       ← Topics
     </button>
     <h2 class="topic-key">{key}</h2>
-    <div class="toolbar-right">
-      {#if isSaving}
-        <span class="status-badge saving">Saving…</span>
-      {:else if isDirty}
-        <span class="status-badge dirty">Unsaved</span>
-      {:else}
-        <span class="status-badge saved">Saved</span>
-      {/if}
-      <button class="btn btn-ghost btn-sm" on:click={() => (showPreview = !showPreview)}>
-        {showPreview ? 'Hide Preview' : 'Show Preview'}
-      </button>
-      <button class="btn btn-ghost btn-sm" on:click={openHistory}>History</button>
-      <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
-        Save
-      </button>
-      <button class="btn btn-primary btn-sm" on:click={syncTopic} disabled={isSyncing}>
-        {isSyncing ? 'Syncing…' : 'Sync ↑'}
-      </button>
-    </div>
-  </div>
 
-  <!-- Editor / Preview split -->
-  <div class="editor-body" class:preview-hidden={!showPreview}>
-    <div class="editor-pane">
-      {#if topic !== null}
-        <MonacoEditor value={editorText} on:change={handleEditorChange} />
-      {/if}
-    </div>
-    {#if showPreview}
-      <div class="preview-pane">
-        <MarkdownPreview markdown={editorText} />
+    {#if $isMobile}
+      <!-- Mobile: read-only indicator only -->
+      <span class="status-badge read-only-badge">Read Only</span>
+    {:else}
+      <!-- Desktop: full edit controls -->
+      <div class="toolbar-right">
+        {#if isSaving}
+          <span class="status-badge saving">Saving…</span>
+        {:else if isDirty}
+          <span class="status-badge dirty">Unsaved</span>
+        {:else}
+          <span class="status-badge saved">Saved</span>
+        {/if}
+        <button class="btn btn-ghost btn-sm" on:click={() => (showPreview = !showPreview)}>
+          {showPreview ? 'Hide Preview' : 'Show Preview'}
+        </button>
+        <button class="btn btn-ghost btn-sm" on:click={openHistory}>History</button>
+        <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
+          Save
+        </button>
+        <button class="btn btn-primary btn-sm" on:click={syncTopic} disabled={isSyncing}>
+          {isSyncing ? 'Syncing…' : 'Sync ↑'}
+        </button>
       </div>
     {/if}
   </div>
+
+  {#if $isMobile}
+    <!-- Mobile: full-height preview, no editor -->
+    <div class="preview-full">
+      <MarkdownPreview markdown={editorText} />
+    </div>
+  {:else}
+    <!-- Desktop: side-by-side editor / preview -->
+    <div class="editor-body" class:preview-hidden={!showPreview}>
+      <div class="editor-pane">
+        {#if topic !== null}
+          <MonacoEditor value={editorText} on:change={handleEditorChange} />
+        {/if}
+      </div>
+      {#if showPreview}
+        <div class="preview-pane">
+          <MarkdownPreview markdown={editorText} />
+        </div>
+      {/if}
+    </div>
+  {/if}
 
   <!-- Footer meta -->
   {#if topic}
@@ -200,8 +207,8 @@
   {/if}
 </div>
 
-<!-- Version history drawer -->
-{#if showHistory}
+<!-- Version history drawer (desktop only) -->
+{#if !$isMobile && showHistory}
   <div class="history-overlay" role="dialog" aria-modal="true" aria-label="Version History">
     <div class="history-panel">
       <div class="history-header">
@@ -249,6 +256,7 @@
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
   .topic-key {
     font-size: 1rem;
@@ -259,17 +267,21 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
   }
-  .toolbar-right { display: flex; align-items: center; gap: 0.4rem; }
+  .toolbar-right { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
   .status-badge {
     font-size: 0.75rem;
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
     font-weight: 600;
   }
-  .saving  { background: rgba(201, 168, 76, 0.2); color: var(--accent); }
-  .dirty   { background: rgba(255, 183, 77, 0.2); color: #ffb74d; }
-  .saved   { background: rgba(76, 175, 80, 0.15); color: #81c784; }
+  .saving        { background: rgba(201, 168, 76, 0.2); color: var(--accent); }
+  .dirty         { background: rgba(255, 183, 77, 0.2); color: #ffb74d; }
+  .saved         { background: rgba(76, 175, 80, 0.15); color: #81c784; }
+  .read-only-badge { background: rgba(138, 132, 148, 0.2); color: var(--fg-muted); }
+
+  /* Desktop split layout */
   .editor-body {
     flex: 1;
     display: grid;
@@ -284,6 +296,14 @@
     border-right: 1px solid var(--border);
   }
   .preview-pane { overflow: auto; background: var(--bg); }
+
+  /* Mobile preview — fills remaining height */
+  .preview-full {
+    flex: 1;
+    overflow: auto;
+    background: var(--bg);
+  }
+
   .editor-footer {
     display: flex;
     gap: 0.5rem;
@@ -293,6 +313,7 @@
     background: var(--surface);
     border-top: 1px solid var(--border);
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
   .history-overlay {
     position: fixed;
