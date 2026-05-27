@@ -73,3 +73,22 @@ export interface ExportBundle {
   exportedAt: string;
   topics: Topic[];
 }
+
+// ── MCP Event Log ─────────────────────────────────────────────────────────────
+
+export interface McpEvent {
+  entity_key: string;
+  verb: string;
+  object?: string;
+  location?: string;
+  thread?: string;
+  detail?: string;
+  at: string; // ISO timestamp
+}
+
+export interface ActiveThread {
+  thread_name: string;
+  category: string;
+  character: string;
+  status: string;
+}

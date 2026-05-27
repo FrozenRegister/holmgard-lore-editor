@@ -10,7 +10,9 @@
   import { renderMarkdown } from '$lib/marked-config';
   import MonacoEditor from '$lib/components/MonacoEditor.svelte';
   import MarkdownPreview from '$lib/components/MarkdownPreview.svelte';
-  import type { Topic, HistoryEntry } from '$lib/types';
+  import EventTimeline from '$lib/components/EventTimeline.svelte';
+  import { callTool } from '$lib/mcp';
+  import type { Topic, HistoryEntry, McpEvent, ActiveThread } from '$lib/types';
 
   // ── Route param ───────────────────────────────────────────────────────────────
   $: key = $page.params.key ? decodeURIComponent($page.params.key) : '';
@@ -24,6 +26,12 @@
   let showPreview = true;
   let showHistory = false;
   let historyEntries: HistoryEntry[] = [];
+  let showEventLog = false;
+  let eventLogEntries: McpEvent[] = [];
+  let eventLogLoading = false;
+  let eventLogError: string | null = null;
+  let eventLogThreadFilter = '';
+  let availableThreads: ActiveThread[] = [];
   let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   const AUTOSAVE_DELAY = 5000;
 
@@ -117,8 +125,37 @@
 
   // ── Version history ───────────────────────────────────────────────────────────
   async function openHistory() {
+    showEventLog = false;
     historyEntries = await loadHistory(key);
     showHistory = true;
+  }
+
+  // ── Event log ─────────────────────────────────────────────────────────────────
+  async function openEventLog() {
+    showHistory = false;
+    showEventLog = true;
+    if (availableThreads.length === 0) {
+      try {
+        const r = await callTool<{ threads: ActiveThread[] }>($settings.workerHost, 'list_active_threads', {});
+        availableThreads = r.threads ?? [];
+      } catch { /* non-fatal; filter just won't populate */ }
+    }
+    await loadEventLog();
+  }
+
+  async function loadEventLog() {
+    eventLogLoading = true;
+    eventLogError = null;
+    try {
+      const args: Record<string, unknown> = { entity_key: key, limit: 100 };
+      if (eventLogThreadFilter) args.thread = eventLogThreadFilter;
+      const r = await callTool<{ events: McpEvent[] }>($settings.workerHost, 'get_event_log', args);
+      eventLogEntries = r.events ?? [];
+    } catch (err: any) {
+      eventLogError = err.message ?? 'Failed to load events';
+    } finally {
+      eventLogLoading = false;
+    }
   }
 
   function restoreVersion(entry: HistoryEntry) {
@@ -163,6 +200,7 @@
           {showPreview ? 'Hide Preview' : 'Show Preview'}
         </button>
         <button class="btn btn-ghost btn-sm" on:click={openHistory}>History</button>
+        <button class="btn btn-ghost btn-sm" on:click={openEventLog}>Event Log</button>
         <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
           Save
         </button>
@@ -206,6 +244,35 @@
     </div>
   {/if}
 </div>
+
+<!-- Event log drawer (desktop only) -->
+{#if !$isMobile && showEventLog}
+  <div class="history-overlay" role="dialog" aria-modal="true" aria-label="Event Log">
+    <div class="history-panel">
+      <div class="history-header">
+        <h3>Event Log</h3>
+        <div class="evlog-controls">
+          <select
+            class="thread-select"
+            bind:value={eventLogThreadFilter}
+            on:change={loadEventLog}
+            aria-label="Filter by thread"
+          >
+            <option value="">All threads</option>
+            {#each availableThreads as t}
+              <option value={t.thread_name}>{t.thread_name}</option>
+            {/each}
+          </select>
+          <button class="btn-icon" on:click={loadEventLog} aria-label="Refresh" title="Refresh" disabled={eventLogLoading}>↻</button>
+          <button class="btn-icon" on:click={() => (showEventLog = false)} aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="evlog-body">
+        <EventTimeline events={eventLogEntries} loading={eventLogLoading} error={eventLogError} />
+      </div>
+    </div>
+  </div>
+{/if}
 
 <!-- Version history drawer (desktop only) -->
 {#if !$isMobile && showHistory}
@@ -381,4 +448,26 @@
     line-height: 1;
   }
   .btn-icon:hover { color: var(--fg); background: var(--surface2); }
+  .btn-icon:disabled { opacity: 0.4; cursor: default; }
+
+  .evlog-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .thread-select {
+    font-size: 0.75rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    max-width: 160px;
+    cursor: pointer;
+  }
+  .thread-select:focus { outline: 1px solid var(--accent); }
+  .evlog-body {
+    flex: 1;
+    overflow-y: auto;
+  }
 </style>

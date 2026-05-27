@@ -20,7 +20,7 @@
   $: if (dataLoaded) {
     if (autoSyncTimer) clearInterval(autoSyncTimer)
     autoSyncTimer = null
-    if ($settings.autoSyncIntervalSecs > 0) {
+    if ($settings.autoSync && $settings.autoSyncIntervalSecs > 0) {
       autoSyncTimer = setInterval(async () => {
         const lastSync = $syncState.lastSync
         if (lastSync) {
