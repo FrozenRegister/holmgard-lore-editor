@@ -61,7 +61,7 @@ export async function runSync(): Promise<void> {
       if (!localMap.has(key)) {
         const t: Topic = { key, text: rTopic.text, meta: { ...rTopic.meta } }
         await saveTopic(t)
-        await pushHistory(key, rTopic.text, rTopic.meta.version, 'remote')
+        if ($settings.syncHistory) await pushHistory(key, rTopic.text, rTopic.meta.version, 'remote')
         newTopics.push(t)
       } else {
         const local = localMap.get(key)!
@@ -176,7 +176,7 @@ export async function runSmartSync(since: string): Promise<boolean> {
       // Brand new topic the editor doesn't have yet
       const t: Topic = { key, text: remote.text, meta: { ...remote.meta } }
       await saveTopic(t)
-      await pushHistory(key, remote.text, remote.meta.version, 'remote')
+      if ($settings.syncHistory) await pushHistory(key, remote.text, remote.meta.version, 'remote')
       newTopics.push(t)
     } else {
       const conflict = detectConflict(local, remote, null)
