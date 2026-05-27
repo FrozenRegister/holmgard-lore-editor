@@ -215,34 +215,22 @@ export async function flushQueue(
   await saveQueue(remaining);
 }
 
-// ── Full sync cycle ───────────────────────────────────────────────────────────
-
-async function withConcurrency<T>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<void>
-): Promise<void> {
-  const queue = [...items];
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (queue.length) {
-      await fn(queue.shift()!);
-    }
-  });
-  await Promise.all(workers);
+export async function batchGetTopicsRemote(host: string, keys: string[]): Promise<Map<string, RemoteTopic>> {
+  if (!keys.length) return new Map();
+  const results = await Promise.all(keys.map((key) => getTopicRemote(host, key)));
+  const map = new Map<string, RemoteTopic>();
+  for (const topic of results) {
+    if (topic) map.set(topic.key, topic);
+  }
+  return map;
 }
 
 /**
- * Pull all topics from remote and return a map of remote topics.
- * Callers compare with local state to detect conflicts.
+ * Pull all topics from remote in 2 calls: 1 list + 1 batch fetch.
  */
 export async function pullAll(host: string): Promise<Map<string, RemoteTopic>> {
   const keys = await listTopicsRemote(host);
-  const map = new Map<string, RemoteTopic>();
-  await withConcurrency(keys, 5, async (key) => {
-    const t = await getTopicRemote(host, key);
-    if (t) map.set(key, t);
-  });
-  return map;
+  return batchGetTopicsRemote(host, keys);
 }
 
 // ── Changelog (delta sync) ─────────────────────────────────────────────────────

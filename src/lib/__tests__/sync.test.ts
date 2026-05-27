@@ -208,13 +208,13 @@ describe('pullAll', () => {
   it('handles 20 topics without throwing', async () => {
     const keys = Array.from({ length: 20 }, (_, i) => `topic-${i}`);
     fetchMock.mockResolvedValueOnce(okFetch({ keys }));
-    for (const key of keys) {
-      fetchMock.mockResolvedValueOnce(okFetch({ key, text: `text for ${key}`, meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
+    for (const k of keys) {
+      fetchMock.mockResolvedValueOnce(okFetch({ key: k, text: `text for ${k}`, meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
     }
     expect((await pullAll('http://worker')).size).toBe(20);
   });
 
-  it('omits topics that fail to fetch', async () => {
+  it('omits topics missing from batch results', async () => {
     fetchMock
       .mockResolvedValueOnce(okFetch({ keys: ['good', 'bad'] }))
       .mockResolvedValueOnce(okFetch({ key: 'good', text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))

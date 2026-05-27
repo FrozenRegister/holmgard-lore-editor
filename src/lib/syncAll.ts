@@ -16,7 +16,7 @@ import {
   detectConflict,
   enqueuePendingDelete,
   dequeuePendingDeletes,
-  getTopicRemote,
+  batchGetTopicsRemote,
   getChanges,
 } from './sync'
 import type { ChangelogEntry } from './sync'
@@ -29,18 +29,20 @@ async function flushPendingDeletes(host: string): Promise<void> {
   const pendingDeletes = dequeuePendingDeletes()
   if (!pendingDeletes.length) return
   const secret = await getAdminSecret()
-  if (secret) {
-    for (const key of pendingDeletes) {
+  if (!secret) {
+    pendingDeletes.forEach(enqueuePendingDelete)
+    return
+  }
+  await Promise.all(
+    pendingDeletes.map(async (key) => {
       try {
         await adminDelete(host, key, secret)
       } catch (err) {
         enqueuePendingDelete(key)
         console.warn(`Delete failed for "${key}", re-queued:`, err)
       }
-    }
-  } else {
-    pendingDeletes.forEach(enqueuePendingDelete)
-  }
+    }),
+  )
 }
 
 // ── Full sync (manual Sync button, first run, changelog fallback) ───────────────
@@ -145,35 +147,29 @@ export async function runSmartSync(since: string): Promise<boolean> {
   const conflicts: ConflictInfo[] = []
   const newTopics: Topic[] = []
 
+  // Process deletes first (no fetch needed)
   for (const [key, change] of latestByKey) {
-    // Handle deletes
-    if (change.op === 'delete') {
-      if (localMap.has(key)) {
-        const local = localMap.get(key)!
-        if (!local.meta.removedFromRemote) {
-          const flagged: Topic = {
-            ...local,
-            meta: { ...local.meta, removedFromRemote: true },
-          }
-          await saveTopic(flagged)
-          topics.update((ts) => ts.map((t) => (t.key === key ? flagged : t)))
-        }
+    if (change.op !== 'delete') continue
+    if (localMap.has(key)) {
+      const local = localMap.get(key)!
+      if (!local.meta.removedFromRemote) {
+        const flagged: Topic = { ...local, meta: { ...local.meta, removedFromRemote: true } }
+        await saveTopic(flagged)
+        topics.update((ts) => ts.map((t) => (t.key === key ? flagged : t)))
       }
-      continue
     }
+  }
 
-    // Fetch only this changed topic
-    let remote
-    try {
-      remote = await getTopicRemote($settings.workerHost, key)
-    } catch {
-      continue
-    }
-    if (!remote) continue
+  // Batch-fetch all written keys in one call
+  const writeKeys = [...latestByKey.entries()]
+    .filter(([, c]) => c.op !== 'delete')
+    .map(([key]) => key)
 
+  const remoteMap = await batchGetTopicsRemote($settings.workerHost, writeKeys)
+
+  for (const [key, remote] of remoteMap) {
     const local = localMap.get(key)
     if (!local) {
-      // Brand new topic the editor doesn't have yet
       const t: Topic = { key, text: remote.text, meta: { ...remote.meta } }
       await saveTopic(t)
       if ($settings.syncHistory) await pushHistory(key, remote.text, remote.meta.version, 'remote')
