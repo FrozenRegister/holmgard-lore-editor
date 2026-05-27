@@ -23,6 +23,16 @@
     $syncState.status === 'syncing'  ? 'var(--accent)' :
     $syncState.status === 'conflict' ? '#ffb74d' :
     'var(--fg-muted)';
+
+  $: lastSyncLabel = (() => {
+    if (!$syncState.lastSync) return null;
+    const d = new Date($syncState.lastSync);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    return sameDay
+      ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  })();
 </script>
 
 <nav class="sidebar" aria-label="Main navigation">
@@ -69,7 +79,7 @@
       <span class="sync-dot" style="background:{statusColor}"></span>
       <span class="sync-label">
         {#if $syncState.status === 'syncing'}Syncing…
-        {:else if $syncState.status === 'success'}Synced
+        {:else if $syncState.status === 'success'}Synced{#if lastSyncLabel} · {lastSyncLabel}{/if}
         {:else if $syncState.status === 'error'}Error
         {:else if $syncState.status === 'conflict'}Conflict
         {:else}Offline
