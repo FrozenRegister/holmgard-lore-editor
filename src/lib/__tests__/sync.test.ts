@@ -32,7 +32,7 @@ function makeRemote(key: string, text: string, version: number): Topic {
 }
 
 function makeSettings(host = 'http://worker'): AppSettings {
-  return { workerHost: host, autoSyncIntervalSecs: 0, syncHistory: false };
+  return { workerHost: host, autoSyncIntervalSecs: 0, syncHistory: false, autoSync: true,   };
 }
 
 function okFetch(data: object) {

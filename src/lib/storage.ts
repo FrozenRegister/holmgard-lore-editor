@@ -95,6 +95,9 @@ const SETTINGS_PATH = 'settings.json';
 const DEFAULT_SETTINGS: AppSettings = {
   workerHost: 'https://holmgard-lore-mcp.frozenregister.workers.dev',
   autoSyncIntervalSecs: 30,
+  autoSync: true,
+  syncHistory: true,
+
 };
 
 export async function loadSettings(): Promise<AppSettings> {

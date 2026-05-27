@@ -138,6 +138,8 @@ describe('loadSettings', () => {
       encryptedSecret: 'abc',
       iv: 'iv123',
       autoSyncIntervalSecs: 60,
+      autoSync: true,           // ← add
+      syncHistory: false,       // ← add
     };
     await saveSettings(saved);
     const loaded = await loadSettings();
@@ -163,7 +165,7 @@ describe('queue persistence', () => {
   it('round-trips queue entries', async () => {
     const entries: QueuedSave[] = [
       { key: 'alpha', text: '# A', enqueuedAt: '2025-01-01T00:00:00.000Z', attempts: 0 },
-      { key: 'beta',  text: '# B', enqueuedAt: '2025-01-01T00:01:00.000Z', attempts: 1 },
+      { key: 'beta', text: '# B', enqueuedAt: '2025-01-01T00:01:00.000Z', attempts: 1 },
     ];
     await saveQueue(entries);
     const loaded = await loadQueue();
