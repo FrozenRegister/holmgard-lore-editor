@@ -33,7 +33,8 @@ function parseKvEntry(raw: string): { text: string; meta: TopicMeta } {
 async function rpc<T>(
   host: string,
   method: string,
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
+  apiKey?: string
 ): Promise<T> {
   const url = `${host}/mcp`;
   const body = JSON.stringify({
@@ -42,9 +43,11 @@ async function rpc<T>(
     method,
     params,
   });
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-Api-Key'] = apiKey;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body,
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -61,15 +64,15 @@ export interface RemoteTopic {
   meta: TopicMeta;
 }
 
-export async function listTopicsRemote(host: string): Promise<string[]> {
-  const result = await rpc<{ keys: string[] }>(host, 'list_topics', {});
+export async function listTopicsRemote(host: string, apiKey?: string): Promise<string[]> {
+  const result = await rpc<{ keys: string[] }>(host, 'list_topics', {}, apiKey);
   return result.keys ?? [];
 }
 
-export async function getTopicRemote(host: string, key: string): Promise<RemoteTopic | null> {
+export async function getTopicRemote(host: string, key: string, apiKey?: string): Promise<RemoteTopic | null> {
   try {
     const result = await rpc<{ key: string; text: string; meta: TopicMeta | undefined }>(
-      host, 'get_lore', { key }
+      host, 'get_lore', { key }, apiKey
     );
     if (!result) return null;
     return {
@@ -215,9 +218,9 @@ export async function flushQueue(
   await saveQueue(remaining);
 }
 
-export async function batchGetTopicsRemote(host: string, keys: string[]): Promise<Map<string, RemoteTopic>> {
+export async function batchGetTopicsRemote(host: string, keys: string[], apiKey?: string): Promise<Map<string, RemoteTopic>> {
   if (!keys.length) return new Map();
-  const results = await Promise.all(keys.map((key) => getTopicRemote(host, key)));
+  const results = await Promise.all(keys.map((key) => getTopicRemote(host, key, apiKey)));
   const map = new Map<string, RemoteTopic>();
   for (const topic of results) {
     if (topic) map.set(topic.key, topic);
@@ -228,9 +231,9 @@ export async function batchGetTopicsRemote(host: string, keys: string[]): Promis
 /**
  * Pull all topics from remote in 2 calls: 1 list + 1 batch fetch.
  */
-export async function pullAll(host: string): Promise<Map<string, RemoteTopic>> {
-  const keys = await listTopicsRemote(host);
-  return batchGetTopicsRemote(host, keys);
+export async function pullAll(host: string, apiKey?: string): Promise<Map<string, RemoteTopic>> {
+  const keys = await listTopicsRemote(host, apiKey);
+  return batchGetTopicsRemote(host, keys, apiKey);
 }
 
 // ── Changelog (delta sync) ─────────────────────────────────────────────────────
@@ -246,9 +249,11 @@ export interface ChangelogEntry {
  * Costs exactly 1 KV read on the server — no per-topic reads.
  * Throws on network failure so callers can fall back to a full sync.
  */
-export async function getChanges(host: string, since: string): Promise<ChangelogEntry[]> {
+export async function getChanges(host: string, since: string, apiKey?: string): Promise<ChangelogEntry[]> {
   const url = `${host}/changes?since=${encodeURIComponent(since)}`
-  const res = await fetch(url)
+  const headers: Record<string, string> = {};
+  if (apiKey) headers['X-Api-Key'] = apiKey;
+  const res = await fetch(url, { headers })
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
   const json = await res.json() as { changes?: ChangelogEntry[] }
   return json.changes ?? []

@@ -136,7 +136,8 @@
     showEventLog = true;
     if (availableThreads.length === 0) {
       try {
-        const r = await callTool<{ threads: ActiveThread[] }>($settings.workerHost, 'list_active_threads', {});
+        const secret = await getAdminSecret();
+        const r = await callTool<{ threads: ActiveThread[] }>($settings.workerHost, 'list_active_threads', {}, secret ?? undefined);
         availableThreads = r.threads ?? [];
       } catch { /* non-fatal; filter just won't populate */ }
     }
@@ -147,9 +148,10 @@
     eventLogLoading = true;
     eventLogError = null;
     try {
+      const secret = await getAdminSecret();
       const args: Record<string, unknown> = { entity_key: key, limit: 100 };
       if (eventLogThreadFilter) args.thread = eventLogThreadFilter;
-      const r = await callTool<{ events: McpEvent[] }>($settings.workerHost, 'get_event_log', args);
+      const r = await callTool<{ events: McpEvent[] }>($settings.workerHost, 'get_event_log', args, secret ?? undefined);
       eventLogEntries = r.events ?? [];
     } catch (err: any) {
       eventLogError = err.message ?? 'Failed to load events';

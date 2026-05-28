@@ -10,12 +10,15 @@ let _reqId = 1000;
 export async function callTool<T extends Record<string, unknown>>(
   host: string,
   name: string,
-  args: Record<string, unknown> = {}
+  args: Record<string, unknown> = {},
+  apiKey?: string
 ): Promise<T> {
   const url = `${host}/mcp`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-Api-Key'] = apiKey;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       jsonrpc: JSON_RPC_VERSION,
       id: _reqId++,
