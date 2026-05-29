@@ -17,6 +17,7 @@
 
   const navItems = [
     { href: '/',              label: 'Topics',        icon: '📚' },
+    { href: '/world-editor',  label: 'World Map',     icon: '🗺️' },
     { href: '/import-export', label: 'Import/Export', icon: '↕️' },
     { href: '/settings',      label: 'Settings',      icon: '⚙️' },
   ];
