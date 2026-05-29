@@ -187,16 +187,20 @@ export function hexToPixel(q: number, r: number, map: WorldMap): { x: number; y:
     const w = map.bounds.qmax - map.bounds.qmin + 1
     aq = (((q - map.bounds.qmin) % w) + w) % w + map.bounds.qmin
   }
+  // Pointy-top hexes in offset rows → rectangular map (Civ V style).
+  const colW = Math.sqrt(3) * HEX_SIZE   // column spacing (flat-to-flat width)
+  const rowH = 1.5 * HEX_SIZE            // row spacing
+  const oddRow = (((r - map.bounds.rmin) % 2) + 2) % 2   // 0 even, 1 odd
   return {
-    x: HEX_SIZE * (1.5 * aq) + HEX_SIZE * 2,
-    y: HEX_SIZE * (Math.sqrt(3) * (r + aq / 2)) + HEX_SIZE * 2,
+    x: colW * (aq - map.bounds.qmin) + oddRow * (colW / 2) + HEX_SIZE * 2,
+    y: rowH * (r - map.bounds.rmin) + HEX_SIZE * 2,
   }
 }
 
 export function hexPoints(cx: number, cy: number): string {
   const pts: string[] = []
   for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 3) * i
+    const a = (Math.PI / 3) * i + Math.PI / 6   // +30° → pointy-top orientation
     pts.push(`${cx + HEX_SIZE * Math.cos(a)},${cy + HEX_SIZE * Math.sin(a)}`)
   }
   return pts.join(' ')
