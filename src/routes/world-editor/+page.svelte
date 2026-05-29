@@ -11,43 +11,27 @@
   import { onMount, onDestroy } from 'svelte';
   import { topics, settings, syncState, showToast } from '$lib/stores';
   import { saveTopic, loadTopic } from '$lib/storage';
-  import { pushHistory } from '$lib/history';
+  import { pushHistory, loadHistory } from '$lib/history';
   import { adminSave, enqueue } from '$lib/sync';
   import { getAdminSecret } from '$lib/auth';
-  import type { Topic } from '$lib/types';
+  import type { Topic, HistoryEntry } from '$lib/types';
+  import {
+    type Overlay, type Tile, type WorldMap,
+    type ExpandResult,
+    HEX_SIZE, ROOT_ID, TERRAIN_OPTIONS,
+    generateTiles, initializeWorld,
+    createChildRegion, hexToPixel, hexPoints,
+    wrapMarkdown, unwrapMarkdown,
+    aggregateChildToParent, expandRegion, mergeRegions,
+  } from '$lib/worldmap';
 
-  // ── Types ───────────────────────────────────────────────────────────────────
-  interface Overlay { type: string; data?: Record<string, unknown>; }
-  interface Tile {
-    terrain: string;
-    elevation: number;
-    overlays: Overlay[];
-    label: string | null;
-    lore_key: string | null;
-    features: string[];
-  }
-  interface WorldMap {
-    id: string;
-    level: string;
-    name: string;
-    parent: string | null;
-    bounds: { qmin: number; qmax: number; rmin: number; rmax: number };
-    tiles: Record<string, Tile>;
-    children: string[];
-    seed: number;
-    wraps?: { east_west?: boolean };
-  }
-
-  // ── Constants ─────────────────────────────────────────────────────────────────
+  // ── Display constants (view-only, not in worldmap.ts) ─────────────────────────
   const MAP_PREFIX = 'map:';
-  const ROOT_ID = 'world:continents';
-  const HEX_SIZE = 26;
 
   const TERRAIN_COLORS: Record<string, string> = {
     grassland: '#7cb342', forest: '#4a7023', mountain: '#8b7355',
     water: '#1976d2', desert: '#daa520', tundra: '#b0c4de',
   };
-  const TERRAIN_OPTIONS = Object.keys(TERRAIN_COLORS);
 
   const OVERLAY_TYPES = ['animal_territory', 'threat_level', 'dynasty_influence', 'claim'];
   const OVERLAY_COLORS: Record<string, string> = {
@@ -67,131 +51,22 @@
   let dirty = new Set<string>();
   let svgEl: SVGSVGElement;
 
+  // History restore state
+  let showHistory = false;
+  let historyEntries: HistoryEntry[] = [];
+
+  // Expand/merge state
+  const EXPAND_DIRS = ['N', 'S', 'E', 'W'] as const;
+  type ExpandDir = 'N' | 'S' | 'E' | 'W';
+  let expandDir: ExpandDir = 'S';
+  let expandN = 5;
+  let pendingExpand: ExpandResult | null = null;
+
   $: activeMap = maps[activeMapId];
   $: selectedTile = selected && activeMap ? activeMap.tiles[`${selected.q},${selected.r}`] : null;
   $: breadcrumb = buildBreadcrumb(activeMapId);
 
-  // ── Perlin noise (deterministic) ──────────────────────────────────────────────
-  class PerlinNoise {
-    p: number[];
-    constructor(seed = 0) {
-      const perm = Array.from({ length: 256 }, (_, i) => i);
-      let s = seed;
-      const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-      for (let i = perm.length - 1; i > 0; i--) {
-        const j = Math.floor(rnd() * (i + 1));
-        [perm[i], perm[j]] = [perm[j], perm[i]];
-      }
-      this.p = [...perm, ...perm];
-    }
-    private fade(t: number) { return t * t * t * (t * (t * 6 - 15) + 10); }
-    private lerp(t: number, a: number, b: number) { return a + t * (b - a); }
-    private grad(h: number, x: number, y: number) {
-      const hh = h & 15; const u = hh < 8 ? x : y; const v = hh < 8 ? y : x;
-      return ((hh & 1) === 0 ? u : -u) + ((hh & 2) === 0 ? v : -v);
-    }
-    noise(x: number, y: number) {
-      const xi = Math.floor(x) & 255, yi = Math.floor(y) & 255;
-      const xf = x - Math.floor(x), yf = y - Math.floor(y);
-      const u = this.fade(xf), v = this.fade(yf);
-      const aa = this.p[this.p[xi] + yi], ab = this.p[this.p[xi] + yi + 1];
-      const ba = this.p[this.p[xi + 1] + yi], bb = this.p[this.p[xi + 1] + yi + 1];
-      const x1 = this.lerp(u, this.grad(aa, xf, yf), this.grad(ba, xf - 1, yf));
-      const x2 = this.lerp(u, this.grad(ab, xf, yf - 1), this.grad(bb, xf - 1, yf - 1));
-      return this.lerp(v, x1, x2);
-    }
-  }
-
-  function hashString(str: string): number {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
-    return Math.abs(h);
-  }
-
-  // ── Generation ────────────────────────────────────────────────────────────────
-  function generateTiles(map: WorldMap, scale: number, waterT: number, mtnT: number, forestT: number) {
-    const noise = new PerlinNoise(map.seed);
-    const { qmin, qmax, rmin, rmax } = map.bounds;
-    for (let q = qmin; q <= qmax; q++) {
-      for (let r = rmin; r <= rmax; r++) {
-        const val = noise.noise(q / scale, r / scale);
-        let terrain = 'grassland';
-        if (val < waterT) terrain = 'water';
-        else if (val > mtnT) terrain = 'mountain';
-        else if (val > forestT) terrain = 'forest';
-        map.tiles[`${q},${r}`] = {
-          terrain,
-          elevation: Math.max(0, Math.floor((val + 1) * 5)),
-          overlays: [], label: null, lore_key: null, features: [],
-        };
-      }
-    }
-  }
-
-  function initializeWorld() {
-    const root: WorldMap = {
-      id: ROOT_ID, level: 'continents', name: 'World Continents', parent: null,
-      bounds: { qmin: 0, qmax: 100, rmin: 0, rmax: 80 },
-      tiles: {}, children: [], seed: (Math.random() * 1e6) | 0,
-      wraps: { east_west: true },
-    };
-    generateTiles(root, 20, -0.3, 0.4, 0.1);
-    maps = { [ROOT_ID]: root };
-    dirty.add(ROOT_ID);
-  }
-
-  function createChildRegion(name: string, level: string, width: number, height: number) {
-    const parentId = activeMapId;
-    const id = `${parentId}:${name.toLowerCase().replace(/\s+/g, '-')}`;
-    if (maps[id]) { showToast(`Region "${name}" already exists`, 'error'); return; }
-
-    const child: WorldMap = {
-      id, level, name, parent: parentId,
-      bounds: { qmin: 0, qmax: width - 1, rmin: 0, rmax: height - 1 },
-      tiles: {}, children: [], seed: hashString(name),
-    };
-    generateTiles(child, 15, -0.2, 0.3, 0.05);
-
-    maps[parentId]?.children.push(id);
-    maps = { ...maps, [id]: child };
-    dirty.add(id); dirty.add(parentId);
-    showToast(`Created "${name}"`, 'success');
-  }
-
-  function regenerateActive() {
-    const map = maps[activeMapId];
-    if (!map || !map.parent) { showToast('Only child regions regenerate', 'warning'); return; }
-    map.seed = (Math.random() * 1e6) | 0;
-    map.tiles = {};
-    generateTiles(map, 15, -0.2, 0.3, 0.05);
-    maps = { ...maps };
-    dirty.add(map.id);
-    renderMap();
-    showToast('Regenerated', 'info');
-  }
-
-  // ── Hex math + rendering ────────────────────────────────────────────────────
-  function hexToPixel(q: number, r: number, map: WorldMap) {
-    let aq = q;
-    if (map.wraps?.east_west) {
-      const w = map.bounds.qmax - map.bounds.qmin + 1;
-      aq = (((q - map.bounds.qmin) % w) + w) % w + map.bounds.qmin;
-    }
-    return {
-      x: HEX_SIZE * (1.5 * aq) + HEX_SIZE * 2,
-      y: HEX_SIZE * (Math.sqrt(3) * (r + aq / 2)) + HEX_SIZE * 2,
-    };
-  }
-
-  function hexPoints(cx: number, cy: number) {
-    const pts: string[] = [];
-    for (let i = 0; i < 6; i++) {
-      const a = (Math.PI / 3) * i;
-      pts.push(`${cx + HEX_SIZE * Math.cos(a)},${cy + HEX_SIZE * Math.sin(a)}`);
-    }
-    return pts.join(' ');
-  }
-
+  // ── Hex rendering ─────────────────────────────────────────────────────────────
   function renderMap() {
     const map = maps[activeMapId];
     if (!map || !svgEl) return;
@@ -259,6 +134,11 @@
     if (!activeMap) return;
     dirty.add(activeMap.id);
     maps = { ...maps };
+    // propagate terrain summary up to parent
+    if (activeMap.parent) {
+      const updated = aggregateChildToParent(activeMap.id, maps);
+      if (updated) { maps = updated; dirty.add(activeMap.parent); }
+    }
     renderMap();
   }
 
@@ -269,13 +149,20 @@
       commitTileEdit();
     }
   }
+
   function removeOverlay() {
     if (!selectedTile) return;
     selectedTile.overlays = selectedTile.overlays.filter((o) => o.type !== overlayToPaint);
     commitTileEdit();
   }
 
-  function switchLayer(id: string) { activeMapId = id; selected = null; renderMap(); }
+  function switchLayer(id: string) {
+    activeMapId = id;
+    selected = null;
+    pendingExpand = null;
+    renderMap();
+  }
+
   function toggleOverlay(t: string) { activeOverlay = activeOverlay === t ? null : t; renderMap(); }
 
   function buildBreadcrumb(id: string): WorldMap[] {
@@ -285,17 +172,98 @@
     return chain;
   }
 
+  // ── Child region creation ─────────────────────────────────────────────────────
+  function addChildRegion(name: string, level: string, width: number, height: number) {
+    const result = createChildRegion(name, level, width, height, activeMapId, maps);
+    if (!result) { showToast(`Region "${name}" already exists`, 'error'); return; }
+    maps = result.maps;
+    dirty.add(result.id);
+    dirty.add(activeMapId);
+    // propagate new child's terrain summary to the parent
+    const agg = aggregateChildToParent(result.id, maps);
+    if (agg) { maps = agg; }
+    showToast(`Created "${name}"`, 'success');
+  }
+
+  function regenerateActive() {
+    const map = maps[activeMapId];
+    if (!map || !map.parent) { showToast('Only child regions can be regenerated', 'warning'); return; }
+    map.seed = (Math.random() * 1e6) | 0;
+    map.tiles = {};
+    generateTiles(map, 15, -0.2, 0.3, 0.05);
+    maps = { ...maps };
+    dirty.add(map.id);
+    const updated = aggregateChildToParent(map.id, maps);
+    if (updated) { maps = updated; dirty.add(map.parent!); }
+    renderMap();
+    showToast('Regenerated', 'info');
+  }
+
+  // ── Version history ───────────────────────────────────────────────────────────
+  async function openHistory() {
+    historyEntries = await loadHistory(mapTopicKey(activeMapId));
+    showHistory = true;
+  }
+
+  function restoreVersion(entry: HistoryEntry) {
+    const restored = unwrapMarkdown(entry.text);
+    if (!restored) { showToast('Failed to parse history entry', 'error'); return; }
+    maps = { ...maps, [activeMapId]: restored };
+    dirty.add(activeMapId);
+    showHistory = false;
+    renderMap();
+    showToast(`Restored v${entry.version}`, 'info');
+  }
+
+  // ── Expand / merge ────────────────────────────────────────────────────────────
+  function handleExpand() {
+    const result = expandRegion(activeMapId, expandDir, maps, expandN);
+    if (!result) return;
+    if (result.conflict) {
+      pendingExpand = result;
+      showToast(`Conflicts with ${result.conflict.overlaps.length} sibling(s) — resolve below`, 'warning');
+    } else {
+      maps = { ...maps, [activeMapId]: result.map };
+      dirty.add(activeMapId);
+      pendingExpand = null;
+      renderMap();
+      showToast(`Expanded ${expandDir} by ${expandN}`, 'info');
+    }
+  }
+
+  function confirmExpand() {
+    if (!pendingExpand) return;
+    maps = { ...maps, [activeMapId]: pendingExpand.map };
+    dirty.add(activeMapId);
+    pendingExpand = null;
+    renderMap();
+    showToast('Expansion applied (overlapping siblings preserved)', 'info');
+  }
+
+  function handleCreateRegion(e: Event) {
+    const f = e.currentTarget as HTMLFormElement;
+    const name = (f.elements.namedItem('rname') as HTMLInputElement).value.trim();
+    const level = (f.elements.namedItem('rlevel') as HTMLSelectElement).value;
+    const w = parseInt((f.elements.namedItem('rw') as HTMLInputElement).value);
+    const h = parseInt((f.elements.namedItem('rh') as HTMLInputElement).value);
+    if (name) { addChildRegion(name, level, w, h); f.reset(); }
+  }
+
+  function handleMerge(siblingId: string) {
+    if (!pendingExpand) return;
+    const siblingName = maps[siblingId]?.name ?? siblingId;
+    const result = mergeRegions(activeMapId, siblingId, { ...maps, [activeMapId]: pendingExpand.map });
+    if (!result) { showToast('Merge failed', 'error'); return; }
+    maps = result;
+    dirty.add(activeMapId);
+    if (result[activeMapId]?.parent) dirty.add(result[activeMapId].parent!);
+    pendingExpand = null;
+    renderMap();
+    showToast(`Merged with "${siblingName}"`, 'success');
+  }
+
   // ── Persistence ───────────────────────────────────────────────────────────────
   function mapTopicKey(id: string) { return MAP_PREFIX + id; }
-
-  function wrapMarkdown(map: WorldMap): string {
-    return `# Map: ${map.name}\n\n_${map.level} · ${Object.keys(map.tiles).length} tiles_\n\n\`\`\`json\n${JSON.stringify(map, null, 2)}\n\`\`\`\n`;
-  }
-  function unwrapMarkdown(text: string): WorldMap | null {
-    const fence = text.match(/```json\s*([\s\S]*?)```/);
-    const raw = fence ? fence[1] : text;
-    try { return JSON.parse(raw) as WorldMap; } catch { return null; }
-  }
 
   async function saveMapTopic(map: WorldMap, remote: boolean, secret: string | null) {
     const key = mapTopicKey(map.id);
@@ -350,9 +318,13 @@
       if (Object.keys(loaded).length) {
         maps = loaded;
         activeMapId = maps[ROOT_ID] ? ROOT_ID : Object.keys(loaded)[0];
-      } else { initializeWorld(); }
+      } else {
+        maps = initializeWorld();
+        dirty.add(ROOT_ID);
+      }
     } else {
-      initializeWorld();
+      maps = initializeWorld();
+      dirty.add(ROOT_ID);
     }
     loading = false;
     requestAnimationFrame(renderMap);
@@ -373,9 +345,12 @@
         >{m.name}</button>
       {/each}
     </nav>
-    <button class="btn btn-primary btn-sm" on:click={saveWorld}>
-      Save World{#if dirty.size} ({dirty.size}){/if}
-    </button>
+    <div class="we-header-actions">
+      <button class="btn btn-sm" on:click={openHistory}>History</button>
+      <button class="btn btn-primary btn-sm" on:click={saveWorld}>
+        Save World{#if dirty.size} ({dirty.size}){/if}
+      </button>
+    </div>
   </header>
 
   {#if loading}
@@ -466,19 +441,46 @@
           {/if}
         </section>
 
+        {#if activeMap?.parent}
+          <!-- Expand region (child maps only) -->
+          <section class="we-sec">
+            <h3>Expand Region</h3>
+            <div class="we-field">
+              <span>Direction</span>
+              <div class="we-dir-grid">
+                {#each EXPAND_DIRS as d}
+                  <button
+                    class="we-chip"
+                    class:active={expandDir === d}
+                    on:click={() => (expandDir = d)}
+                  >{d}</button>
+                {/each}
+              </div>
+            </div>
+            <label class="we-field">
+              <span>By (hexes)</span>
+              <input type="number" min="1" max="100" bind:value={expandN} />
+            </label>
+            <button class="btn btn-sm" on:click={handleExpand}>Expand {expandDir} by {expandN}</button>
+
+            {#if pendingExpand?.conflict}
+              <div class="we-conflict">
+                <p class="we-conflict-msg">Overlaps sibling regions:</p>
+                {#each pendingExpand.conflict.overlaps as sid}
+                  <div class="we-conflict-row">
+                    <span class="we-conflict-name">{maps[sid]?.name ?? sid}</span>
+                    <button class="btn btn-sm we-merge-btn" on:click={() => handleMerge(sid)}>Merge</button>
+                  </div>
+                {/each}
+                <button class="btn btn-sm" on:click={confirmExpand} style="margin-top:.35rem;">Expand anyway</button>
+              </div>
+            {/if}
+          </section>
+        {/if}
+
         <section class="we-sec">
           <h3>New Region</h3>
-          <form
-            class="we-form"
-            on:submit|preventDefault={(e) => {
-              const f = e.currentTarget as HTMLFormElement;
-              const name = (f.elements.namedItem('rname') as HTMLInputElement).value.trim();
-              const level = (f.elements.namedItem('rlevel') as HTMLSelectElement).value;
-              const w = parseInt((f.elements.namedItem('rw') as HTMLInputElement).value);
-              const h = parseInt((f.elements.namedItem('rh') as HTMLInputElement).value);
-              if (name) { createChildRegion(name, level, w, h); f.reset(); }
-            }}
-          >
+          <form class="we-form" on:submit|preventDefault={handleCreateRegion}>
             <input name="rname" type="text" placeholder="Region name" required />
             <select name="rlevel">
               <option value="country">Country</option>
@@ -499,6 +501,33 @@
   {/if}
 </div>
 
+<!-- Version history drawer -->
+{#if showHistory}
+  <div class="history-overlay" role="dialog" aria-modal="true" aria-label="Version History">
+    <div class="history-panel">
+      <div class="history-header">
+        <h3>Version History — {activeMap?.name ?? activeMapId}</h3>
+        <button class="btn-icon" on:click={() => (showHistory = false)} aria-label="Close">✕</button>
+      </div>
+      {#if historyEntries.length === 0}
+        <p class="empty-hist">No history saved yet for this map.</p>
+      {:else}
+        <ul class="history-list">
+          {#each historyEntries as entry}
+            <li>
+              <div class="hist-meta">
+                <span class="hist-version">v{entry.version}</span>
+                <span class="hist-date">{new Date(entry.savedAt).toLocaleString()}</span>
+              </div>
+              <button class="btn btn-sm" on:click={() => restoreVersion(entry)}>Restore</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  </div>
+{/if}
+
 <style>
   .world-editor { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 
@@ -508,6 +537,7 @@
     background: var(--surface); border-bottom: 1px solid var(--border);
     flex-shrink: 0; flex-wrap: wrap;
   }
+  .we-header-actions { display: flex; align-items: center; gap: 0.4rem; }
   .we-breadcrumb { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
   .we-crumb {
     background: none; border: 1px solid transparent; color: var(--fg-muted);
@@ -560,6 +590,20 @@
     background: var(--surface2); border: 1px solid var(--border); color: var(--fg-muted);
   }
 
+  .we-dir-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem; }
+
+  .we-conflict {
+    margin-top: 0.65rem; padding: 0.6rem; background: rgba(255,183,77,0.1);
+    border: 1px solid rgba(255,183,77,0.3); border-radius: 5px;
+  }
+  .we-conflict-msg { font-size: 0.72rem; color: #ffb74d; margin: 0 0 0.4rem; }
+  .we-conflict-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.78rem; margin-bottom: 0.3rem;
+  }
+  .we-conflict-name { color: var(--fg-muted); }
+  .we-merge-btn { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
+
   .we-region-list { display: flex; flex-direction: column; gap: 0.4rem; }
   .we-region {
     text-align: left; padding: 0.45rem 0.55rem; background: var(--surface2);
@@ -578,6 +622,40 @@
   .we-dims input { flex: 1; }
   .we-dims span { color: var(--fg-muted); }
 
+  /* History drawer */
+  .history-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    z-index: 500; display: flex; justify-content: flex-end;
+  }
+  .history-panel {
+    width: min(360px, 90vw); background: var(--surface); height: 100%;
+    display: flex; flex-direction: column; border-left: 1px solid var(--border);
+  }
+  .history-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+  }
+  .history-header h3 { margin: 0; font-size: 0.9rem; }
+  .history-list {
+    list-style: none; margin: 0; padding: 0.5rem;
+    overflow-y: auto; flex: 1;
+  }
+  .history-list li {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.65rem 0.75rem; border-radius: 6px; gap: 0.5rem;
+  }
+  .history-list li:hover { background: var(--surface2); }
+  .hist-meta { display: flex; flex-direction: column; gap: 0.15rem; }
+  .hist-version { font-weight: 700; font-size: 0.85rem; color: var(--accent); }
+  .hist-date { font-size: 0.75rem; color: var(--fg-muted); }
+  .empty-hist { text-align: center; color: var(--fg-muted); padding: 2rem; }
+  .btn-icon {
+    background: none; border: none; color: var(--fg-muted); cursor: pointer;
+    font-size: 1rem; padding: 0.25rem; border-radius: 4px; line-height: 1;
+  }
+  .btn-icon:hover { color: var(--fg); background: var(--surface2); }
+
+  /* Shared button styles */
   .btn {
     padding: 0.4rem 0.75rem; border: 1px solid var(--border); border-radius: 5px;
     background: var(--surface2); color: var(--fg); cursor: pointer; font-size: 0.82rem; font-family: inherit;
