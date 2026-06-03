@@ -11,6 +11,7 @@
   import ChatPanel from '$lib/components/ChatPanel.svelte';
   import { runSync, runSmartSync } from '$lib/syncAll';
   import '../app.css';
+  import MCPPanel from '$lib/components/MCPPanel.svelte';
 
   let autoSyncTimer: ReturnType<typeof setInterval> | null = null;
   let dataLoaded = false;
@@ -122,6 +123,9 @@
 
 <!-- Claude chat panel -->
 <ChatPanel />
+
+<!-- MCP Interface panel -->
+<MCPPanel />
 
 <!-- Toast notifications -->
 <div class="toast-stack" aria-live="polite">

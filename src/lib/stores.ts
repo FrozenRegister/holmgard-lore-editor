@@ -64,6 +64,9 @@ export interface ChatMessage {
 export const chatOpen = writable<boolean>(false);
 export const chatMessages = writable<ChatMessage[]>([]);
 
+// ── MCP ──────────────────────────────────────────────────────────────────────
+export const mcpOpen = writable<boolean>(false);
+
 /** True while loading initial data */
 export const initialising = writable(true);
 

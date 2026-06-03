@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { topics, syncState, chatOpen } from '$lib/stores';
   import { getClaudeApiKey } from '$lib/auth';
+  import { mcpOpen } from '$lib/stores';
 
   export let currentPath: string = '/';
   /** On mobile the sidebar slides in/out; `open` controls visibility. */
@@ -89,6 +90,17 @@
     </button>
   </div>
   {/if}
+  <div class="chat-toggle-wrap">
+    <button
+      class="chat-toggle"
+      class:chat-toggle-active={$mcpOpen}
+      on:click={() => mcpOpen.update(v => !v)}
+      title="MCP Tool Console"
+    >
+      <span class="nav-icon" aria-hidden="true">🛠️</span>
+      <span>MCP</span>
+    </button>
+  </div>
 
   <div class="sidebar-footer">
     <div class="sync-status" title="Sync status: {$syncState.status}">
