@@ -5,6 +5,7 @@ export interface TopicMeta {
   version: number;
   syncedAt?: string;
   removedFromRemote?: boolean;
+  syncedRemoteText?: string; // last known remote text (used for conflict detection)
 }
 
 export interface Topic {

@@ -65,6 +65,7 @@
       meta: {
         updatedAt: new Date().toISOString(),
         version: (existing?.meta.version ?? 1) + 1,
+        syncedRemoteText: c.remote, // store what remote was when we resolved this
       },
     };
     await saveTopic(updated);

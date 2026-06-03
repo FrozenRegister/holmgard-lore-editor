@@ -10,3 +10,4 @@ src-tauri/target/
 *.key
 *.secret
 vite.config.ts.timestamp*
+HANDOVER-AUTH-FIX.md

@@ -69,7 +69,8 @@ export async function runSync(): Promise<void> {
         newTopics.push(t)
       } else {
         const local = localMap.get(key)!
-        const conflict = detectConflict(local, rTopic, null)
+        const base = local.meta.syncedRemoteText ?? null
+        const conflict = detectConflict(local, rTopic, base)
         if (conflict) {
           conflicts.push(conflict)
           continue
@@ -179,7 +180,8 @@ export async function runSmartSync(since: string): Promise<boolean> {
       if ($settings.syncHistory) await pushHistory(key, remote.text, remote.meta.version, 'remote')
       newTopics.push(t)
     } else {
-      const conflict = detectConflict(local, remote, null)
+      const base = local.meta.syncedRemoteText ?? null
+      const conflict = detectConflict(local, remote, base)
       if (conflict) {
         conflicts.push(conflict)
         continue
