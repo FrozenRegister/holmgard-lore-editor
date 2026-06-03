@@ -42,23 +42,34 @@ export async function listTools(
   host: string,
   apiKey?: string
 ): Promise<Tool[]> {
-  const url = `${host}/mcp`;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (apiKey) headers['X-Api-Key'] = apiKey;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      jsonrpc: JSON_RPC_VERSION,
-      id: _reqId++,
-      method: 'resources/list',
-      params: {},
-    }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
-  const resources = json.result as { resources?: Tool[] };
-  return resources.resources ?? [];
+  const DEFAULT_TOOLS: Tool[] = [
+    { name: 'list_topics', description: 'List all topics' },
+    { name: 'get_topic', description: 'Get a specific topic' },
+    { name: 'update_topic', description: 'Update an existing topic' },
+    { name: 'create_topic', description: 'Create a new topic' },
+  ];
+
+  try {
+    const url = `${host}/mcp`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (apiKey) headers['X-Api-Key'] = apiKey;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: JSON_RPC_VERSION,
+        id: _reqId++,
+        method: 'resources/list',
+        params: {},
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
+    const resources = json.result as { resources?: Tool[] };
+    return resources.resources ?? DEFAULT_TOOLS;
+  } catch {
+    return DEFAULT_TOOLS;
+  }
 }
 

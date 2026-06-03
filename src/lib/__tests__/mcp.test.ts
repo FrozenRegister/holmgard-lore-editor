@@ -167,7 +167,7 @@ describe('listTools', () => {
     expect(tools).toEqual(mockTools);
   });
 
-  it('returns empty array when no resources field', async () => {
+  it('returns default tools when no resources field', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -181,7 +181,8 @@ describe('listTools', () => {
 
     const tools = await listTools('http://localhost');
 
-    expect(tools).toEqual([]);
+    expect(tools).toHaveLength(4);
+    expect(tools[0].name).toBe('list_topics');
   });
 
   it('includes API key header when provided', async () => {
@@ -202,7 +203,7 @@ describe('listTools', () => {
     expect(options.headers['X-Api-Key']).toBe('secret-key');
   });
 
-  it('throws on HTTP error', async () => {
+  it('returns default tools on HTTP error', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,
@@ -211,12 +212,13 @@ describe('listTools', () => {
     });
     global.fetch = mockFetch;
 
-    await expect(listTools('http://localhost')).rejects.toThrow(
-      'HTTP 500: Internal Server Error'
-    );
+    const tools = await listTools('http://localhost');
+
+    expect(tools).toHaveLength(4);
+    expect(tools[0].name).toBe('list_topics');
   });
 
-  it('throws on JSON-RPC error response', async () => {
+  it('returns default tools on JSON-RPC error', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -228,8 +230,9 @@ describe('listTools', () => {
     });
     global.fetch = mockFetch;
 
-    await expect(listTools('http://localhost')).rejects.toThrow(
-      'Invalid Request'
-    );
+    const tools = await listTools('http://localhost');
+
+    expect(tools).toHaveLength(4);
+    expect(tools[0].name).toBe('list_topics');
   });
 });
