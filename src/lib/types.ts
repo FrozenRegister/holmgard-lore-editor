@@ -23,6 +23,11 @@ export interface HistoryEntry {
   source?: 'local' | 'remote' | 'conflict';
 }
 
+export interface TopicSnapshot {
+  text: string;
+  meta: TopicMeta;
+}
+
 // ── Sync ──────────────────────────────────────────────────────────────────────
 
 export type SyncStatus =

@@ -2,7 +2,7 @@
  * Sync layer — JSON-RPC calls to MCP Worker + admin save.
  * Includes offline queue with exponential backoff.
  */
-import type { Topic, TopicMeta, QueuedSave, ConflictInfo, AppSettings } from './types';
+import type { Topic, TopicMeta, QueuedSave, ConflictInfo, AppSettings, TopicSnapshot } from './types';
 import { loadQueue, saveQueue } from './storage';
 
 const JSON_RPC_VERSION = '2.0';
@@ -239,11 +239,6 @@ export async function pullAll(host: string, apiKey?: string): Promise<Map<string
 /**
  * Fetch snapshot histories for multiple topics in one call.
  */
-export interface TopicSnapshot {
-  text: string;
-  meta: TopicMeta;
-}
-
 export async function getTopicHistories(
   host: string,
   keys: string[],

@@ -5,14 +5,15 @@
   import { topics, syncState, settings, showToast, isMobile } from '$lib/stores';
   import { saveTopic, loadTopic } from '$lib/storage';
   import { pushHistory, loadHistory } from '$lib/history';
-  import { adminSave, enqueue } from '$lib/sync';
+  import { adminSave, enqueue, getTopicHistories } from '$lib/sync';
   import { getAdminSecret, getMcpApiKey } from '$lib/auth';
   import { renderMarkdown } from '$lib/marked-config';
   import MonacoEditor from '$lib/components/MonacoEditor.svelte';
   import MarkdownPreview from '$lib/components/MarkdownPreview.svelte';
   import EventTimeline from '$lib/components/EventTimeline.svelte';
+  import RemoteHistory from '$lib/components/RemoteHistory.svelte';
   import { callTool } from '$lib/mcp';
-  import type { Topic, HistoryEntry, McpEvent, ActiveThread } from '$lib/types';
+  import type { Topic, HistoryEntry, McpEvent, ActiveThread, TopicSnapshot, TopicMeta } from '$lib/types';
 
   // ── Route param ───────────────────────────────────────────────────────────────
   $: key = $page.params.key ? decodeURIComponent($page.params.key) : '';
@@ -26,6 +27,10 @@
   let showPreview = true;
   let showHistory = false;
   let historyEntries: HistoryEntry[] = [];
+  let showRemoteHistory = false;
+  let remoteHistorySnapshots: TopicSnapshot[] = [];
+  let remoteHistoryLoading = false;
+  let remoteHistoryError: string | null = null;
   let showEventLog = false;
   let eventLogEntries: McpEvent[] = [];
   let eventLogLoading = false;
@@ -126,8 +131,26 @@
   // ── Version history ───────────────────────────────────────────────────────────
   async function openHistory() {
     showEventLog = false;
+    showRemoteHistory = false;
     historyEntries = await loadHistory(key);
     showHistory = true;
+  }
+
+  async function openRemoteHistory() {
+    showHistory = false;
+    showEventLog = false;
+    remoteHistoryLoading = true;
+    remoteHistoryError = null;
+    try {
+      const apiKey = await getMcpApiKey();
+      const histories = await getTopicHistories($settings.workerHost, [key], apiKey ?? undefined);
+      remoteHistorySnapshots = histories.get(key) ?? [];
+    } catch (err: any) {
+      remoteHistoryError = err.message ?? 'Failed to load remote history';
+    } finally {
+      remoteHistoryLoading = false;
+      showRemoteHistory = true;
+    }
   }
 
   // ── Event log ─────────────────────────────────────────────────────────────────
@@ -202,6 +225,7 @@
           {showPreview ? 'Hide Preview' : 'Show Preview'}
         </button>
         <button class="btn btn-ghost btn-sm" on:click={openHistory}>History</button>
+        <button class="btn btn-ghost btn-sm" on:click={openRemoteHistory}>Remote History</button>
         <button class="btn btn-ghost btn-sm" on:click={openEventLog}>Event Log</button>
         <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
           Save
@@ -306,6 +330,25 @@
           {/each}
         </ul>
       {/if}
+    </div>
+  </div>
+{/if}
+
+<!-- Remote history drawer (desktop only) -->
+{#if !$isMobile && showRemoteHistory && topic}
+  <div class="history-overlay" role="dialog" aria-modal="true" aria-label="Remote History">
+    <div class="history-panel">
+      <div class="history-header">
+        <h3>Remote History</h3>
+        <button class="btn-icon" on:click={() => (showRemoteHistory = false)} aria-label="Close">✕</button>
+      </div>
+      <RemoteHistory
+        snapshots={remoteHistorySnapshots}
+        currentText={editorText}
+        loading={remoteHistoryLoading}
+        error={remoteHistoryError}
+        on:restore={(e) => { editorText = e.detail; isDirty = true; scheduleAutosave(); showRemoteHistory = false; }}
+      />
     </div>
   </div>
 {/if}
