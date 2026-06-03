@@ -128,7 +128,7 @@ describe('listTools', () => {
     vi.restoreAllMocks();
   });
 
-  it('calls resources/list method', async () => {
+  it('calls list_resources method', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -143,7 +143,7 @@ describe('listTools', () => {
     await listTools('http://localhost');
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.method).toBe('resources/list');
+    expect(body.method).toBe('list_resources');
   });
 
   it('returns list of tools from resources', async () => {

@@ -59,15 +59,15 @@ export async function listTools(
       body: JSON.stringify({
         jsonrpc: JSON_RPC_VERSION,
         id: _reqId++,
-        method: 'resources/list',
+        method: 'list_resources',
         params: {},
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const json = await res.json();
     if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
-    const resources = json.result as { resources?: Tool[] };
-    return resources.resources ?? DEFAULT_TOOLS;
+    const result = json.result as { resources?: Tool[] };
+    return result.resources ?? DEFAULT_TOOLS;
   } catch {
     return DEFAULT_TOOLS;
   }
