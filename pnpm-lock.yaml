@@ -11,6 +11,9 @@ importers:
       '@monaco-editor/loader':
         specifier: ^1.4.0
         version: 1.7.0
+      dexie:
+        specifier: ^4.4.3
+        version: 4.4.3
       highlight.js:
         specifier: ^11.9.0
         version: 11.11.1
@@ -787,6 +790,9 @@ packages:
 
   devalue@5.8.1:
     resolution: {integrity: sha512-4CXDYRBGqN+57wVJkuXBYmpAVUSg3L6JAQa/DFqm238G73E1wuyc/JhGQJzN7vUf/CMphYau2zXbfWzDR5aTEw==}
+
+  dexie@4.4.3:
+    resolution: {integrity: sha512-N+3IGQ3HPlyO2YAkntGAwitm42BpBGV86MttzUMiRzWLa4NGh0pltVRcUVF4ybL/OnXjCrr9k7SDPIKkFYP2Lg==}
 
   diff-sequences@29.6.3:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
@@ -2137,6 +2143,8 @@ snapshots:
   detect-indent@6.1.0: {}
 
   devalue@5.8.1: {}
+
+  dexie@4.4.3: {}
 
   diff-sequences@29.6.3: {}
 

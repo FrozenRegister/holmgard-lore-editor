@@ -1,13 +1,51 @@
 /**
  * Storage layer — wraps Tauri fs_* commands with a clean async API.
- * Falls back to localStorage when running in a plain browser (e.g. `pnpm dev`).
+ * Falls back to IndexedDB (Dexie) when running in a plain browser (e.g. `pnpm dev`).
  */
 import { invoke } from '@tauri-apps/api/tauri';
 import type { Topic, AppSettings, QueuedSave } from './types';
+import {
+  idbLoadAllTopics,
+  idbLoadTopic,
+  idbSaveTopic,
+  idbDeleteTopic,
+  idbLoadQueue,
+  idbSaveQueue,
+  migrateFromLocalStorage,
+  isIDBReady,
+} from './storage-idb';
 
 const IS_TAURI = typeof window !== 'undefined' && '__TAURI__' in window;
 
-// ── Low-level helpers ─────────────────────────────────────────────────────────
+let _idbReady = false;
+let _migrationDone = false;
+
+// Initialize IDB on first use
+async function ensureIDBReady(): Promise<void> {
+  if (_idbReady || IS_TAURI) return;
+  try {
+    _idbReady = await isIDBReady();
+  } catch (err) {
+    console.error('IndexedDB initialization failed:', err);
+    throw err;
+  }
+}
+
+// Run migration once
+async function ensureMigrationDone(): Promise<void> {
+  if (_migrationDone || IS_TAURI) return;
+  try {
+    await ensureIDBReady();
+    const result = await migrateFromLocalStorage();
+    console.log(`Migrated ${result.topicsMigrated} topics, queue: ${result.queueMigrated}`);
+    _migrationDone = true;
+  } catch (err) {
+    console.error('Migration from localStorage to IndexedDB failed:', err);
+    throw err;
+  }
+}
+
+// ── Low-level helpers (for settings, which remain in localStorage) ────────────
 
 async function readFile(path: string): Promise<string | null> {
   if (IS_TAURI) {
@@ -24,7 +62,14 @@ async function writeFile(path: string, content: string): Promise<void> {
   if (IS_TAURI) {
     await invoke('fs_write', { path, content });
   } else {
-    localStorage.setItem(`hle:file:${path}`, content);
+    try {
+      localStorage.setItem(`hle:file:${path}`, content);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+        throw new Error('Storage quota exceeded. Please clear some data.');
+      }
+      throw err;
+    }
   }
 }
 
@@ -36,57 +81,77 @@ async function deleteFile(path: string): Promise<void> {
   }
 }
 
-async function listFiles(path: string): Promise<string[]> {
-  if (IS_TAURI) {
-    return invoke<string[]>('fs_list', { path });
-  }
-  const prefix = `hle:file:${path}/`;
-  return Object.keys(localStorage)
-    .filter((k) => k.startsWith(prefix))
-    .map((k) => k.slice(prefix.length));
-}
-
-// ── Topics ────────────────────────────────────────────────────────────────────
-
-const TOPICS_DIR = 'topics';
-
-function topicPath(key: string) {
-  return `${TOPICS_DIR}/${encodeURIComponent(key)}.json`;
-}
+// ── Topics (use IndexedDB in browser, Tauri fs in app) ────────────────────────
 
 export async function loadAllTopics(): Promise<Topic[]> {
-  const files = await listFiles(TOPICS_DIR);
-  const topics: Topic[] = [];
-  for (const file of files) {
-    if (!file.endsWith('.json')) continue;
-    const raw = await readFile(`${TOPICS_DIR}/${file}`);
-    if (raw) {
+  if (IS_TAURI) {
+    const TOPICS_DIR = 'topics';
+    const files = await invoke<string[]>('fs_list', { path: TOPICS_DIR });
+    const topics: Topic[] = [];
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
       try {
+        const raw = await invoke<string>('fs_read', { path: `${TOPICS_DIR}/${file}` });
         topics.push(JSON.parse(raw) as Topic);
       } catch {
         console.warn('Corrupt topic file:', file);
       }
     }
+    return topics.sort((a, b) => a.key.localeCompare(b.key));
   }
-  return topics.sort((a, b) => a.key.localeCompare(b.key));
+
+  // Browser: use IndexedDB
+  await ensureMigrationDone();
+  return idbLoadAllTopics();
 }
 
 export async function loadTopic(key: string): Promise<Topic | null> {
-  const raw = await readFile(topicPath(key));
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as Topic;
-  } catch {
-    return null;
+  if (IS_TAURI) {
+    try {
+      const raw = await invoke<string>('fs_read', {
+        path: `topics/${encodeURIComponent(key)}.json`,
+      });
+      return JSON.parse(raw) as Topic;
+    } catch {
+      return null;
+    }
   }
+
+  // Browser: use IndexedDB
+  await ensureMigrationDone();
+  return idbLoadTopic(key);
 }
 
 export async function saveTopic(topic: Topic): Promise<void> {
-  await writeFile(topicPath(topic.key), JSON.stringify(topic, null, 2));
+  if (IS_TAURI) {
+    await invoke('fs_write', {
+      path: `topics/${encodeURIComponent(topic.key)}.json`,
+      content: JSON.stringify(topic, null, 2),
+    });
+  } else {
+    // Browser: use IndexedDB
+    await ensureMigrationDone();
+    try {
+      await idbSaveTopic(topic);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+        throw new Error('Storage quota exceeded.');
+      }
+      throw err;
+    }
+  }
 }
 
 export async function deleteTopic(key: string): Promise<void> {
-  await deleteFile(topicPath(key));
+  if (IS_TAURI) {
+    await invoke('fs_delete', {
+      path: `topics/${encodeURIComponent(key)}.json`,
+    });
+  } else {
+    // Browser: use IndexedDB
+    await ensureMigrationDone();
+    await idbDeleteTopic(key);
+  }
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
@@ -114,20 +179,30 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
   await writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2));
 }
 
-// ── Offline queue ─────────────────────────────────────────────────────────────
-
-const QUEUE_PATH = 'offline-queue.json';
+// ── Offline queue (use IndexedDB in browser, Tauri fs in app) ────────────────
 
 export async function loadQueue(): Promise<QueuedSave[]> {
-  const raw = await readFile(QUEUE_PATH);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) as QueuedSave[];
-  } catch {
-    return [];
+  if (IS_TAURI) {
+    const raw = await readFile('offline-queue.json');
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw) as QueuedSave[];
+    } catch {
+      return [];
+    }
   }
+
+  // Browser: use IndexedDB
+  await ensureMigrationDone();
+  return idbLoadQueue();
 }
 
 export async function saveQueue(queue: QueuedSave[]): Promise<void> {
-  await writeFile(QUEUE_PATH, JSON.stringify(queue, null, 2));
+  if (IS_TAURI) {
+    await writeFile('offline-queue.json', JSON.stringify(queue, null, 2));
+  } else {
+    // Browser: use IndexedDB
+    await ensureMigrationDone();
+    await idbSaveQueue(queue);
+  }
 }

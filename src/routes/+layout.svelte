@@ -64,7 +64,14 @@
         }
       } catch (err) {
         console.error('Init error:', err);
-        showToast('Failed to load local data', 'error');
+        const msg = err instanceof Error ? err.message : 'Failed to load local data';
+        if (msg.includes('quota') || msg.includes('Quota')) {
+          showToast('Storage quota exceeded — try syncing to cloud first', 'error');
+        } else if (msg.includes('IndexedDB') || msg.includes('IDB')) {
+          showToast('Browser storage unavailable — app may be limited to demo data', 'warning');
+        } else {
+          showToast(msg, 'error');
+        }
       } finally {
         initialising.set(false);
         dataLoaded = true;
