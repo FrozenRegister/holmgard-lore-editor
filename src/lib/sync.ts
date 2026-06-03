@@ -236,6 +236,33 @@ export async function pullAll(host: string, apiKey?: string): Promise<Map<string
   return batchGetTopicsRemote(host, keys, apiKey);
 }
 
+/**
+ * Fetch snapshot histories for multiple topics in one call.
+ */
+export interface TopicSnapshot {
+  text: string;
+  meta: TopicMeta;
+}
+
+export async function getTopicHistories(
+  host: string,
+  keys: string[],
+  apiKey?: string
+): Promise<Map<string, TopicSnapshot[]>> {
+  if (!keys.length) return new Map();
+  const result = await rpc<Record<string, Array<{ text: string; meta: TopicMeta }>>>(
+    host,
+    'get_topic_histories',
+    { keys },
+    apiKey
+  );
+  const map = new Map<string, TopicSnapshot[]>();
+  for (const [key, snapshots] of Object.entries(result)) {
+    map.set(key, snapshots ?? []);
+  }
+  return map;
+}
+
 // ── Changelog (delta sync) ─────────────────────────────────────────────────────
 export interface ChangelogEntry {
   key: string
