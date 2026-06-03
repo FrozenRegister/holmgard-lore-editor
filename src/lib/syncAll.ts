@@ -20,7 +20,7 @@ import {
   getChanges,
 } from './sync'
 import type { ChangelogEntry } from './sync'
-import { getAdminSecret } from './auth'
+import { getAdminSecret, getMcpApiKey } from './auth'
 import type { Topic, ConflictInfo } from './types'
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
@@ -52,11 +52,10 @@ export async function runSync(): Promise<void> {
   syncState.set({ status: 'syncing' })
   try {
     const $settings = get(settings)
-    const secret = await getAdminSecret()
-    const apiKey = secret ?? undefined
     await flushPendingDeletes($settings.workerHost)
 
-    const remote = await pullAll($settings.workerHost, apiKey)
+    const apiKey = await getMcpApiKey()
+    const remote = await pullAll($settings.workerHost, apiKey ?? undefined)
     const localMap = new Map(get(topics).map((t) => [t.key, t]))
     const conflicts: ConflictInfo[] = []
     const newTopics: Topic[] = []
@@ -122,12 +121,11 @@ export async function runSync(): Promise<void> {
 
 export async function runSmartSync(since: string): Promise<boolean> {
   const $settings = get(settings)
-  const secret = await getAdminSecret()
-  const apiKey = secret ?? undefined
+  const apiKey = await getMcpApiKey()
 
   let changes: ChangelogEntry[]
   try {
-    changes = await getChanges($settings.workerHost, since, apiKey)
+    changes = await getChanges($settings.workerHost, since, apiKey ?? undefined)
   } catch (err) {
     console.warn('Smart sync: changelog fetch failed, falling back to full sync', err)
     return false // caller will do runSync()
@@ -170,7 +168,7 @@ export async function runSmartSync(since: string): Promise<boolean> {
     .filter(([, c]) => c.op !== 'delete')
     .map(([key]) => key)
 
-  const remoteMap = await batchGetTopicsRemote($settings.workerHost, writeKeys, apiKey)
+  const remoteMap = await batchGetTopicsRemote($settings.workerHost, writeKeys, apiKey ?? undefined)
 
   for (const [key, remote] of remoteMap) {
     const local = localMap.get(key)

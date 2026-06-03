@@ -6,7 +6,7 @@
   import { saveTopic, loadTopic } from '$lib/storage';
   import { pushHistory, loadHistory } from '$lib/history';
   import { adminSave, enqueue } from '$lib/sync';
-  import { getAdminSecret } from '$lib/auth';
+  import { getAdminSecret, getMcpApiKey } from '$lib/auth';
   import { renderMarkdown } from '$lib/marked-config';
   import MonacoEditor from '$lib/components/MonacoEditor.svelte';
   import MarkdownPreview from '$lib/components/MarkdownPreview.svelte';
@@ -136,8 +136,8 @@
     showEventLog = true;
     if (availableThreads.length === 0) {
       try {
-        const secret = await getAdminSecret();
-        const r = await callTool<{ threads: ActiveThread[] }>($settings.workerHost, 'list_active_threads', {}, secret ?? undefined);
+        const apiKey = await getMcpApiKey();
+        const r = await callTool<{ threads: ActiveThread[] }>($settings.workerHost, 'list_active_threads', {}, apiKey ?? undefined);
         availableThreads = r.threads ?? [];
       } catch { /* non-fatal; filter just won't populate */ }
     }
@@ -148,10 +148,10 @@
     eventLogLoading = true;
     eventLogError = null;
     try {
-      const secret = await getAdminSecret();
+      const apiKey = await getMcpApiKey();
       const args: Record<string, unknown> = { entity_key: key, limit: 100 };
       if (eventLogThreadFilter) args.thread = eventLogThreadFilter;
-      const r = await callTool<{ events: McpEvent[] }>($settings.workerHost, 'get_event_log', args, secret ?? undefined);
+      const r = await callTool<{ events: McpEvent[] }>($settings.workerHost, 'get_event_log', args, apiKey ?? undefined);
       eventLogEntries = r.events ?? [];
     } catch (err: any) {
       eventLogError = err.message ?? 'Failed to load events';

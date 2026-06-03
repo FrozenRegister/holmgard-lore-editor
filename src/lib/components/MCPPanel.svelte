@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { mcpOpen, settings } from '$lib/stores';
   import { callTool, listTools, type Tool } from '$lib/mcp';
-  import { getAdminSecret } from '$lib/auth';
+  import { getMcpApiKey } from '$lib/auth';
   import { fly } from 'svelte/transition';
   import hljs from 'highlight.js';
 
@@ -27,8 +27,8 @@
   onMount(async () => {
     try {
       toolsLoading = true;
-      const adminSecret = await getAdminSecret();
-      tools = await listTools($settings.workerHost, adminSecret ?? undefined);
+      const apiKey = await getMcpApiKey();
+      tools = await listTools($settings.workerHost, apiKey ?? undefined);
       // Pre-populate params for the default method
       populateParamsFromTool('list_topics');
     } catch (e) {
@@ -100,12 +100,12 @@
     const start = performance.now();
 
     try {
-      const adminSecret = await getAdminSecret();
+      const apiKey = await getMcpApiKey();
       const res = await callTool(
         $settings.workerHost,
         method,
         params as Record<string, unknown>,
-        adminSecret ?? undefined
+        apiKey ?? undefined
       );
 
       const ms = Math.round(performance.now() - start);

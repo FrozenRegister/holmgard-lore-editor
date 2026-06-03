@@ -7,6 +7,9 @@
     getClaudeApiKey,
     setClaudeApiKey,
     clearClaudeApiKey,
+    getMcpApiKey,
+    setMcpApiKey,
+    clearMcpApiKey,
   } from "$lib/auth";
   import type { AppSettings } from "$lib/types";
 
@@ -25,6 +28,9 @@
   let claudeApiKeyInput = "";
   let claudeApiKeySet = false;
   let savingClaudeKey = false;
+  let mcpApiKeyInput = "";
+  let mcpApiKeySet = false;
+  let savingMcpKey = false;
 
   onMount(async () => {
     const s = await loadSettings();
@@ -58,6 +64,9 @@
 
     const existingKey = await getClaudeApiKey();
     claudeApiKeySet = !!existingKey;
+
+    const existingMcpKey = await getMcpApiKey();
+    mcpApiKeySet = !!existingMcpKey;
   });
 
   async function saveAll() {
@@ -183,11 +192,45 @@
     }
   }
 
+  async function saveMcpKey() {
+    if (!mcpApiKeyInput.trim()) {
+      showToast("Paste your API key first", "error");
+      return;
+    }
+    savingMcpKey = true;
+    try {
+      await setMcpApiKey(mcpApiKeyInput.trim());
+      mcpApiKeySet = true;
+      mcpApiKeyInput = "";
+      showToast("MCP API key saved", "success");
+    } catch (err: any) {
+      showToast(`Failed: ${err.message}`, "error");
+    } finally {
+      savingMcpKey = false;
+    }
+  }
+
+  async function removeMcpKey() {
+    if (!confirm("Remove the MCP API key?")) return;
+    try {
+      await clearMcpApiKey();
+      mcpApiKeySet = false;
+      mcpApiKeyInput = "";
+      showToast("MCP API key removed", "success");
+    } catch (err: any) {
+      showToast(`Failed: ${err.message}`, "error");
+    }
+  }
+
   async function testConnection() {
     try {
+      const mcpKey = await getMcpApiKey();
       const res = await fetch(`${workerHost}/mcp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(mcpKey ? { "X-Api-Key": mcpKey } : {}),
+        },
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: 1,
@@ -198,7 +241,9 @@
       if (res.ok) {
         showToast("Connection successful ✓", "success");
       } else {
-        showToast(`Connection failed: HTTP ${res.status}`, "error");
+        const json = await res.json().catch(() => ({}));
+        const msg = json.error?.message || `HTTP ${res.status}`;
+        showToast(`Connection failed: ${msg}`, "error");
       }
     } catch (err: any) {
       showToast(`Connection error: ${err.message}`, "error");
@@ -428,6 +473,53 @@
               type="button"
               class="btn btn-ghost btn-sm danger"
               on:click={removeClaudeKey}
+            >
+              Remove
+            </button>
+          {/if}
+        </div>
+      </div>
+    </section>
+
+    <!-- MCP API Key -->
+    <section class="settings-section">
+      <h2>MCP Worker</h2>
+      <p class="section-desc">
+        Authentication key for read operations on the MCP Worker (separate from
+        admin secret). Stored securely in the OS keyring — never written to disk.
+      </p>
+
+      <div class="field">
+        <label for="mcpApiKey">
+          API Key
+          {#if mcpApiKeySet}
+            <span class="badge badge-ok">Set ✓</span>
+          {:else}
+            <span class="badge badge-warn">Not set</span>
+          {/if}
+        </label>
+        <div class="input-row">
+          <input
+            id="mcpApiKey"
+            type="password"
+            bind:value={mcpApiKeyInput}
+            placeholder="Enter your MCP API key…"
+            class="text-input"
+            autocomplete="new-password"
+          />
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            on:click={saveMcpKey}
+            disabled={savingMcpKey}
+          >
+            {savingMcpKey ? "Saving…" : "Save"}
+          </button>
+          {#if mcpApiKeySet}
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm danger"
+              on:click={removeMcpKey}
             >
               Remove
             </button>
