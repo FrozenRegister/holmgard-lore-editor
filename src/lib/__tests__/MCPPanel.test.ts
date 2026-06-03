@@ -72,15 +72,14 @@ describe('MCPPanel.svelte', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(mcpModule.callTool).toHaveBeenCalledWith(
-      expect.stringContaining('frozenregister.workers.dev'),
-      'list_topics',
-      {}
-    );
+    const calls = vi.mocked(mcpModule.callTool).mock.calls;
+    expect(calls[0][0]).toContain('frozenregister.workers.dev');
+    expect(calls[0][1]).toBe('list_topics');
+    expect(calls[0][2]).toEqual({});
   });
 
   it('passes empty object for params when textarea is empty', async () => {
-    vi.spyOn(mcpModule, 'callTool').mockResolvedValue({});
+    vi.mocked(mcpModule.callTool).mockResolvedValue({});
     const { container } = render(MCPPanel);
     const runBtn = screen.getByText('Run Tool') as HTMLButtonElement;
 
@@ -91,11 +90,9 @@ describe('MCPPanel.svelte', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(mcpModule.callTool).toHaveBeenCalledWith(
-      expect.any(String),
-      'list_topics',
-      {}
-    );
+    const calls = vi.mocked(mcpModule.callTool).mock.calls;
+    expect(calls[0][1]).toBe('list_topics');
+    expect(calls[0][2]).toEqual({});
   });
 
   it('handles API errors gracefully and resets busy state', async () => {

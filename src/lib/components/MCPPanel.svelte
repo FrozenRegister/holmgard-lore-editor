@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { mcpOpen, settings } from '$lib/stores';
   import { callTool, listTools, type Tool } from '$lib/mcp';
+  import { getAdminSecret } from '$lib/auth';
   import { fly } from 'svelte/transition';
   import hljs from 'highlight.js';
 
@@ -26,7 +27,8 @@
   onMount(async () => {
     try {
       toolsLoading = true;
-      tools = await listTools($settings.workerHost);
+      const adminSecret = await getAdminSecret();
+      tools = await listTools($settings.workerHost, adminSecret ?? undefined);
     } catch (e) {
       console.error('Failed to load tools:', e);
     } finally {
@@ -65,10 +67,12 @@
     const start = performance.now();
 
     try {
+      const adminSecret = await getAdminSecret();
       const res = await callTool(
         $settings.workerHost,
         method,
-        params as Record<string, unknown>
+        params as Record<string, unknown>,
+        adminSecret ?? undefined
       );
 
       const ms = Math.round(performance.now() - start);
