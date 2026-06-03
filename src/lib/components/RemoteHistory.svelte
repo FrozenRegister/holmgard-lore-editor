@@ -40,25 +40,42 @@
     const newLines = newText.split('\n');
     const lines: string[] = [];
 
-    const oldSet = new Set(oldLines);
-    const newSet = new Set(newLines);
+    // Simple diff: mark each line as removed (-), added (+), or unchanged ( )
+    const maxLen = Math.max(oldLines.length, newLines.length);
+    let oldIdx = 0;
+    let newIdx = 0;
 
-    // Show lines with state: unchanged, added, removed
-    const maxLines = Math.max(oldLines.length, newLines.length);
-    for (let i = 0; i < maxLines; i++) {
-      const old = oldLines[i] ?? '';
-      const neu = newLines[i] ?? '';
+    while (oldIdx < oldLines.length || newIdx < newLines.length) {
+      const oldLine = oldIdx < oldLines.length ? oldLines[oldIdx] : null;
+      const newLine = newIdx < newLines.length ? newLines[newIdx] : null;
 
-      if (old === neu) {
-        lines.push(`  ${old}`);
-      } else if (!oldSet.has(neu) && neu) {
-        lines.push(`+ ${neu}`);
-      } else if (!newSet.has(old) && old) {
-        lines.push(`- ${old}`);
+      if (oldLine === newLine) {
+        // Lines match, skip both
+        if (oldLine !== null) {
+          lines.push(`  ${oldLine}`);
+        }
+        oldIdx++;
+        newIdx++;
+      } else if (oldLine === null) {
+        // Only new lines remain
+        lines.push(`+ ${newLine}`);
+        newIdx++;
+      } else if (newLine === null) {
+        // Only old lines remain
+        lines.push(`- ${oldLine}`);
+        oldIdx++;
+      } else {
+        // Lines differ; show both (removed first, then added)
+        lines.push(`- ${oldLine}`);
+        lines.push(`+ ${newLine}`);
+        oldIdx++;
+        newIdx++;
       }
+
+      if (lines.length >= 20) break;
     }
 
-    return lines.slice(0, 20).join('\n') + (lines.length > 20 ? '\n... (truncated)' : '');
+    return lines.slice(0, 20).join('\n') + (oldIdx < oldLines.length || newIdx < newLines.length ? '\n... (truncated)' : '');
   }
 </script>
 
@@ -241,10 +258,17 @@
 
   .diff-preview code {
     font-family: var(--font-mono, monospace);
+    display: block;
   }
 
   .diff-preview :global(pre) {
     background: transparent;
+  }
+
+  /* Diff line coloring */
+  .diff-preview :global(code) {
+    --removed-bg: rgba(239, 68, 68, 0.1);
+    --added-bg: rgba(34, 197, 94, 0.1);
   }
 
   :global(.btn) {
