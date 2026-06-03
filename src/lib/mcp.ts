@@ -42,13 +42,6 @@ export async function listTools(
   host: string,
   apiKey?: string
 ): Promise<Tool[]> {
-  const DEFAULT_TOOLS: Tool[] = [
-    { name: 'list_topics', description: 'List all topics' },
-    { name: 'get_topic', description: 'Get a specific topic' },
-    { name: 'update_topic', description: 'Update an existing topic' },
-    { name: 'create_topic', description: 'Create a new topic' },
-  ];
-
   try {
     const url = `${host}/mcp`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -59,17 +52,18 @@ export async function listTools(
       body: JSON.stringify({
         jsonrpc: JSON_RPC_VERSION,
         id: _reqId++,
-        method: 'list_resources',
+        method: 'tools/list',
         params: {},
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const json = await res.json();
     if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
-    const result = json.result as { resources?: Tool[] };
-    return result.resources ?? DEFAULT_TOOLS;
-  } catch {
-    return DEFAULT_TOOLS;
+    const result = json.result as { tools?: Tool[] };
+    return result.tools ?? [];
+  } catch (e) {
+    console.error('Failed to list tools:', e);
+    return [];
   }
 }
 

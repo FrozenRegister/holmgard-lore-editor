@@ -128,14 +128,14 @@ describe('listTools', () => {
     vi.restoreAllMocks();
   });
 
-  it('calls list_resources method', async () => {
+  it('calls tools/list method', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         jsonrpc: '2.0',
         id: 1000,
-        result: { resources: [] },
+        result: { tools: [] },
       }),
     });
     global.fetch = mockFetch;
@@ -143,10 +143,10 @@ describe('listTools', () => {
     await listTools('http://localhost');
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.method).toBe('list_resources');
+    expect(body.method).toBe('tools/list');
   });
 
-  it('returns list of tools from resources', async () => {
+  it('returns list of tools from tools array', async () => {
     const { listTools } = await import('../mcp');
     const mockTools = [
       { name: 'list_topics', description: 'List all topics' },
@@ -157,7 +157,7 @@ describe('listTools', () => {
       json: async () => ({
         jsonrpc: '2.0',
         id: 1000,
-        result: { resources: mockTools },
+        result: { tools: mockTools },
       }),
     });
     global.fetch = mockFetch;
@@ -167,7 +167,7 @@ describe('listTools', () => {
     expect(tools).toEqual(mockTools);
   });
 
-  it('returns default tools when no resources field', async () => {
+  it('returns empty array when no tools field', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -181,8 +181,7 @@ describe('listTools', () => {
 
     const tools = await listTools('http://localhost');
 
-    expect(tools).toHaveLength(4);
-    expect(tools[0].name).toBe('list_topics');
+    expect(tools).toEqual([]);
   });
 
   it('includes API key header when provided', async () => {
@@ -203,7 +202,7 @@ describe('listTools', () => {
     expect(options.headers['X-Api-Key']).toBe('secret-key');
   });
 
-  it('returns default tools on HTTP error', async () => {
+  it('returns empty array on HTTP error', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,
@@ -214,11 +213,10 @@ describe('listTools', () => {
 
     const tools = await listTools('http://localhost');
 
-    expect(tools).toHaveLength(4);
-    expect(tools[0].name).toBe('list_topics');
+    expect(tools).toEqual([]);
   });
 
-  it('returns default tools on JSON-RPC error', async () => {
+  it('returns empty array on JSON-RPC error', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -232,7 +230,6 @@ describe('listTools', () => {
 
     const tools = await listTools('http://localhost');
 
-    expect(tools).toHaveLength(4);
-    expect(tools[0].name).toBe('list_topics');
+    expect(tools).toEqual([]);
   });
 });
