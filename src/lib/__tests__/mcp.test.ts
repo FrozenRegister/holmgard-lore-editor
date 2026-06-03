@@ -1,0 +1,120 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { callTool } from '../mcp';
+
+describe('mcp.ts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('calls fetch with correct JSON-RPC structure', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1000, result: { topics: [] } }),
+    });
+    global.fetch = mockFetch;
+
+    await callTool('http://localhost', 'list_topics', {});
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const [url, options] = mockFetch.mock.calls[0];
+
+    expect(url).toBe('http://localhost/mcp');
+    expect(options.method).toBe('POST');
+    expect(options.headers['Content-Type']).toBe('application/json');
+
+    const body = JSON.parse(options.body);
+    expect(body.jsonrpc).toBe('2.0');
+    expect(body.method).toBe('tools/call');
+    expect(body.params.name).toBe('list_topics');
+    expect(body.params.arguments).toEqual({});
+  });
+
+  it('includes API key header when provided', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1000, result: {} }),
+    });
+    global.fetch = mockFetch;
+
+    await callTool('http://localhost', 'test_method', {}, 'secret-key');
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.headers['X-Api-Key']).toBe('secret-key');
+  });
+
+  it('passes arguments correctly to the API', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1000, result: { success: true } }),
+    });
+    global.fetch = mockFetch;
+
+    const args = { query: 'test', limit: 10 };
+    await callTool('http://localhost', 'search_topics', args);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.params.arguments).toEqual(args);
+  });
+
+  it('returns result from successful response', async () => {
+    const expectedResult = { topics: ['topic1', 'topic2'] };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1000, result: expectedResult }),
+    });
+    global.fetch = mockFetch;
+
+    const result = await callTool('http://localhost', 'list_topics', {});
+
+    expect(result).toEqual(expectedResult);
+  });
+
+  it('throws on HTTP error', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+    global.fetch = mockFetch;
+
+    await expect(callTool('http://localhost', 'test', {})).rejects.toThrow(
+      'HTTP 500: Internal Server Error'
+    );
+  });
+
+  it('throws on JSON-RPC error response', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        jsonrpc: '2.0',
+        id: 1000,
+        error: { code: -32600, message: 'Invalid Request' },
+      }),
+    });
+    global.fetch = mockFetch;
+
+    await expect(callTool('http://localhost', 'test', {})).rejects.toThrow(
+      'Invalid Request'
+    );
+  });
+
+  it('increments request ID for each call', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1, result: {} }),
+    });
+    global.fetch = mockFetch;
+
+    await callTool('http://localhost', 'test1', {});
+    const firstId = JSON.parse(mockFetch.mock.calls[0][1].body).id;
+
+    await callTool('http://localhost', 'test2', {});
+    const secondId = JSON.parse(mockFetch.mock.calls[1][1].body).id;
+
+    expect(secondId).toBeGreaterThan(firstId);
+  });
+});

@@ -34,27 +34,30 @@
     busy = true;
     const start = performance.now();
 
-    // Correct callTool usage
-    const res = await callTool(
-      $settings.workerHost,
-      method,
-      params as Record<string, unknown>
-    );
-
-    const ms = Math.round(performance.now() - start);
-
-    history = [
-      {
-        id: nextId++,
+    try {
+      const res = await callTool(
+        $settings.workerHost,
         method,
-        params,
-        result: res,
-        ms,
-      },
-      ...history,
-    ];
+        params as Record<string, unknown>
+      );
 
-    busy = false;
+      const ms = Math.round(performance.now() - start);
+
+      history = [
+        {
+          id: nextId++,
+          method,
+          params,
+          result: res,
+          ms,
+        },
+        ...history,
+      ];
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Unknown error';
+    } finally {
+      busy = false;
+    }
   }
 </script>
 
