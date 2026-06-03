@@ -9,3 +9,4 @@ src-tauri/target/
 *.pem
 *.key
 *.secret
+vite.config.ts.timestamp*
