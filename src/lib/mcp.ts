@@ -11,6 +11,7 @@ export interface Tool {
   name: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
+  examples?: { arguments: Record<string, unknown> }[];
 }
 
 export async function callTool<T extends Record<string, unknown>>(

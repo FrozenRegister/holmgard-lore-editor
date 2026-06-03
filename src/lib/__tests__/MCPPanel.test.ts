@@ -3,8 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import MCPPanel from '../components/MCPPanel.svelte';
 import * as mcpModule from '../mcp';
 import { mcpOpen } from '../stores';
+import * as authModule from '../auth';
 
 vi.mock('../mcp');
+vi.mock('../auth');
 vi.mock('highlight.js', () => ({
   default: {
     highlight: (text: string, { language }: { language: string }) => ({
@@ -20,6 +22,7 @@ describe('MCPPanel.svelte', () => {
     // Default mocks for tests that don't override
     vi.mocked(mcpModule.listTools).mockResolvedValue([]);
     vi.mocked(mcpModule.callTool).mockResolvedValue({});
+    vi.mocked(authModule.getAdminSecret).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -198,4 +201,5 @@ describe('MCPPanel.svelte', () => {
       expect(jsonResult?.innerHTML).toContain('hljs');
     });
   });
+
 });

@@ -29,6 +29,8 @@
       toolsLoading = true;
       const adminSecret = await getAdminSecret();
       tools = await listTools($settings.workerHost, adminSecret ?? undefined);
+      // Pre-populate params for the default method
+      populateParamsFromTool('list_topics');
     } catch (e) {
       console.error('Failed to load tools:', e);
     } finally {
@@ -48,6 +50,37 @@
   function highlightJSON(json: unknown): string {
     const text = JSON.stringify(json, null, 2);
     return hljs.highlight(text, { language: 'json' }).value;
+  }
+
+  function populateParamsFromTool(toolName: string) {
+    const tool = tools.find(t => t.name === toolName);
+    if (tool?.examples?.[0]?.arguments) {
+      paramsText = JSON.stringify(tool.examples[0].arguments, null, 2);
+    } else {
+      paramsText = '{}';
+    }
+  }
+
+  function handleMethodSelect(e: Event) {
+    const target = e.currentTarget as HTMLSelectElement;
+    if (target.value) {
+      method = target.value;
+      populateParamsFromTool(target.value);
+      target.value = ''; // Reset dropdown for reselection
+    }
+  }
+
+  function getSelectedTool() {
+    return tools.find(t => t.name === method);
+  }
+
+  function getSchemaDescription(): string | null {
+    const tool = getSelectedTool();
+    if (!tool?.inputSchema) return null;
+    const schema = tool.inputSchema as Record<string, unknown>;
+    const required = (schema.required as string[]) ?? [];
+    if (required.length === 0) return 'No required parameters';
+    return `Required: ${required.join(', ')}`;
   }
 
   async function run() {
@@ -113,6 +146,7 @@
             list="tools-list"
             bind:value={method}
             placeholder="Enter method or select from dropdown"
+            on:change={() => populateParamsFromTool(method)}
           />
           <datalist id="tools-list">
             {#each tools as tool}
@@ -120,7 +154,7 @@
             {/each}
           </datalist>
           {#if tools.length > 0}
-            <select bind:value={method} class="method-select" title="Quick select a tool">
+            <select class="method-select" on:change={handleMethodSelect} title="Quick select a tool">
               <option value="" disabled selected>Select a tool...</option>
               {#each tools as tool}
                 <option value={tool.name}>{tool.name}</option>
@@ -129,6 +163,17 @@
           {/if}
         </div>
       </label>
+
+      {#if getSelectedTool()}
+        <div class="tool-info">
+          {#if getSelectedTool()?.description}
+            <div class="tool-description">{getSelectedTool()?.description}</div>
+          {/if}
+          {#if getSchemaDescription()}
+            <div class="schema-hint">{getSchemaDescription()}</div>
+          {/if}
+        </div>
+      {/if}
 
       <label>
         <span>Params (JSON)</span>
@@ -268,6 +313,27 @@
     flex: 0 0 auto;
     min-width: fit-content;
     cursor: pointer;
+  }
+
+  .tool-info {
+    padding: 0.5rem;
+    background: var(--surface3, rgba(0, 0, 0, 0.1));
+    border-radius: 4px;
+    font-size: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .tool-description {
+    color: var(--fg);
+    font-weight: 500;
+  }
+
+  .schema-hint {
+    color: var(--fg-muted);
+    font-size: 0.75rem;
+    font-family: var(--font-mono, monospace);
   }
 
   textarea {
