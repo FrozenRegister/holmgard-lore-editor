@@ -118,3 +118,118 @@ describe('mcp.ts', () => {
     expect(secondId).toBeGreaterThan(firstId);
   });
 });
+
+describe('listTools', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('calls resources/list method', async () => {
+    const { listTools } = await import('../mcp');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        jsonrpc: '2.0',
+        id: 1000,
+        result: { resources: [] },
+      }),
+    });
+    global.fetch = mockFetch;
+
+    await listTools('http://localhost');
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.method).toBe('resources/list');
+  });
+
+  it('returns list of tools from resources', async () => {
+    const { listTools } = await import('../mcp');
+    const mockTools = [
+      { name: 'list_topics', description: 'List all topics' },
+      { name: 'get_topic', description: 'Get a topic' },
+    ];
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        jsonrpc: '2.0',
+        id: 1000,
+        result: { resources: mockTools },
+      }),
+    });
+    global.fetch = mockFetch;
+
+    const tools = await listTools('http://localhost');
+
+    expect(tools).toEqual(mockTools);
+  });
+
+  it('returns empty array when no resources field', async () => {
+    const { listTools } = await import('../mcp');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        jsonrpc: '2.0',
+        id: 1000,
+        result: {},
+      }),
+    });
+    global.fetch = mockFetch;
+
+    const tools = await listTools('http://localhost');
+
+    expect(tools).toEqual([]);
+  });
+
+  it('includes API key header when provided', async () => {
+    const { listTools } = await import('../mcp');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        jsonrpc: '2.0',
+        id: 1000,
+        result: { resources: [] },
+      }),
+    });
+    global.fetch = mockFetch;
+
+    await listTools('http://localhost', 'secret-key');
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.headers['X-Api-Key']).toBe('secret-key');
+  });
+
+  it('throws on HTTP error', async () => {
+    const { listTools } = await import('../mcp');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+    global.fetch = mockFetch;
+
+    await expect(listTools('http://localhost')).rejects.toThrow(
+      'HTTP 500: Internal Server Error'
+    );
+  });
+
+  it('throws on JSON-RPC error response', async () => {
+    const { listTools } = await import('../mcp');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        jsonrpc: '2.0',
+        id: 1000,
+        error: { code: -32600, message: 'Invalid Request' },
+      }),
+    });
+    global.fetch = mockFetch;
+
+    await expect(listTools('http://localhost')).rejects.toThrow(
+      'Invalid Request'
+    );
+  });
+});

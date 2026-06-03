@@ -7,6 +7,12 @@
 const JSON_RPC_VERSION = '2.0';
 let _reqId = 1000;
 
+export interface Tool {
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
 export async function callTool<T extends Record<string, unknown>>(
   host: string,
   name: string,
@@ -30,5 +36,29 @@ export async function callTool<T extends Record<string, unknown>>(
   const json = await res.json();
   if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
   return json.result as T;
+}
+
+export async function listTools(
+  host: string,
+  apiKey?: string
+): Promise<Tool[]> {
+  const url = `${host}/mcp`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-Api-Key'] = apiKey;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      jsonrpc: JSON_RPC_VERSION,
+      id: _reqId++,
+      method: 'resources/list',
+      params: {},
+    }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
+  const resources = json.result as { resources?: Tool[] };
+  return resources.resources ?? [];
 }
 

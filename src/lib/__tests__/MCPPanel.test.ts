@@ -1,15 +1,25 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import MCPPanel from '../components/MCPPanel.svelte';
 import * as mcpModule from '../mcp';
 import { mcpOpen } from '../stores';
 
 vi.mock('../mcp');
+vi.mock('highlight.js', () => ({
+  default: {
+    highlight: (text: string, { language }: { language: string }) => ({
+      value: `<span class="hljs-string">${text}</span>`,
+    }),
+  },
+}));
 
 describe('MCPPanel.svelte', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mcpOpen.set(true);
+    // Default mocks for tests that don't override
+    vi.mocked(mcpModule.listTools).mockResolvedValue([]);
+    vi.mocked(mcpModule.callTool).mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -62,7 +72,7 @@ describe('MCPPanel.svelte', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(vi.mocked(mcpModule.callTool)).toHaveBeenCalledWith(
+    expect(mcpModule.callTool).toHaveBeenCalledWith(
       expect.stringContaining('frozenregister.workers.dev'),
       'list_topics',
       {}
@@ -70,7 +80,7 @@ describe('MCPPanel.svelte', () => {
   });
 
   it('passes empty object for params when textarea is empty', async () => {
-    vi.mocked(mcpModule.callTool).mockResolvedValue({});
+    vi.spyOn(mcpModule, 'callTool').mockResolvedValue({});
     const { container } = render(MCPPanel);
     const runBtn = screen.getByText('Run Tool') as HTMLButtonElement;
 
@@ -81,7 +91,7 @@ describe('MCPPanel.svelte', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(vi.mocked(mcpModule.callTool)).toHaveBeenCalledWith(
+    expect(mcpModule.callTool).toHaveBeenCalledWith(
       expect.any(String),
       'list_topics',
       {}
@@ -108,7 +118,7 @@ describe('MCPPanel.svelte', () => {
 
   it('adds entries to history on successful call', async () => {
     const mockResult = { topics: ['topic1', 'topic2'] };
-    vi.mocked(mcpModule.callTool).mockResolvedValue(mockResult);
+    vi.spyOn(mcpModule, 'callTool').mockResolvedValue(mockResult);
 
     const { container } = render(MCPPanel);
     const runBtn = screen.getByText('Run Tool') as HTMLButtonElement;
@@ -119,5 +129,76 @@ describe('MCPPanel.svelte', () => {
 
     const history = container.querySelector('.history');
     expect(history?.innerHTML).toContain('list_topics');
+  });
+
+  it('renders datalist for autocomplete', () => {
+    const { container } = render(MCPPanel);
+    const datalist = container.querySelector('datalist');
+    expect(datalist).toBeInTheDocument();
+    expect(datalist?.id).toBe('tools-list');
+  });
+
+  it('makes history entries collapsible', async () => {
+    const mockResult = { data: 'test' };
+    vi.spyOn(mcpModule, 'callTool').mockResolvedValue(mockResult);
+
+    const { container } = render(MCPPanel);
+    const runBtn = screen.getByText('Run Tool') as HTMLButtonElement;
+
+    await fireEvent.click(runBtn);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const entryHeader = container.querySelector('.entry-header') as HTMLButtonElement;
+    expect(entryHeader).toBeInTheDocument();
+
+    const jsonResult = container.querySelector('.json-result');
+    expect(jsonResult).not.toBeInTheDocument();
+
+    await fireEvent.click(entryHeader);
+
+    await waitFor(() => {
+      const expandedResult = container.querySelector('.json-result');
+      expect(expandedResult).toBeInTheDocument();
+    });
+  });
+
+  it('toggles collapse icon on entry click', async () => {
+    const mockResult = { data: 'test' };
+    vi.spyOn(mcpModule, 'callTool').mockResolvedValue(mockResult);
+
+    const { container } = render(MCPPanel);
+    const runBtn = screen.getByText('Run Tool') as HTMLButtonElement;
+
+    await fireEvent.click(runBtn);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const collapseIcon = container.querySelector('.collapse-icon');
+    expect(collapseIcon?.textContent).toBe('▶');
+
+    const entryHeader = container.querySelector('.entry-header') as HTMLButtonElement;
+    await fireEvent.click(entryHeader);
+
+    await waitFor(() => {
+      expect(collapseIcon?.textContent).toBe('▼');
+    });
+  });
+
+  it('displays JSON syntax highlighted in history', async () => {
+    const mockResult = { topics: ['topic1', 'topic2'] };
+    vi.spyOn(mcpModule, 'callTool').mockResolvedValue(mockResult);
+
+    const { container } = render(MCPPanel);
+    const runBtn = screen.getByText('Run Tool') as HTMLButtonElement;
+
+    await fireEvent.click(runBtn);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const entryHeader = container.querySelector('.entry-header') as HTMLButtonElement;
+    await fireEvent.click(entryHeader);
+
+    await waitFor(() => {
+      const jsonResult = container.querySelector('.json-result code');
+      expect(jsonResult?.innerHTML).toContain('hljs');
+    });
   });
 });

@@ -1,12 +1,17 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { mcpOpen, settings } from '$lib/stores';
-  import { callTool } from '$lib/mcp';
+  import { callTool, listTools, type Tool } from '$lib/mcp';
   import { fly } from 'svelte/transition';
+  import hljs from 'highlight.js';
 
   let method = 'list_topics';
   let paramsText = '{}';
   let busy = false;
   let error: string | null = null;
+  let toolsLoading = false;
+  let tools: Tool[] = [];
+  let expandedEntries = new Set<number>();
 
   let history: {
     id: number;
@@ -17,6 +22,31 @@
   }[] = [];
 
   let nextId = 1;
+
+  onMount(async () => {
+    try {
+      toolsLoading = true;
+      tools = await listTools($settings.workerHost);
+    } catch (e) {
+      console.error('Failed to load tools:', e);
+    } finally {
+      toolsLoading = false;
+    }
+  });
+
+  function toggleEntry(id: number) {
+    if (expandedEntries.has(id)) {
+      expandedEntries.delete(id);
+    } else {
+      expandedEntries.add(id);
+    }
+    expandedEntries = expandedEntries;
+  }
+
+  function highlightJSON(json: unknown): string {
+    const text = JSON.stringify(json, null, 2);
+    return hljs.highlight(text, { language: 'json' }).value;
+  }
 
   async function run() {
     error = null;
@@ -74,7 +104,26 @@
     <section class="controls">
       <label>
         <span>Method</span>
-        <input bind:value={method} />
+        <div class="method-input-group">
+          <input
+            list="tools-list"
+            bind:value={method}
+            placeholder="Enter method or select from dropdown"
+          />
+          <datalist id="tools-list">
+            {#each tools as tool}
+              <option value={tool.name}>{tool.description || tool.name}</option>
+            {/each}
+          </datalist>
+          {#if tools.length > 0}
+            <select bind:value={method} class="method-select" title="Quick select a tool">
+              <option value="" disabled selected>Select a tool...</option>
+              {#each tools as tool}
+                <option value={tool.name}>{tool.name}</option>
+              {/each}
+            </select>
+          {/if}
+        </div>
       </label>
 
       <label>
@@ -86,19 +135,28 @@
         <div class="error">{error}</div>
       {/if}
 
-      <button class="run-btn" on:click={run} disabled={busy}>
-        {busy ? 'Running…' : 'Run Tool'}
+      <button class="run-btn" on:click={run} disabled={busy || toolsLoading}>
+        {busy ? 'Running…' : toolsLoading ? 'Loading tools…' : 'Run Tool'}
       </button>
     </section>
 
     <section class="history">
       {#each history as entry}
         <div class="entry">
-          <div class="entry-header">
+          <button
+            class="entry-header"
+            on:click={() => toggleEntry(entry.id)}
+            title={expandedEntries.has(entry.id) ? 'Collapse' : 'Expand'}
+          >
+            <span class="collapse-icon">
+              {expandedEntries.has(entry.id) ? '▼' : '▶'}
+            </span>
             <code>{entry.method}</code>
-            <span>{entry.ms} ms</span>
-          </div>
-          <pre>{JSON.stringify(entry.result, null, 2)}</pre>
+            <span class="ms">{entry.ms} ms</span>
+          </button>
+          {#if expandedEntries.has(entry.id)}
+            <pre class="json-result"><code>{@html highlightJSON(entry.result)}</code></pre>
+          {/if}
         </div>
       {/each}
     </section>
@@ -106,6 +164,31 @@
 {/if}
 
 <style>
+  :global(.hljs) {
+    background: transparent;
+    color: var(--fg);
+  }
+
+  :global(.hljs-string) {
+    color: #a6e22e;
+  }
+
+  :global(.hljs-number) {
+    color: #ae81ff;
+  }
+
+  :global(.hljs-literal) {
+    color: #66d9ef;
+  }
+
+  :global(.hljs-attr) {
+    color: #a1efe4;
+  }
+
+  :global(.hljs-punctuation) {
+    color: var(--fg-muted);
+  }
+
   .mcp-panel {
     position: fixed;
     right: 0;
@@ -155,8 +238,14 @@
     gap: 0.25rem;
   }
 
+  .method-input-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+
   input,
-  textarea {
+  textarea,
+  select {
     font-family: var(--font-mono, monospace);
     font-size: 0.85rem;
     padding: 0.4rem;
@@ -164,6 +253,22 @@
     border: 1px solid var(--border);
     background: var(--surface2);
     color: var(--fg);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .method-select {
+    flex: 0 0 auto;
+    min-width: fit-content;
+    cursor: pointer;
+  }
+
+  textarea {
+    font-family: var(--font-mono, monospace);
+    resize: vertical;
   }
 
   .run-btn {
@@ -198,19 +303,61 @@
   .entry {
     background: var(--surface2);
     border: 1px solid var(--border);
-    padding: 0.5rem;
     border-radius: 6px;
+    overflow: hidden;
   }
 
   .entry-header {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.25rem;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: inherit;
+    transition: background-color 0.15s;
   }
 
-  pre {
-    margin: 0;
+  .entry-header:hover {
+    background-color: var(--surface3, rgba(255, 255, 255, 0.05));
+  }
+
+  .collapse-icon {
+    display: inline-flex;
+    min-width: 1rem;
+    font-size: 0.7rem;
+  }
+
+  .entry-header code {
+    flex: 1;
+    font-size: 0.85rem;
+  }
+
+  .entry-header .ms {
+    white-space: nowrap;
     font-size: 0.75rem;
+    color: var(--fg-muted);
+  }
+
+  .json-result {
+    margin: 0;
+    padding: 0.5rem;
+    background: var(--surface3, rgba(0, 0, 0, 0.2));
+    font-size: 0.7rem;
+    line-height: 1.4;
     white-space: pre-wrap;
+    word-break: break-word;
+    border-top: 1px solid var(--border);
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .json-result code {
+    font-family: var(--font-mono, monospace);
   }
 </style>
