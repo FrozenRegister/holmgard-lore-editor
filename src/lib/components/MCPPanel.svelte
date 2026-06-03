@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { mcpOpen } from '$lib/stores';
-  import { callMcp } from '$lib/mcp';
+  import { mcpOpen, settings } from '$lib/stores';
+  import { callTool } from '$lib/mcp';
   import { fly } from 'svelte/transition';
-  import { onMount } from 'svelte';
 
   let method = 'list_topics';
   let paramsText = '{}';
@@ -14,7 +13,6 @@
     method: string;
     params: unknown;
     result: unknown;
-    error?: string;
     ms: number;
   }[] = [];
 
@@ -36,7 +34,12 @@
     busy = true;
     const start = performance.now();
 
-    const res = await callMcp(method, params);
+    // Correct callTool usage
+    const res = await callTool(
+      $settings.workerHost,
+      method,
+      params as Record<string, unknown>
+    );
 
     const ms = Math.round(performance.now() - start);
 
@@ -45,8 +48,7 @@
         id: nextId++,
         method,
         params,
-        result: res.result,
-        error: res.error,
+        result: res,
         ms,
       },
       ...history,
@@ -93,7 +95,7 @@
             <code>{entry.method}</code>
             <span>{entry.ms} ms</span>
           </div>
-          <pre>{JSON.stringify(entry, null, 2)}</pre>
+          <pre>{JSON.stringify(entry.result, null, 2)}</pre>
         </div>
       {/each}
     </section>

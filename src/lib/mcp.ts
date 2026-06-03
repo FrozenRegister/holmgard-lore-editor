@@ -31,3 +31,4 @@ export async function callTool<T extends Record<string, unknown>>(
   if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
   return json.result as T;
 }
+
