@@ -75,9 +75,13 @@ export async function runSync(): Promise<void> {
           continue
         }
         if ((rTopic.meta.version ?? 0) > (local.meta.version ?? 0)) {
-          const updated: Topic = { ...local, meta: { ...rTopic.meta } }
+          const updated: Topic = { ...local, meta: { ...rTopic.meta, removedFromRemote: false } }
           await saveTopic(updated)
           topics.update((ts) => ts.map((t) => (t.key === key ? updated : t)))
+        } else if (local.meta.removedFromRemote) {
+          const cleared: Topic = { ...local, meta: { ...local.meta, removedFromRemote: false } }
+          await saveTopic(cleared)
+          topics.update((ts) => ts.map((t) => (t.key === key ? cleared : t)))
         }
       }
     }
