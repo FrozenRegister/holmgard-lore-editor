@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => {
     pushHistoryMock:    vi.fn(),
     flushQueueMock:     vi.fn(),
     getAdminSecretMock: vi.fn(),
+    getMcpApiKeyMock:   vi.fn(),
     enqueuePendingDeleteMock: vi.fn(),
     dequeueMock:        vi.fn(),
     showToastMock:      vi.fn(),
@@ -80,6 +81,7 @@ vi.mock('../history', () => ({
 
 vi.mock('../auth', () => ({
   getAdminSecret: mocks.getAdminSecretMock,
+  getMcpApiKey:   mocks.getMcpApiKeyMock,
 }));
 
 // Import AFTER all mocks
@@ -104,6 +106,7 @@ beforeEach(() => {
   mocks.pullAllMock.mockResolvedValue(new Map());
   mocks.detectConflictMock.mockReturnValue(null);
   mocks.getAdminSecretMock.mockResolvedValue(null);
+  mocks.getMcpApiKeyMock.mockResolvedValue(null);
 });
 
 // ── Remote-ahead update (texts match, only meta differs) ──────────────────────
