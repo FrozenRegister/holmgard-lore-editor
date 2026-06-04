@@ -23,3 +23,5 @@ static/hexmap/cloud-storage.js
 static/hexmap/mobile-companion.css
 static/hexmap/mobile-companion.js
 static/hexmap/small_logo.svg
+playwright-report/
+test-results/
