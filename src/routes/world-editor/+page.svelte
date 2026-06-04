@@ -170,6 +170,7 @@
     // Initialize the hex editor scripts in the correct order
     // These scripts are loaded as static assets and expect certain DOM structures
     const scriptOrder = [
+      '/hexmap/worker-patch.js',  // Patch Worker constructor for relative paths
       '/hexmap/mcp-auth.js',
       '/hexmap/mcp-storage.js',
       '/hexmap/game.js',
@@ -211,13 +212,6 @@
   <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-05-07-13" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    rel="preload"
-    href="/hexmap/game.js?v=2026-05-13-2"
-    as="script"
-  />
-  <link rel="preload" href="/hexmap/mcp-auth.js?v=2026-05-07-13" as="script" />
-  <link rel="preload" href="/hexmap/mcp-storage.js?v=2026-05-07-13" as="script" />
   <link
     rel="preload"
     as="style"
