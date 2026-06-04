@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { topics, syncState, showToast, conflictQueue, isMobile } from "$lib/stores";
+  import { topics, syncState, showToast, conflictQueue, isMobile, listActiveType, listActiveStatus, listSortBy, selectedForDeletion } from "$lib/stores";
   import { saveTopic, deleteTopic } from "$lib/storage";
   import { enqueuePendingDelete } from "$lib/sync";
   import { runSync } from "$lib/syncAll";
@@ -11,9 +11,11 @@
   let searchQuery = "";
   let showTemplateModal = false;
   let syncing = false;
-  let activeType: string | null = null;
-  let activeStatus: string | null = null;
-  let sortBy = "name-asc";
+
+  $: activeType = $listActiveType;
+  $: activeStatus = $listActiveStatus;
+  $: sortBy = $listSortBy;
+  $: isRemovalMode = activeStatus === "removed";
 
   $: typePrefixes = (() => {
     const counts = new Map<string, number>();
@@ -107,6 +109,38 @@
       syncing = false;
     }
   }
+
+  function toggleSelected(key: string) {
+    const selected = new Set($selectedForDeletion);
+    selected.has(key) ? selected.delete(key) : selected.add(key);
+    selectedForDeletion.set([...selected]);
+  }
+
+  function toggleSelectAll() {
+    const selected = new Set($selectedForDeletion);
+    if (selected.size === filtered.length) {
+      selectedForDeletion.set([]);
+    } else {
+      selectedForDeletion.set(filtered.map(t => t.key));
+    }
+  }
+
+  async function deleteSelected() {
+    const selected = new Set($selectedForDeletion);
+    if (selected.size === 0) {
+      showToast('No topics selected', 'warning');
+      return;
+    }
+    if (!confirm(`Delete ${selected.size} selected topic${selected.size !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+    let deleted = 0;
+    for (const key of selected) {
+      await deleteTopic(key);
+      deleted++;
+    }
+    topics.update((ts) => ts.filter((t) => !selected.has(t.key)));
+    selectedForDeletion.set([]);
+    showToast(`Deleted ${deleted} topic${deleted !== 1 ? 's' : ''}`, 'success');
+  }
 </script>
 
 <svelte:window
@@ -152,7 +186,7 @@
       aria-label="Search topics"
     />
     <span class="sort-label">Sort:</span>
-    <select bind:value={sortBy} class="sort-select" aria-label="Sort topics">
+    <select value={sortBy} on:change={(e) => listSortBy.set(e.currentTarget.value)} class="sort-select" aria-label="Sort topics">
       <option value="name-asc">Name A→Z</option>
       <option value="name-desc">Name Z→A</option>
       <option value="updated-desc">Last Updated (newest)</option>
@@ -166,13 +200,13 @@
     <button
       class="chip"
       class:chip-active={activeType === null}
-      on:click={() => (activeType = null)}
+      on:click={() => listActiveType.set(null)}
     >All</button>
     {#each typePrefixes as [prefix, count]}
       <button
         class="chip"
         class:chip-active={activeType === prefix}
-        on:click={() => (activeType = activeType === prefix ? null : prefix)}
+        on:click={() => listActiveType.set(activeType === prefix ? null : prefix)}
       >{prefix} <span class="chip-count">{count}</span></button>
     {/each}
 
@@ -182,20 +216,37 @@
       class="chip"
       class:chip-active={activeStatus === "conflicts"}
       on:click={() =>
-        (activeStatus = activeStatus === "conflicts" ? null : "conflicts")}
+        listActiveStatus.set(activeStatus === "conflicts" ? null : "conflicts")}
     >⚠ Conflicts</button>
     <button
       class="chip"
       class:chip-active={activeStatus === "removed"}
       on:click={() =>
-        (activeStatus = activeStatus === "removed" ? null : "removed")}
+        listActiveStatus.set(activeStatus === "removed" ? null : "removed")}
     >🗑 Removed from Remote</button>
     <button
       class="chip"
       class:chip-active={activeStatus === "recent"}
       on:click={() =>
-        (activeStatus = activeStatus === "recent" ? null : "recent")}
+        listActiveStatus.set(activeStatus === "recent" ? null : "recent")}
     >🕐 Recent</button>
+
+    {#if isRemovalMode && filtered.length > 0}
+      <span class="chip-divider" aria-hidden="true"></span>
+      <button
+        class="chip"
+        on:click={toggleSelectAll}
+      >
+        {$selectedForDeletion.length === filtered.length ? "Deselect All" : "Select All"}
+      </button>
+      <button
+        class="chip chip-danger"
+        on:click={deleteSelected}
+        disabled={$selectedForDeletion.length === 0}
+      >
+        🗑 Delete ({$selectedForDeletion.length})
+      </button>
+    {/if}
   </div>
 
   {#if $syncState.status === "error"}
@@ -211,14 +262,25 @@
       {/if}
     </div>
   {:else}
-    <div class="topic-grid">
+    <div class={`topic-grid ${isRemovalMode ? 'with-checkboxes' : ''}`}>
       {#each filtered as topic (topic.key)}
-        <TopicCard
-          {topic}
-          readOnly={$isMobile}
-          on:open={() => goto(`/editor/${encodeURIComponent(topic.key)}`)}
-          on:delete={() => handleDelete(topic.key)}
-        />
+        <div class="topic-wrapper">
+          {#if isRemovalMode}
+            <input
+              type="checkbox"
+              class="topic-checkbox"
+              checked={$selectedForDeletion.includes(topic.key)}
+              on:change={() => toggleSelected(topic.key)}
+              aria-label={`Select ${topic.key}`}
+            />
+          {/if}
+          <TopicCard
+            {topic}
+            readOnly={$isMobile}
+            on:open={() => goto(`/editor/${encodeURIComponent(topic.key)}`)}
+            on:delete={() => handleDelete(topic.key)}
+          />
+        </div>
       {/each}
     </div>
   {/if}
@@ -373,10 +435,53 @@
     flex-shrink: 0;
   }
 
+  .chip-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+
+  .chip-danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #dc2626;
+    color: #dc2626;
+  }
+
+  .chip:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .topic-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
+  }
+
+  .topic-grid.with-checkboxes {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .topic-wrapper {
+    position: relative;
+  }
+
+  .topic-grid.with-checkboxes .topic-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .topic-checkbox {
+    margin-top: 0.5rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+  }
+
+  .topic-grid.with-checkboxes :global(.topic-card) {
+    flex: 1;
   }
 
   .empty-state {
