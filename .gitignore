@@ -14,3 +14,12 @@ HANDOVER-AUTH-FIX.md
 .claude/settings.local.json
 .mcp.json
 .vscode/
+static/hexmap/compendium.js
+static/hexmap/game.js
+static/hexmap/map-worker.js
+static/hexmap/style.css
+static/hexmap/auth.js
+static/hexmap/cloud-storage.js
+static/hexmap/mobile-companion.css
+static/hexmap/mobile-companion.js
+static/hexmap/small_logo.svg

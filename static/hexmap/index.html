@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function () {
+            var now = (window.performance && typeof window.performance.now === 'function')
+                ? window.performance.now()
+                : Date.now();
+            var existing = window.__hexmapSurfaceTelemetry || {};
+            window.__hexmapSurfaceTelemetry = Object.assign({}, existing, {
+                surface: 'editor',
+                route: window.location.pathname || '/app.html',
+                startedAtMs: existing.startedAtMs || now,
+                marks: Object.assign({}, existing.marks || {}, {
+                    htmlBootMs: existing.marks && existing.marks.htmlBootMs || now
+                })
+            });
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var store = window.__hexmapSurfaceTelemetry;
+                if (!store || !store.marks || store.marks.domContentLoadedMs) return;
+                store.marks.domContentLoadedMs = (window.performance && typeof window.performance.now === 'function')
+                    ? window.performance.now()
+                    : Date.now();
+            }, { once: true });
+
+            window.addEventListener('load', function () {
+                var store = window.__hexmapSurfaceTelemetry;
+                if (!store || !store.marks || store.marks.windowLoadMs) return;
+                store.marks.windowLoadMs = (window.performance && typeof window.performance.now === 'function')
+                    ? window.performance.now()
+                    : Date.now();
+            }, { once: true });
+        })();
+    </script>
+    <title>TbdHEX App - Hex Map Editor for Tabletop RPGs</title>
+    <link rel="icon" type="image/svg+xml" href="small_logo.svg">
+    <link rel="apple-touch-icon" href="small_logo.svg">
+    <meta name="description" content="Create beautiful hex maps for your tabletop RPG campaigns. Free browser-based map editor with terrain painting, tokens, paths, and landmarks.">
+    <meta name="keywords" content="hex map, hexmap, tabletop RPG, D&D, dungeon master, campaign map, world building, TTRPG">
+    <meta name="author" content="The Nerdy Gentleman">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Open Graph / Facebook - Update URLs when you have a custom domain -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="TbdHEX - Hex Map Editor for Tabletop RPGs">
+    <meta property="og:description" content="Create beautiful hex maps for your tabletop RPG campaigns. Free browser-based map editor.">
+    <meta property="og:url" content="https://tbd.net/">
+    <meta property="og:image" content="https://tbd.net/TbdHEX_Logo.svg">
+    
+    <!-- Twitter - Update URLs when you have a custom domain -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="TbdHEX - Hex Map Editor for Holmgard Lore and Tabletop RPGs">
+    <meta name="twitter:description" content="Create beautiful hex maps for your tabletop RPG campaigns. Free browser-based map editor.">
+    <meta name="twitter:url" content="https://tbd.net/">
+    <meta name="twitter:image" content="https://tbd.net/TbdHEX_Logo.svg">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css?v=2026-05-07-13">
+    <link rel="stylesheet" href="mobile-companion.css?v=2026-05-07-13">
+    
+    <!-- Supabase Auth (defer so it does not block HTML parsing; runs before end-of-body scripts per defer ordering) -->
+    <!-- <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
+
+    <!-- Stripe Payments -->
+    <!-- <script defer src="https://js.stripe.com/v3/"></script> -->
+
+    <!-- Preconnect + preload hints so font/script fetches overlap with HTML parse -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="game.js?v=2026-05-13-2" as="script">
+    
+    <link rel="preload" href="mcp-auth.js?v=2026-05-07-13" as="script">
+    <link rel="preload" href="mcp-storage.js?v=2026-05-07-13" as="script">
+    <!-- <link rel="preload" href="auth.js?v=2026-05-07-13" as="script"> -->
+    <!-- <link rel="preload" href="cloud-storage.js?v=2026-05-07-13" as="script"> -->
+
+    <!-- Google Fonts - non-blocking load via print-media swap trick; saves ~200-400ms of render-blocking time -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=EB+Garamond:wght@400;700&family=Great+Vibes&family=MedievalSharp&family=Merriweather:wght@400;700&family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&family=Pirata+One&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&family=Uncial+Antiqua&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=EB+Garamond:wght@400;700&family=Great+Vibes&family=MedievalSharp&family=Merriweather:wght@400;700&family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&family=Pirata+One&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&family=Uncial+Antiqua&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=EB+Garamond:wght@400;700&family=Great+Vibes&family=MedievalSharp&family=Merriweather:wght@400;700&family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&family=Pirata+One&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&family=Uncial+Antiqua&display=swap" rel="stylesheet"></noscript>
+
+    <!-- Embed mode — strips top/sidebar chrome when iframed or when ?embed=1.
+         Runs before render so the layout doesn't flash unstyled chrome. -->
+    <script>
+        (function () {
+            try {
+                var params = new URLSearchParams(window.location.search);
+                var inIframe = window.self !== window.top;
+                var isEmbedMode = params.has('embed') || inIframe;
+                var isMarketingDemo = params.get('marketingDemo') === '1';
+                window.__hexmapMode = {
+                    embed: isEmbedMode,
+                    marketingDemo: isMarketingDemo
+                };
+                window.isMarketingDemoMode = function () {
+                    return !!(window.__hexmapMode && window.__hexmapMode.marketingDemo);
+                };
+                if (isEmbedMode) {
+                    document.documentElement.classList.add('embed-mode');
+                }
+                if (isMarketingDemo) {
+                    document.documentElement.classList.add('marketing-demo');
+                }
+            } catch (e) {
+                // Cross-origin parent throws on access — being thrown means we're iframed.
+                document.documentElement.classList.add('embed-mode');
+                window.__hexmapMode = {
+                    embed: true,
+                    marketingDemo: false
+                };
+                window.isMarketingDemoMode = function () {
+                    return false;
+                };
+            }
+        })();
+    </script>
+    <style>
+        /* Embed mode: strip editing chrome but keep the compendium list (left)
+           and the minimap (right) so iframed viewers can navigate. The
+           shared-read-only system already hides edit-only buttons; this
+           strips the surfaces that hold them. */
+        html.embed-mode body { overflow: hidden; }
+        html.embed-mode .topbar,
+        html.embed-mode .sidebar-left,
+        html.embed-mode .mobile-topbar-sidecluster,
+        html.embed-mode .mobile-companion-header,
+        html.embed-mode .mobile-companion-sheet,
+        html.embed-mode .mobile-bottom-sheet,
+        html.embed-mode .mobile-companion-minimap {
+            display: none !important;
+        }
+        /* Collapse the right sidebar to zero width but keep it in flow so the
+           floating minimap inside it stays mounted. The minimap escapes via
+           position: fixed below. */
+        html.embed-mode .sidebar-right {
+            width: 0 !important;
+            min-width: 0 !important;
+            max-width: 0 !important;
+            background: transparent !important;
+            border: 0 !important;
+            overflow: visible !important;
+        }
+        html.embed-mode .sidebar-right > *:not(.minimap-container) {
+            display: none !important;
+        }
+        html.embed-mode .main {
+            height: 100dvh;
+            height: 100vh;
+        }
+        /* Float the minimap as a top-right corner overlay. */
+        html.embed-mode .minimap-container {
+            position: fixed !important;
+            top: 12px;
+            right: 12px;
+            z-index: 150;
+            width: 220px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color-emphasis);
+            background: rgba(15, 20, 25, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: var(--shadow-lg);
+        }
+        html.embed-mode .minimap-wrapper {
+            height: 160px;
+        }
+        html.marketing-demo .notification,
+        html.marketing-demo .tool-tutorial,
+        html.marketing-demo #runtimeLoadingOverlay,
+        html.marketing-demo .canvas-overlay {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="tooltip-container"></div>
+
+    <!-- Early Access Gate -->
+    <!-- Tool Tutorial Container -->
+    <div id="toolTutorialContainer"></div>
+
+    <!-- Account Modal -->
+    <div id="accountModal" class="account-modal" style="display: none;">
+        <div class="account-overlay" onclick="closeAccountModal()"></div>
+        <div class="account-container">
+            <div class="account-content">
+                <button class="account-close" onclick="closeAccountModal()">×</button>
+                
+                <div id="accountLoggedOut">
+                    <div class="account-tabs">
+                        <button class="account-tab active" data-tab="signup">Sign Up</button>
+                        <button class="account-tab disabled" data-tab="login">Log In <span class="coming-soon-badge">Soon</span></button>
+                    </div>
+                    <form id="legacySignupForm" class="account-form">
+                        <h2>Join Early Access</h2>
+                        <p class="form-subtitle">Get 25% off your first year at launch</p>
+                        <div class="form-group">
+                            <label for="legacySignupEmail">Email</label>
+                            <input type="email" id="legacySignupEmail" placeholder="you@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="signupNewsletter" checked>
+                                <span>Email me major updates only</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="account-submit">Sign Up</button>
+                        <p class="form-note">We only email major updates. Try premium free for 7 days on Patreon. <a href="privacy.html" target="_blank">Privacy</a> · <a href="terms.html" target="_blank">Terms</a></p>
+                    </form>
+                    <form id="legacyLoginForm" class="account-form" style="display: none;">
+                        <h2>Log In</h2>
+                        <div class="coming-soon-box">
+                            <p>Account login coming soon!</p>
+                            <p class="subtle">Your maps are currently saved in your browser.</p>
+                        </div>
+                    </form>
+                </div>
+                
+                <div id="accountLoggedIn" style="display: none;">
+                    <div class="account-profile">
+                        <div class="account-avatar" id="accountAvatar">G</div>
+                        <div class="account-email" id="accountEmail">Guest</div>
+                    </div>
+                    <div class="account-section">
+                        <h3>Maps</h3>
+                        <div id="accountCloudMaps" class="account-cloud-maps">
+                            <p class="subtle">Loading...</p>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="openMapBrowser()" style="width:100%;margin-top:8px;">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;margin-right:4px;">
+                                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                            </svg>
+                            Manage Maps
+                        </button>
+                    </div>
+                    <button class="account-logout" onclick="logoutAccount()">Sign Out</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen (inline styles so it renders before CSS loads) -->
+    <div id="loadingScreen" style="position:fixed;inset:0;z-index:10000;background:#0f1419;display:flex;align-items:center;justify-content:center;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:16px;width:280px;">
+            <img src="small_logo.svg" alt="TbdHEX" style="width:72px;height:72px;animation:ldPulse 2s ease-in-out infinite;">
+            <div style="font-size:28px;font-weight:700;letter-spacing:-0.02em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;">
+                <span style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Hex</span><span style="color:#f0f4f8;">Atlas</span>
+            </div>
+            <!-- Progress bar -->
+            <div style="width:100%;height:4px;background:#1e2530;border-radius:2px;overflow:hidden;margin-top:4px;">
+                <div id="loadingBar" style="height:100%;width:5%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:2px;transition:width 0.3s ease;"></div>
+            </div>
+            <div id="loadingStatus" style="font-size:13px;color:#718096;letter-spacing:0.02em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;">Loading...</div>
+        </div>
+    </div>
+    <style>
+        @keyframes ldSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes ldPulse { 0%,100%{opacity:.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
+    </style>
+    <script>
+        // Fallback: dismiss loading screen after 10s no matter what
+        window.__loadingTimeout = setTimeout(function() {
+            console.warn('[Loading] Timeout — forcing dismiss');
+            window.__dismissLoading();
+        }, 10000);
+        window.__dismissLoading = function() {
+            clearTimeout(window.__loadingTimeout);
+            var ls = document.getElementById('loadingScreen');
+            var app = document.querySelector('.app');
+            if (app) app.style.visibility = 'visible';
+            if (ls) {
+                ls.style.transition = 'opacity 0.4s ease';
+                ls.style.opacity = '0';
+                setTimeout(function() { ls.remove(); }, 500);
+            }
+            // Re-measure canvas now that app is visible
+            setTimeout(function() {
+                if (typeof resizeCanvas === 'function') resizeCanvas();
+            }, 50);
+        };
+        window.__loadingProgress = function(pct, msg) {
+            var bar = document.getElementById('loadingBar');
+            var status = document.getElementById('loadingStatus');
+            if (bar) bar.style.width = Math.min(100, pct) + '%';
+            if (status) status.textContent = msg || '';
+        };
+    </script>
+
+    <!-- (Tutorial is now handled by per-tool popups in game.js) -->
+
+    <div class="app" style="visibility:hidden;">
+        <div class="topbar">
+            <div class="topbar-left">
+                <a href="index.html?marketing=1" class="logo" aria-label="TbdHEX home page" onclick="window.location.assign('index.html?marketing=1'); return false;">
+                    <img src="small_logo.svg" alt="TbdHEX" class="logo-icon" style="width: 40px; height: 40px;">
+                    <span class="logo-text"><span class="logo-hex-text">Hex</span><span class="logo-atlas-text">Atlas</span></span>
+                    <span class="mobile-logo-wordmark" aria-hidden="true"><span class="logo-hex-text">Hex</span><span class="logo-atlas-text">Atlas</span></span>
+                    <span class="early-access-badge">Early Access</span>
+                </a>
+                <div class="breadcrumb">
+                    <span id="viewName">Hex Map</span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <!-- File Dropdown -->
+                <div class="dropdown">
+                    <button class="header-btn" id="fileBtn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/>
+                        </svg>
+                        <span>File</span>
+                    </button>
+                    <div class="dropdown-menu header-dropdown-menu" id="fileMenu">
+                        <div class="dropdown-item" onclick="newMap()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2zm-3-7V3.5L18.5 9H13z"/>
+                            </svg>
+                            New Map
+                        </div>
+                        <div class="dropdown-item" onclick="quickCloudSave()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                            </svg>
+                            Save
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="importMapFromFile()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                            </svg>
+                            Import Map (JSON)
+                        </div>
+                        <div class="dropdown-item" onclick="exportAsPNG()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                            </svg>
+                            Export as PNG
+                        </div>
+                        <div class="dropdown-item" onclick="exportAsJSON()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                            </svg>
+                            Export as JSON
+                        </div>
+                        <div class="dropdown-item" onclick="showFoundryExportDialog()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                            Export to Foundry VTT
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="shareMap()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                            </svg>
+                            Share Link
+                        </div>
+                        <div class="dropdown-item" onclick="openExamplesModal()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
+                            </svg>
+                            Example Maps
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Button with Auto-save Indicator -->
+                <button class="header-btn" id="saveBtn" title="Auto-save enabled">
+                    <svg class="icon" id="saveIcon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                    </svg>
+                    <span id="saveText">Saved</span>
+                </button>
+
+                <!-- Undo/Redo Buttons -->
+                <button class="header-btn" id="undoBtn" onclick="undoRedoSystem.undo()" title="Undo (Ctrl+Z)" disabled style="opacity: 0.5;">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
+                    </svg>
+                </button>
+                <button class="header-btn" id="redoBtn" onclick="undoRedoSystem.redo()" title="Redo (Ctrl+Shift+Z)" disabled style="opacity: 0.5;">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/>
+                    </svg>
+                </button>
+
+                <!-- More Menu -->
+                <div class="dropdown">
+                    <button class="header-btn-icon" id="moreBtn" title="More options">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                        </svg>
+                    </button>
+                    <div class="dropdown-menu header-dropdown-menu" id="moreMenu">
+                        <div class="dropdown-item" onclick="openSettingsModal()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                            </svg>
+                            Settings
+                        </div>
+                        <div class="dropdown-item disabled-item">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                            </svg>
+                            Styles & Themes <span class="coming-soon-badge">Soon</span>
+                        </div>
+                        <div class="dropdown-item disabled">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>
+                            </svg>
+                            Keyboard Shortcuts <span class="coming-soon-badge">Soon</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="resetToolTutorials()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+                            </svg>
+                            Reset Tool Tutorials
+                        </div>
+                        <div class="dropdown-divider" data-dev-tools-item></div>
+                        <div class="dropdown-item" data-dev-tools-item onclick="window.togglePerfHud()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3 3h18v2H3V3zm2 6h3v10H5V9zm5-4h3v14h-3V5zm5 7h3v7h-3v-7z"/>
+                            </svg>
+                            Toggle Performance HUD
+                        </div>
+                        <div class="dropdown-item" data-dev-tools-item onclick="window.runHexMapPerfBenchmarksFromUI()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13 2L3 14h7v8l10-12h-7z"/>
+                            </svg>
+                            Run Performance Benchmark
+                        </div>
+                        <div class="dropdown-item" data-dev-tools-item onclick="window.saveLatestHexMapBenchmarkBaseline()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                            </svg>
+                            Save Benchmark Baseline
+                        </div>
+                        <div class="dropdown-item" data-dev-tools-item onclick="window.copyLatestHexMapBenchmarkReportFromUI()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/>
+                            </svg>
+                            Copy Benchmark Report
+                        </div>
+                        <div class="dropdown-item" data-dev-tools-item onclick="window.copyLatestHexMapBenchmarkComparisonFromUI()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M10 3H5c-1.1 0-2 .9-2 2v5h2V5h5V3zm9 0h-5v2h5v5h2V5c0-1.1-.9-2-2-2zM5 14H3v5c0 1.1.9 2 2 2h5v-2H5v-5zm16 0v5h-5v2h5c1.1 0 2-.9 2-2v-5h-2zM8 16l3-8h2l3 8h-2l-.6-1.8H10.6L10 16H8zm3.1-3.6h1.8L12 9.8l-.9 2.6z"/>
+                            </svg>
+                            Copy Baseline Comparison
+                        </div>
+                        <div class="dropdown-item" data-dev-tools-item onclick="window.clearHexMapBenchmarkBaseline()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1z"/>
+                            </svg>
+                            Clear Benchmark Baseline
+                        </div>
+                        <div class="dropdown-divider" data-dev-tools-item></div>
+                        <div class="dropdown-item disabled">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                            </svg>
+                            Documentation <span class="coming-soon-badge">Soon</span>
+                        </div>
+                        <div class="dropdown-item disabled">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+                            </svg>
+                            Help & Support <span class="coming-soon-badge">Soon</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="window.location.href='index.html?marketing=1'">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                            </svg>
+                            Homepage
+                        </div>
+                        <div class="dropdown-item" onclick="window.open('index.html?marketing=1#pricing', '_blank')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/>
+                            </svg>
+                            Pricing
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="window.open('privacy.html', '_blank')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                            </svg>
+                            Privacy Policy
+                        </div>
+                        <div class="dropdown-item" onclick="window.open('terms.html', '_blank')">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                            </svg>
+                            Terms of Service
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auth Container -->
+                <div id="authContainer" style="position: relative;">
+                    <!-- Fallback content - replaced by auth.js when loaded -->
+                    <button class="header-btn" onclick="showAuthModal ? showAuthModal('login') : (showNotification ? showNotification('Auth not loaded', 'error') : console.error('Auth not loaded'))">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                        </svg>
+                        <span>Sign In</span>
+                    </button>
+                </div>
+
+                <div class="mobile-topbar-sidecluster" aria-label="Mobile quick actions">
+                    <button class="mobile-chip-btn mobile-icon-chip mobile-cluster-chip" id="mobileCompendiumBtn" onclick="handleMobileCompendiumButton()" type="button" aria-label="Open compendium" title="Open compendium">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18 2H8C6.9 2 6 2.9 6 4V20C6 21.1 6.9 22 8 22H18C19.1 22 20 21.1 20 20V4C20 2.9 19.1 2 18 2ZM18 20H8V4H18V20ZM4 6H2V22C2 23.1 2.9 24 4 24H16V22H4V6Z"/>
+                        </svg>
+                    </button>
+                    <div class="mobile-touch-toggle" role="group" aria-label="Touch controls">
+                        <button class="mobile-touch-toggle-btn active" id="mobileTouchEditBtn" onclick="toggleMobilePanMode(false)" type="button">
+                            Edit
+                        </button>
+                        <button class="mobile-touch-toggle-btn" id="mobileTouchPanBtn" onclick="toggleMobilePanMode(true)" type="button">
+                            Move Map
+                        </button>
+                    </div>
+                    <div class="dropdown mobile-header-menu-wrap">
+                        <button class="header-btn mobile-header-menu-btn" id="mobileHeaderMenuBtn" type="button" aria-label="Open menu" aria-expanded="false">
+                            <span class="mobile-header-menu-glyph" aria-hidden="true">
+                                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M4 7h16v2H4V7zm0 5h16v2H4v-2zm0 5h10v2H4v-2z"/>
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="dropdown-menu header-dropdown-menu mobile-header-dropdown-menu" id="mobileHeaderMenu"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="sidebar-left">
+                <!-- View Mode Toggle -->
+                <div class="view-mode-section">
+                    <h3 style="margin-bottom: 12px;">Mode</h3>
+                    <div class="view-mode-toggle">
+                        <button class="view-mode-option active" onclick="setViewMode('builder')" data-view-mode="builder">
+                            <div class="view-mode-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                </svg>
+                            </div>
+                            Edit
+                        </button>
+                        <button class="view-mode-option" onclick="setViewMode('explorer')" data-view-mode="explorer">
+                            <div class="view-mode-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18 2H8C6.9 2 6 2.9 6 4V20C6 21.1 6.9 22 8 22H18C19.1 22 20 21.1 20 20V4C20 2.9 19.1 2 18 2ZM18 20H8V4H18V20ZM4 6H2V22C2 23.1 2.9 24 4 24H16V22H4V6Z"/>
+                                </svg>
+                            </div>
+                            Compendium
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tools Section (Edit Mode Only) -->
+                <div class="tool-section" id="toolsSection">
+                    <h3>Tools</h3>
+                    <div class="mode-selector">
+                        <button class="mode-btn" onclick="setHexMode('select')" data-mode="select" data-tooltip-id="select-mode">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M7 2l12 11.2-5.8.5 3.3 7.3-2.2 1-3.2-7.4L7 18.5V2z"/>
+                                </svg>
+                            </div>
+                            Select
+                        </button>
+                        <button class="mode-btn active" onclick="setHexMode('paint')" data-mode="paint" data-tooltip-id="paint-mode">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 512 512" fill="currentColor">
+                                    <path d="M54.438 29.794a24 24 0 0 0-1.204.01c-4.688.157-7.914 1.736-10.113 3.935c-2.932 2.932-4.761 7.689-3.588 15.305s5.683 17.754 15.272 28.941c67.894 79.21 132.935 155.56 183.703 211.969c12.273 13.637 23.693 26.08 34.125 37.135c12.095-31.902 34.57-54.144 62.902-64.715c-10.825-10.199-22.936-21.313-36.197-33.248C242.93 178.358 166.578 113.314 87.369 45.42c-11.186-9.589-21.325-14.098-28.941-15.272a30 30 0 0 0-3.99-.355zm295.783 246.64c-30.461 7.627-53.241 29.185-63.608 65.219c5.652 5.785 10.956 11.085 15.78 15.707c7.58 7.264 14.095 13.007 19.21 16.957c1.776-17.225 10.045-33.062 21.645-44.691c10.601-10.628 24.496-18.006 39.125-19.092c-3.871-4.836-9.14-10.751-15.63-17.524c-4.838-5.047-10.415-10.623-16.522-16.576m35.351 51.95c-10.397.137-20.929 5.28-29.582 13.955c-11.537 11.565-18.674 28.85-16.267 45.7c5.334 37.342 23.749 65.81 49.46 81.237c22.727 13.636 51.452 17.35 83.643 6.983c-24.222-4.01-46.475-30.706-48.197-50.65c10.63 12.814 23.94 24.547 38.426 31.75c-9.881-22.578-9.201-45.452-11.088-64.321c-1.352-13.522-3.891-24.982-11.377-35.162s-20.423-19.8-44.74-27.907a31 31 0 0 0-10.278-1.585"/>
+                                </svg>
+                            </div>
+                            <span class="mode-label">Paint</span>
+                        </button>
+                        <button class="mode-btn" onclick="setHexMode('erase')" data-mode="erase" data-tooltip-id="paint-mode">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M16.24 3c-.44 0-.88.17-1.21.5L4.39 14.14a2 2 0 0 0 0 2.83l3.64 3.64A2 2 0 0 0 9.44 21h10.62a1 1 0 0 0 0-2h-5.65l4.62-4.62a2 2 0 0 0 0-2.83L17.66 3.5A1.71 1.71 0 0 0 16.24 3zm0 2.12 1.37 1.37-7.8 7.8-1.37-1.37 7.8-7.8zM7.02 14.26l1.37 1.37-1.37 1.37-1.37-1.37 1.37-1.37z"/>
+                                </svg>
+                            </div>
+                            <span class="mode-label">Erase</span>
+                        </button>
+                        <button class="mode-btn" onclick="setHexMode('token')" data-mode="token" data-tooltip-id="token-mode">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 512 512" fill="currentColor">
+                                    <circle cx="256" cy="256" r="200" fill="none" stroke="currentColor" stroke-width="40"/>
+                                    <circle cx="256" cy="256" r="80" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <span class="mode-label">Token</span>
+                        </button>
+                        <button class="mode-btn" onclick="setHexMode('path')" data-mode="path" data-tooltip-id="path-mode">
+                            <div class="mode-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
+                                    <path d="M149.9 27.2 34.25 56.74v76.76L157.8 93.85l46.7-44.67-54.6-21.98zm132.8 57c-7.4.18-10.1 1.88.9 7.13C346.9 121.6 441.7 206.8 391.3 216.9 232.2 249 130.4 292.3 48.51 390.8 25.42 418.6 18 494.8 18 494.8h432.6s-139-21.1-147.8-75.7c-14.9-92.2 194.5-102.7 196.5-199.9.9-43.2-88.3-124.99-184.4-132.52-5.6-.44-22.7-2.71-32.2-2.48zm-163.5 40.9-32.69 10.5v122.2l35.99-10-3.3-122.7z"/>
+                                </svg>
+                            </div>
+                            <span class="mode-label">Path</span>
+                        </button>
+                        <button class="mode-btn" onclick="setHexMode('landmark')" data-mode="landmark" data-tooltip-id="landmark-mode">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 512 512" fill="currentColor">
+                                    <path d="M97.812 23.375v92.875l46.22 51.72V351h-25.845L94.594 491.906H414.53L390.938 351h-25.875V167.97l46.22-51.72V23.375h-53.938v43.97H324.5v-43.97h-53.938v43.97h-32.437v-43.97h-53.938v43.97H151.75v-43.97zm73.75 152.875h18.688v50.22h-18.688zm73.594 0h18.688v50.22h-18.688zm74.156 0H338v50.22h-18.688z"/>
+                                </svg>
+                            </div>
+                            <span class="mode-label">Landmark</span>
+                        </button>
+                        <button class="mode-btn" onclick="setHexMode('text')" data-mode="text" data-tooltip-id="text-mode">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M5 4v3h5.5v12h3V7H19V4H5z"/>
+                                </svg>
+                            </div>
+                            Text
+                        </button>
+                        <button class="mode-btn" onclick="setHexMode('image')" data-mode="image" data-tooltip-id="image-mode">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                                </svg>
+                            </div>
+                            Image
+                        </button>
+                        <button class="mode-btn" onclick="setHexMode('fog')" data-mode="fog" data-tooltip-id="fog-mode">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z" opacity="0.3"/>
+                                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h.71C7.37 7.69 9.48 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3s-1.34 3-3 3z"/>
+                                </svg>
+                            </div>
+                            Fog
+                        </button>
+                        <button class="mode-btn" onclick="setHexMode('dungeon-door')" data-mode="dungeon-door">
+                            <div class="mode-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M6 3h9a2 2 0 0 1 2 2v14h-2v-1H8v1H6V3zm2 2v11h7V5H8zm4 5.5a1 1 0 1 0 .001 2.001A1 1 0 0 0 12 10.5z"/>
+                                </svg>
+                            </div>
+                            Door
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Brush Settings -->
+                <div class="tool-section" id="brushSettingsSection">
+                    <h3>Brush Settings</h3>
+                    
+                    <!-- Terrain Tool Selector - Centered Layout -->
+                    <div class="brush-control">
+                        <label class="section-label">Tool</label>
+                        <div style="display: flex; gap: 12px; justify-content: center;">
+                            <button class="path-type-btn active" data-tool="brush" onclick="selectTerrainTool('brush')" id="terrainTool_brush" style="flex: 1; max-width: 120px;">
+                                <div class="path-type-icon">
+                                    <img src="https://api.iconify.design/game-icons/paint-brush.svg?color=white" style="width: 100%; height: 100%;" alt="Brush">
+                                </div>
+                                <span class="path-type-label">Brush</span>
+                            </button>
+                            <button class="path-type-btn" data-tool="fill" onclick="selectTerrainTool('fill')" id="terrainTool_fill" style="flex: 1; max-width: 120px;">
+                                <div class="path-type-icon">
+                                    <img src="https://api.iconify.design/game-icons/paint-bucket.svg?color=white" style="width: 100%; height: 100%;" alt="Fill">
+                                </div>
+                                <span class="path-type-label">Fill</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="brush-controls">
+                        <!-- Hide fill mode checkbox since we now have tool buttons -->
+                        <div class="brush-control" style="display: none;">
+                            <label>
+                                <input type="checkbox" id="fillMode" onchange="toggleFillMode(this.checked)" style="margin-right: 8px;">
+                                Fill Connected Area
+                            </label>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Paint all connected hexes at once</div>
+                        </div>
+                        
+                        <div class="brush-control" style="margin-top: 24px;">
+                            <label>Brush Size</label>
+                            <div class="slider-container">
+                                <input type="range" class="slider" id="brushSize"
+                                       min="1" max="15" value="1"
+                                       oninput="updateBrushSize(this.value)">
+                                <span class="slider-value" id="brushSizeValue">1</span>
+                            </div>
+                        </div>
+
+                        <!-- Settlement-only: Brush Opacity slider (shown when settlement map active) -->
+                        <div class="brush-control" id="settlementBrushOpacityControl" style="margin-top: 16px; display: none;">
+                            <label>Opacity</label>
+                            <div class="slider-container">
+                                <input type="range" class="slider" id="settlementBrushOpacity"
+                                       min="0.05" max="1" step="0.01" value="0.92"
+                                       oninput="updateSettlementBrushOpacity(this.value)">
+                                <span class="slider-value" id="settlementBrushOpacityValue">92%</span>
+                            </div>
+                        </div>
+
+                        <!-- Paint Speed removed - always set to max -->
+                        <input type="hidden" id="paintSpeed" value="10">
+                    </div>
+                </div>
+
+                <div class="tool-section" id="mapTypeNoticeSection" style="display: none;">
+                    <div class="editor-note-box map-type-notice-box" id="mapTypeNoticeBody"></div>
+                </div>
+
+                <!-- Terrain Palette -->
+                <div class="tool-section" id="terrainPaletteSection">
+                    <h3>Terrain Brush</h3>
+                    <div class="terrain-grid" id="terrainPalette"></div>
+                </div>
+
+                <!-- Token Creator -->
+                <div class="tool-section" id="tokenCreatorSection" style="display: none;">
+                    <h3>Create Token</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <button class="btn btn-primary" style="width: 100%;" onclick="showTokenCreator()">
+                            ➕ New Token
+                        </button>
+                        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5;">
+                            <strong>Token Mode:</strong><br>
+                            • Click hex to place new token<br>
+                            • Click token to select/view<br>
+                            • Drag token to move it<br>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Landmark Creator -->
+                <div class="tool-section" id="landmarkCreatorSection" style="display: none;">
+                    <h3>Create Landmark</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <button class="btn btn-primary" style="width: 100%;" onclick="showLandmarkCreator()">
+                            ➕ New Landmark
+                        </button>
+                        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5;">
+                            <strong>Landmark Mode:</strong><br>
+                            • Click hex to place landmark<br>
+                            • Shift+Click landmark to select<br>
+                            • Landmarks appear on hex terrain<br>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Label Creator -->
+                <div class="tool-section" id="textCreatorSection" style="display: none;">
+                    <h3>Text Labels</h3>
+                    <div class="tool-config-stack">
+                        <div class="tool-config-card">
+                            <div class="tool-config-card-title">Placement Defaults</div>
+                            <div class="tool-config-card-note">New labels start with these defaults, then you can keep typing directly on the map.</div>
+                            <div class="form-group">
+                                <label class="form-label">Starter Text</label>
+                                <input type="text" class="form-input" id="newTextLabelText" placeholder="Optional label text...">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Visibility</label>
+                                <select class="form-select" id="newTextLabelVisibility">
+                                    <option value="world">Always Visible</option>
+                                    <option value="region">Region+</option>
+                                    <option value="hex">Local+</option>
+                                    <option value="settlement">Detail Only</option>
+                                </select>
+                            </div>
+                            <div class="tool-field-grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Size</label>
+                                    <input type="number" class="form-input" id="newTextLabelFontSize" min="8" max="120" step="1" value="24">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Color</label>
+                                    <input type="color" class="form-input form-color-input" id="newTextLabelColor" value="#ffffff">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="editor-note-box">
+                            Click a hex to place a label, click an existing label to edit it, and drag a selected label to reposition it.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Overlay Creator -->
+                <div class="tool-section" id="imageCreatorSection" style="display: none;">
+                    <h3>Image Overlay</h3>
+                    <div class="tool-config-stack">
+                        <div class="tool-config-card">
+                            <div class="tool-config-card-title">Source</div>
+                            <div class="tool-config-card-note">Upload art or paste an image URL. Once it is ready, click any hex to place it.</div>
+                            <div class="tool-preview-actions">
+                                <label class="btn btn-primary" style="cursor: pointer;">
+                                    Upload Image
+                                    <input type="file" accept="image/*" id="newImageFile" class="tool-upload-input" onchange="handleImageOverlayUpload(event)">
+                                </label>
+                                <button class="btn btn-ghost" type="button" onclick="clearPendingImageOverlay()">Clear</button>
+                            </div>
+                            <div class="form-group tool-form-section">
+                                <label class="form-label">Image URL</label>
+                                <div class="tool-inline-input-row">
+                                    <input type="text" class="form-input" id="newImageUrl" placeholder="Paste image URL...">
+                                    <button class="btn btn-secondary" type="button" onclick="loadImageFromUrl()">Load</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tool-config-card">
+                            <div class="tool-config-card-title">Placement Defaults</div>
+                            <div class="tool-field-grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Width (hexes)</label>
+                                    <input type="number" class="form-input" id="newImageWidthHexes" min="0.5" step="0.5" value="6" oninput="refreshImageOverlayToolPanel()">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Opacity</label>
+                                    <div class="slider-container slider-container-compact">
+                                        <input type="range" class="slider" id="newImageOpacity" min="10" max="100" step="5" value="100" oninput="syncNewImageOpacity(this.value, 'slider')">
+                                        <input type="number" class="form-input slider-number-input" id="newImageOpacityInput" min="10" max="100" step="1" value="100" oninput="syncNewImageOpacity(this.value, 'input')" onchange="commitNewImageOpacity()" onblur="commitNewImageOpacity()" onkeydown="if(event.key==='Enter'){this.blur();}">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group form-checkbox-row">
+                                <label class="form-checkbox-inline">
+                                    <input type="checkbox" id="newImageRenderBelowGrid" onchange="refreshImageOverlayToolPanel()">
+                                    Render below the grid
+                                </label>
+                            </div>
+                        </div>
+                        <div id="pendingImagePlacementCard" class="tool-preview-card is-empty"></div>
+                    </div>
+                </div>
+
+                <!-- Fog of War Creator -->
+                <div class="tool-section" id="fogCreatorSection" style="display: none;">
+                    <h3>Fog of War</h3>
+                    
+                    <!-- Fog Tool Selector -->
+                    <div class="brush-control">
+                        <label class="section-label">Tool</label>
+                        <div style="display: flex; gap: 12px; justify-content: center;">
+                            <button class="path-type-btn active" data-fog-tool="brush" onclick="selectFogTool('brush')" style="flex: 1; max-width: 100px;">
+                                <div class="path-type-icon">
+                                    <img src="https://api.iconify.design/game-icons/paint-brush.svg?color=white" style="width: 100%; height: 100%;" alt="Brush">
+                                </div>
+                                <span class="path-type-label">Brush</span>
+                            </button>
+                            <button class="path-type-btn" data-fog-tool="fill" onclick="selectFogTool('fill')" style="flex: 1; max-width: 100px;">
+                                <div class="path-type-icon">
+                                    <img src="https://api.iconify.design/game-icons/paint-bucket.svg?color=white" style="width: 100%; height: 100%;" alt="Fill">
+                                </div>
+                                <span class="path-type-label">Fill</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Fog Action Selector -->
+                    <div class="brush-control" style="margin-top: 16px;">
+                        <label class="section-label">Action</label>
+                        <div style="display: flex; gap: 12px; justify-content: center;">
+                            <button class="path-type-btn active" data-fog-action="hide" onclick="selectFogAction('hide')" style="flex: 1; max-width: 100px;">
+                                <div class="path-type-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 100%; height: 100%;">
+                                        <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>
+                                    </svg>
+                                </div>
+                                <span class="path-type-label">Hide</span>
+                            </button>
+                            <button class="path-type-btn" data-fog-action="reveal" onclick="selectFogAction('reveal')" style="flex: 1; max-width: 100px;">
+                                <div class="path-type-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 100%; height: 100%;">
+                                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                                    </svg>
+                                </div>
+                                <span class="path-type-label">Reveal</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Brush Size -->
+                    <div class="brush-control" style="margin-top: 16px;">
+                        <label>Brush Size</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="fogBrushSize" 
+                                   min="1" max="5" value="1" 
+                                   oninput="updateFogBrushSize(this.value)">
+                            <span class="slider-value" id="fogBrushSizeValue">1</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Fog Opacity -->
+                    <div class="brush-control" style="margin-top: 16px;">
+                        <label>Fog Opacity</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="fogOpacity" 
+                                   min="0.1" max="1" step="0.05" value="0.85" 
+                                   oninput="setFogOpacity(this.value); document.getElementById('fogOpacityValue').textContent = Math.round(this.value * 100) + '%'">
+                            <span class="slider-value" id="fogOpacityValue">85%</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Fog Color -->
+                    <div class="brush-control" style="margin-top: 16px;">
+                        <label>Fog Color</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" id="fogColor" value="#1a1a2e" 
+                                   onchange="setFogColor(this.value)"
+                                   style="width: 50px; height: 32px; border: none; border-radius: 4px; cursor: pointer;">
+                            <span style="font-size: 11px; color: var(--text-muted);">Click to change color</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Toggle Fog Enabled -->
+                    <div class="brush-control" style="margin-top: 16px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="fogEnabled" checked 
+                                   onchange="toggleFogEnabled(this.checked)"
+                                   style="width: 18px; height: 18px; cursor: pointer;">
+                            Show Fog of War
+                        </label>
+                    </div>
+
+                    <div class="brush-control" style="margin-top: 12px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="fogHideIcons" checked
+                                   onchange="toggleFogHideIcons(this.checked)"
+                                   style="width: 18px; height: 18px; cursor: pointer;">
+                            Hide Icons In Fog
+                        </label>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div style="display: flex; gap: 8px; margin-top: 16px;">
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="fogHideAll()">
+                            Hide All
+                        </button>
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="fogRevealAll()">
+                            Reveal All
+                        </button>
+                    </div>
+                    
+                    <!-- Instructions -->
+                    <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-top: 12px;">
+                        <strong>Fog Tool:</strong><br>
+                        • Click or drag to hide/reveal hexes<br>
+                        • Use Fill to quickly fill areas<br>
+                        • Toggle visibility for explorer view
+                    </div>
+                </div>
+
+                <!-- Path Creator - IMPROVED -->
+                <div class="tool-section" id="pathCreatorSection" style="display: none;" data-tooltip-id="path-tools">
+                    <h3>Path Tools</h3>
+                    
+                    <!-- Line Style Selector -->
+                    <div class="path-type-selector">
+                        <label class="section-label">Line Style</label>
+                        <div class="path-type-grid">
+                            <button class="path-type-btn" data-type="solid" onclick="selectPathType('solid')" id="pathType_solid">
+                                <div class="path-type-icon">
+                                    <svg viewBox="0 0 32 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                                        <line x1="2" y1="4" x2="30" y2="4"/>
+                                    </svg>
+                                </div>
+                                <span class="path-type-label">Solid</span>
+                            </button>
+                            <button class="path-type-btn" data-type="dotted" onclick="selectPathType('dotted')" id="pathType_dotted">
+                                <div class="path-type-icon">
+                                    <svg viewBox="0 0 32 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1,5">
+                                        <line x1="2" y1="4" x2="30" y2="4"/>
+                                    </svg>
+                                </div>
+                                <span class="path-type-label">Dotted</span>
+                            </button>
+                            <button class="path-type-btn" data-type="dashed" onclick="selectPathType('dashed')" id="pathType_dashed">
+                                <div class="path-type-icon">
+                                    <svg viewBox="0 0 32 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="6,4">
+                                        <line x1="2" y1="4" x2="30" y2="4"/>
+                                    </svg>
+                                </div>
+                                <span class="path-type-label">Dashed</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Dash/Dot Spacing (shown for dotted/dashed only) -->
+                    <div class="path-properties" id="pathDashSpacingRow" style="display: none;">
+                        <div class="control-row">
+                            <label class="control-label">
+                                <svg class="control-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M4 11h4v2H4zm6 0h4v2h-4zm6 0h4v2h-4z"/>
+                                </svg>
+                                Spacing
+                            </label>
+                            <div class="control-input-group">
+                                <input type="range" class="slider" id="pathDashSpacing" 
+                                       min="2" max="20" value="6" 
+                                       oninput="state.hexMap.pathDashSpacing=parseInt(this.value); document.getElementById('pathDashSpacingValue').textContent=this.value; if(state.hexMap.currentPath){state.hexMap.currentPath.dashSpacing=parseInt(this.value);renderHex();}">
+                                <span class="slider-value" id="pathDashSpacingValue">6</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Path Style Selector - Modern Visual Style -->
+                    <div class="path-style-selector">
+                        <label class="section-label">Style</label>
+                        <div class="path-style-grid">
+                            <button class="path-style-btn active" data-style="straight" onclick="selectPathStyle('straight')" id="pathStyle_straight">
+                                <svg class="path-style-preview" viewBox="0 0 60 30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                                    <line x1="5" y1="15" x2="55" y2="15"/>
+                                </svg>
+                                <span>Straight</span>
+                            </button>
+                            <button class="path-style-btn" data-style="curved" onclick="selectPathStyle('curved')" id="pathStyle_curved">
+                                <svg class="path-style-preview" viewBox="0 0 60 30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                                    <path d="M5 15 Q 20 5, 35 15 Q 50 25, 55 15"/>
+                                </svg>
+                                <span>Curved</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Path Properties - Modern Sliders -->
+                    <div class="path-properties">
+                        <div class="control-row">
+                            <label class="control-label">
+                                <svg class="control-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+                                </svg>
+                                Width
+                            </label>
+                            <div class="control-input-group">
+                                <input type="range" class="slider" id="pathWidth" 
+                                       min="2" max="12" value="4" 
+                                       oninput="updatePathWidth(this.value)">
+                                <span class="slider-value" id="pathWidthValue">4</span>
+                            </div>
+                        </div>
+
+                        <div class="control-row">
+                            <label class="control-label">
+                                <svg class="control-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/>
+                                </svg>
+                                Color
+                            </label>
+                            <div class="color-picker-group">
+                                <input type="color" class="color-input" id="pathColor" value="#8B7355" 
+                                       onchange="updatePathColor(this.value)">
+                                <button class="btn-icon-small" onclick="resetPathColorToDefault()" title="Reset to default">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="path-properties">
+                        <div class="control-row">
+                            <label class="control-label">
+                                <svg class="control-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.18 6.5 3.61V15.2L12 18.82 5.5 15.2V7.79L12 4.18zm0 3.02a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 0 0 0-3.6zm4.54 2.1-.87 1.5a1.8 1.8 0 0 0 0 1.8l.87 1.5-1.74 1-.87-1.5a1.8 1.8 0 0 0-1.56-.9 1.8 1.8 0 0 0-1.56.9l-.87 1.5-1.74-1 .87-1.5a1.8 1.8 0 0 0 0-1.8l-.87-1.5 1.74-1 .87 1.5c.32.56.92.9 1.56.9.64 0 1.24-.34 1.56-.9l.87-1.5 1.74 1z"/>
+                                </svg>
+                                Snap To
+                            </label>
+                            <select class="form-select" id="pathSnapModeSelect" onchange="setPathSnapMode(this.value)">
+                                <option value="center">Hex Center</option>
+                                <option value="anchor">Any Anchor</option>
+                                <option value="off">No Snap</option>
+                            </select>
+                            <p class="form-help">Hold Shift while placing or dragging to temporarily make just that point unsnapped.</p>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Path Routing Mode -->
+                    <div class="path-properties">
+                        <div class="control-row">
+                            <label class="control-label">
+                                <svg class="control-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57-.35-.11-.74-.03-1.02.24l-2.2 2.2c-2.83-1.44-5.15-3.75-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C8.7 6.45 8.5 5.25 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM19 12h2c0-4.97-4.03-9-9-9v2c3.87 0 7 3.13 7 7z"/>
+                                </svg>
+                                Routing
+                            </label>
+                            <div class="path-style-grid">
+                                <button class="path-style-btn active" data-routing="hex" onclick="togglePathRouting()" id="pathRouting_hex">
+                                    <svg class="path-style-preview" viewBox="0 0 60 30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M5 15 L15 10 L25 15 L35 10 L45 15 L55 10"/>
+                                    </svg>
+                                    <span>Follow Hexes</span>
+                                </button>
+                                <button class="path-style-btn" data-routing="direct" onclick="togglePathRouting()" id="pathRouting_direct">
+                                    <svg class="path-style-preview" viewBox="0 0 60 30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                        <line x1="5" y1="15" x2="55" y2="10"/>
+                                    </svg>
+                                    <span>Direct Line</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Quick Actions -->
+                    <div class="path-quick-actions">
+                        <button class="btn btn-primary btn-block" onclick="startNewPath()">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
+                            New Path
+                        </button>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Tool Help -->
+                    <div class="tool-help">
+                        <div class="tool-help-title">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+                            </svg>
+                            Quick Tips
+                        </div>
+                        <ul class="tool-help-list">
+                            <li><kbd>Click</kbd> hexes to draw path</li>
+                            <li><kbd>Double-click</kbd> to finish</li>
+                            <li><kbd>Esc</kbd> to cancel</li>
+                            <li><kbd>Click</kbd> path to select/edit</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Layers Section - Always visible -->
+                <div class="tool-section tool-section--layers" id="layersSection" hidden>
+                    <button class="layers-toggle" id="layersToggleButton" type="button" onclick="toggleLayersPanel()" aria-expanded="false" aria-controls="layersList">
+                        <span class="layers-toggle-copy">
+                            <span class="layers-toggle-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>
+                                </svg>
+                            </span>
+                            <span class="layers-toggle-title">Layers</span>
+                        </span>
+                        <span id="layersExpandIcon" class="layers-toggle-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9.29 6.71a1 1 0 0 1 1.42 0l5 5a1 1 0 0 1 0 1.42l-5 5a1 1 0 1 1-1.42-1.42L13.59 12 9.29 7.71a1 1 0 0 1 0-1.42z"/>
+                            </svg>
+                        </span>
+                    </button>
+                    <div id="layersList" class="layers-panel-body" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="hexCanvas"></canvas>
+                
+                <!-- Seamless Inline Text Editor - positioned exactly over the text -->
+                <div id="inlineTextEdit" class="inline-text-edit" contenteditable="true" spellcheck="false" style="display: none;"></div>
+                
+                <!-- Inline Name Editor for Landmarks & Tokens -->
+                <div id="inlineNameEdit" class="inline-name-edit" style="display: none;">
+                    <div class="inline-name-preview" id="inlineNamePreview"></div>
+                    <input type="text" id="inlineNameInput" class="inline-name-input" placeholder="Name..." spellcheck="false" autocomplete="off">
+                </div>
+                
+                <div class="canvas-overlay">
+                    <strong id="modeText">Paint Mode</strong> · <span id="terrainText">Plains</span> selected<br>
+                    <span id="instructionText">Click to paint · Drag for multiple · Keys 1-5 for brush size</span>
+                </div>
+
+                <button id="dungeonBackFloat" class="dungeon-back-float" type="button" onclick="returnToParentMap()" style="display:none;" title="Return to the parent world map">
+                    <svg class="dungeon-back-float-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                    <span class="dungeon-back-float-label">Back to <span id="dungeonBackFloatName">World</span></span>
+                </button>
+
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="zoomIn()">+</button>
+                    <button class="zoom-btn zoom-level" id="zoomLevel">100%</button>
+                    <button class="zoom-btn" onclick="zoomOut()">−</button>
+                </div>
+
+                <div class="mobile-footer-stack" id="mobileFooter">
+                    <div class="mobile-quick-controls" id="mobileQuickControls">
+                        <div class="mobile-context-controls" id="mobileContextControls"></div>
+                        <div class="mobile-toolbar" id="mobileToolbar">
+                            <div class="mobile-toolbar-primary" role="group" aria-label="Map tools">
+                                <button class="mobile-tool-btn" data-mode="select" onclick="setHexMode('select')" type="button" title="Select">
+                                    <span class="mobile-tool-icon">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2l12 11.2-5.8.5 3.3 7.3-2.2 1-3.2-7.4L7 18.5V2z"/></svg>
+                                    </span>
+                                    <span class="mobile-tool-label">Select</span>
+                                </button>
+                                <button class="mobile-tool-btn active" data-mode="paint" onclick="setHexMode('paint')" type="button" title="Paint">
+                                    <span class="mobile-tool-icon">
+                                        <svg viewBox="0 0 512 512" fill="currentColor"><path d="M54.438 29.794a24 24 0 0 0-1.204.01c-4.688.157-7.914 1.736-10.113 3.935c-2.932 2.932-4.761 7.689-3.588 15.305s5.683 17.754 15.272 28.941c67.894 79.21 132.935 155.56 183.703 211.969c12.273 13.637 23.693 26.08 34.125 37.135c12.095-31.902 34.57-54.144 62.902-64.715c-10.825-10.199-22.936-21.313-36.197-33.248C242.93 178.358 166.578 113.314 87.369 45.42c-11.186-9.589-21.325-14.098-28.941-15.272a30 30 0 0 0-3.99-.355zm295.783 246.64c-30.461 7.627-53.241 29.185-63.608 65.219c5.652 5.785 10.956 11.085 15.78 15.707c7.58 7.264 14.095 13.007 19.21 16.957c1.776-17.225 10.045-33.062 21.645-44.691c10.601-10.628 24.496-18.006 39.125-19.092c-3.871-4.836-9.14-10.751-15.63-17.524c-4.838-5.047-10.415-10.623-16.522-16.576m35.351 51.95c-10.397.137-20.929 5.28-29.582 13.955c-11.537 11.565-18.674 28.85-16.267 45.7c5.334 37.342 23.749 65.81 49.46 81.237c22.727 13.636 51.452 17.35 83.643 6.983c-24.222-4.01-46.475-30.706-48.197-50.65c10.63 12.814 23.94 24.547 38.426 31.75c-9.881-22.578-9.201-45.452-11.088-64.321c-1.352-13.522-3.891-24.982-11.377-35.162s-20.423-19.8-44.74-27.907a31 31 0 0 0-10.278-1.585"/></svg>
+                                    </span>
+                                    <span class="mobile-tool-label">Paint</span>
+                                </button>
+                                <button class="mobile-tool-btn" data-mode="erase" onclick="setHexMode('erase')" type="button" title="Erase">
+                                    <span class="mobile-tool-icon">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.24 3c-.44 0-.88.17-1.21.5L4.39 14.14a2 2 0 0 0 0 2.83l3.64 3.64A2 2 0 0 0 9.44 21h10.62a1 1 0 0 0 0-2h-5.65l4.62-4.62a2 2 0 0 0 0-2.83L17.66 3.5A1.71 1.71 0 0 0 16.24 3zm0 2.12 1.37 1.37-7.8 7.8-1.37-1.37 7.8-7.8zM7.02 14.26l1.37 1.37-1.37 1.37-1.37-1.37 1.37-1.37z"/></svg>
+                                    </span>
+                                    <span class="mobile-tool-label">Erase</span>
+                                </button>
+                                <button class="mobile-tool-btn" data-mode="token" onclick="setHexMode('token')" type="button" title="Token">
+                                    <span class="mobile-tool-icon">
+                                        <svg viewBox="0 0 512 512" fill="currentColor"><circle cx="256" cy="256" r="200" fill="none" stroke="currentColor" stroke-width="40"/><circle cx="256" cy="256" r="80"/></svg>
+                                    </span>
+                                    <span class="mobile-tool-label">Token</span>
+                                </button>
+                                <button class="mobile-tool-btn" data-mode="landmark" onclick="setHexMode('landmark')" type="button" title="Landmark">
+                                    <span class="mobile-tool-icon">
+                                        <svg viewBox="0 0 512 512" fill="currentColor"><path d="M97.812 23.375v92.875l46.22 51.72V351h-25.845L94.594 491.906H414.53L390.938 351h-25.875V167.97l46.22-51.72V23.375h-53.938v43.97H324.5v-43.97h-53.938v43.97h-32.437v-43.97h-53.938v43.97H151.75v-43.97zm73.75 152.875h18.688v50.22h-18.688zm73.594 0h18.688v50.22h-18.688zm74.156 0H338v50.22h-18.688z"/></svg>
+                                    </span>
+                                    <span class="mobile-tool-label">Landmark</span>
+                                </button>
+                                <button class="mobile-tool-btn" data-mode="path" onclick="setHexMode('path')" type="button" title="Path">
+                                    <span class="mobile-tool-icon">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>
+                                    </span>
+                                    <span class="mobile-tool-label">Path</span>
+                                </button>
+                                <button class="mobile-tool-btn" data-mode="text" onclick="setHexMode('text')" type="button" title="Text">
+                                    <span class="mobile-tool-icon">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4v3h5.5v12h3V7H19V4H5z"/></svg>
+                                    </span>
+                                    <span class="mobile-tool-label">Text</span>
+                                </button>
+                                <button class="mobile-tool-btn" data-mode="dungeon-door" onclick="setHexMode('dungeon-door')" type="button" title="Door">
+                                    <span class="mobile-tool-icon">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h9a2 2 0 0 1 2 2v14h-2v-1H8v1H6V3zm2 2v11h7V5H8zm4 5.5a1 1 0 1 0 .001 2.001A1 1 0 0 0 12 10.5z"/></svg>
+                                    </span>
+                                    <span class="mobile-tool-label">Door</span>
+                                </button>
+                            </div>
+                            <button class="mobile-tool-btn mobile-panel-toggle mobile-toolbar-side" id="mobileToolsToggle" onclick="toggleMobilePanel('left')" type="button" title="Tools">
+                                <span class="mobile-tool-icon">
+                                    <svg id="mobileToolsToggleIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                                </span>
+                                <span class="mobile-tool-label" id="mobileToolsToggleLabel">Tools</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-right" id="hexDetailsPanel">
+                <div class="minimap-container">
+                    <div class="minimap-header">
+                        <span class="minimap-title">Map Overview</span>
+                        <span class="minimap-stats" id="minimapStats">...</span>
+                    </div>
+                    <div class="minimap-wrapper">
+                        <canvas id="minimapCanvas" class="minimap-canvas"></canvas>
+                        <div id="minimapViewport" class="minimap-viewport"></div>
+                    </div>
+                </div>
+                
+                <div class="no-selection">
+                    <div class="no-selection-icon"></div>
+                    <p>Select a hex to view details</p>
+                    <p style="margin-top: 8px; font-size: 12px;">Click any hex on the map</p>
+                </div>
+            </div>
+            <div class="mobile-panel-backdrop" id="mobilePanelBackdrop" onclick="closeMobilePanels()"></div>
+        </div>
+    </div>
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                    </svg>
+                    Settings
+                </div>
+                <button class="modal-close" onclick="closeModal('settingsModal')">
+                    <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-content">
+                    <div class="settings-panel" style="flex: 1;">
+                        <div class="setting-group">
+                            <h3>Grid Settings</h3>
+                            <div class="setting-item">
+                                <div>
+                                    <div class="setting-label">Show Region Numbers</div>
+                                    <div class="setting-description">Display coordinate numbers on each region hex (0,0 at center)</div>
+                                </div>
+                                <div class="toggle-switch" id="hexCoordinatesToggle" onclick="toggleHexCoordinates(this)"></div>
+                            </div>
+                            <div class="setting-item" id="continentGridSettingItem">
+                                <div>
+                                    <div class="setting-label setting-label-with-badge">Continent Layer <span class="pro-feature-indicator">PRO</span></div>
+                                    <div class="setting-description">Fade into a broader continent grid when you zoom far enough out</div>
+                                </div>
+                                <div class="toggle-switch" id="continentGridToggle" onclick="toggleContinentGrid(this)"></div>
+                            </div>
+                            <div class="setting-item" id="continentGridDensitySettingItem">
+                                <div>
+                                    <div class="setting-label setting-label-with-badge">Continent Density <span class="pro-feature-indicator">PRO</span></div>
+                                    <div class="setting-description">Choose how many region hexes are compacted into each continent cell</div>
+                                </div>
+                                <select class="form-select" id="continentGridDensity" onchange="updateContinentGridDensity(this.value)" style="max-width: 150px;">
+                                    <option value="7">7 cells</option>
+                                    <option value="19">19 cells</option>
+                                    <option value="37">37 cells</option>
+                                    <option value="61">61 cells</option>
+                                    <option value="91">91 cells</option>
+                                    <option value="127">127 cells</option>
+                                    <option value="169">169 cells</option>
+                                    <option value="217">217 cells</option>
+                                </select>
+                            </div>
+                            <div class="setting-item" id="detailGridSettingItem">
+                                <div>
+                                    <div class="setting-label setting-label-with-badge">Settlement Layer <span class="pro-feature-indicator">PRO</span></div>
+                                    <div class="setting-description">Fade into a denser editable settlement grid when zoomed far enough in</div>
+                                </div>
+                                <div class="toggle-switch" id="detailGridToggle" onclick="toggleDetailGrid(this)"></div>
+                            </div>
+                            <div class="setting-item" id="detailGridDensitySettingItem">
+                                <div>
+                                    <div class="setting-label setting-label-with-badge">Settlement Density <span class="pro-feature-indicator">PRO</span></div>
+                                    <div class="setting-description">Choose how much extra settlement detail becomes available when the zoomed-in grid activates</div>
+                                </div>
+                                <select class="form-select" id="detailGridDensity" onchange="updateDetailGridDensity(this.value)" style="max-width: 150px;">
+                                    <option value="7">7 cells</option>
+                                    <option value="19">19 cells</option>
+                                    <option value="37">37 cells</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>Hex Geometry</h3>
+                            <div class="setting-item">
+                                <div>
+                                    <div class="setting-label">Hex Orientation</div>
+                                    <div class="setting-description">Flat-top (horizontal) or pointy-top (vertical) hexagons</div>
+                                </div>
+                                <div class="hex-orientation-toggle" id="hexOrientationToggle">
+                                    <button class="hex-orient-btn active" data-orient="flat" onclick="setHexOrientationUI('flat')">
+                                        <svg width="28" height="24" viewBox="0 0 28 24"><polygon points="7,0 21,0 28,12 21,24 7,24 0,12" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                        <span>Flat</span>
+                                    </button>
+                                    <button class="hex-orient-btn" data-orient="pointy" onclick="setHexOrientationUI('pointy')">
+                                        <svg width="24" height="28" viewBox="0 0 24 28"><polygon points="12,0 24,7 24,21 12,28 0,21 0,7" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                        <span>Pointy</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div>
+                                    <div class="setting-label">Canvas Background</div>
+                                    <div class="setting-description">Choose the color that shows behind the map where no terrain is painted</div>
+                                </div>
+                                <input type="color" id="canvasBackgroundColor" value="#0f1419"
+                                       style="width: 50px; height: 32px; border: none; border-radius: 4px; cursor: pointer; background: transparent;">
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>Developer</h3>
+                            <div class="setting-item">
+                                <div>
+                                    <div class="setting-label">Developer Tools</div>
+                                    <div class="setting-description">Show performance HUD and benchmark controls in the menus on this browser only</div>
+                                </div>
+                                <div class="toggle-switch" id="developerToolsToggle" onclick="toggleDeveloperTools(this)"></div>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>World Hex Tile Assets</h3>
+                            <div class="setting-description" style="margin-bottom: 10px;">Upload custom tile images for each terrain type on the world hex map. Images replace the default solid color + icon on painted hexes.</div>
+                            <div class="hex-tile-grid" id="hexTileGrid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <h3>Dungeon Tile Assets</h3>
+                            <div class="setting-description" style="margin-bottom: 10px;">Upload custom tile images for dungeon floor tiles. These textures show up when painting dungeon cells, just like world hex textures do on the main map.</div>
+                            <div class="hex-tile-grid" id="dungeonTileGrid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <h3>Settlement Brush Assets</h3>
+                            <div class="setting-description" style="margin-bottom: 10px;">Upload tileable PNGs for Settlement Mode's freeform terrain brushes. These textures are separate from world hex tile art.</div>
+                            <div class="hex-tile-grid" id="settlementBrushGrid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+<!-- Performance section removed -->
+<!-- Procedural Terrain section removed -->
+<!-- Zoom Features section removed -->
+<!-- Integrations section removed -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('settingsModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Themes Modal -->
+    <div class="modal-overlay" id="themesModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                    </svg>
+                    Styles & Themes
+                </div>
+                <button class="modal-close" onclick="closeModal('themesModal')">
+                    <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <h3>Application Theme</h3>
+                    <div class="theme-grid">
+                        <div class="theme-card active" onclick="selectTheme(this, 'dark')">
+                            <div class="theme-preview dark"></div>
+                            <div class="theme-name">Dark ✓</div>
+                        </div>
+                        <div class="theme-card" onclick="selectTheme(this, 'light')">
+                            <div class="theme-preview light"></div>
+                            <div class="theme-name">Light</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <h3>Accent Color</h3>
+                    <div class="theme-grid">
+                        <div class="theme-card active" onclick="selectAccent(this, 'purple')">
+                            <div class="theme-preview" style="background: var(--accent-gradient);"></div>
+                            <div class="theme-name">Purple ✓</div>
+                        </div>
+                        <div class="theme-card" onclick="selectAccent(this, 'blue')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);"></div>
+                            <div class="theme-name">Blue</div>
+                        </div>
+                        <div class="theme-card" onclick="selectAccent(this, 'green')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);"></div>
+                            <div class="theme-name">Green</div>
+                        </div>
+                        <div class="theme-card" onclick="selectAccent(this, 'amber')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);"></div>
+                            <div class="theme-name">Amber</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <h3>Hex Pack Style</h3>
+                    <p class="text-muted" style="font-size: 13px; margin-bottom: 12px;">Choose how your hex tiles look on the map</p>
+                    <div class="theme-grid">
+                        <div class="theme-card active" id="hexpack-basic" onclick="selectHexPack(this, 'basic')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #90EE90 0%, #228B22 50%, #4682B4 100%);">
+                                <div style="color: white; font-size: 24px; text-align: center; line-height: 80px;"><img src="small_logo.svg" alt="" style="width: 40px; height: 40px; margin-top: 20px;"></div>
+                            </div>
+                            <div class="theme-name">Basic ✓</div>
+                        </div>
+                        <div class="theme-card" id="hexpack-illustrated" onclick="selectHexPack(this, 'illustrated')">
+                            <div class="theme-preview" style="background: url('assets/hex-packs/illustrated/Plains.png') center/cover, linear-gradient(135deg, #90EE90 0%, #228B22 100%);">
+                            </div>
+                            <div class="theme-name">Illustrated</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('themesModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="applyTheme()">Apply Theme</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal-overlay" id="shortcutsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>
+                    </svg>
+                    Keyboard Shortcuts
+                </div>
+                <button class="modal-close" onclick="closeModal('shortcutsModal')">
+                    <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="keyboard-shortcuts">
+                    <div class="shortcut-group">
+                        <h3>General</h3>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Save</span>
+                            <div class="shortcut-keys">
+                                <span class="key">Ctrl</span>
+                                <span class="key">S</span>
+                            </div>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Undo</span>
+                            <div class="shortcut-keys">
+                                <span class="key">Ctrl</span>
+                                <span class="key">Z</span>
+                            </div>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Redo</span>
+                            <div class="shortcut-keys">
+                                <span class="key">Ctrl</span>
+                                <span class="key">Y</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="shortcut-group">
+                        <h3>Tools</h3>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Paint Mode</span>
+                            <div class="shortcut-keys">
+                                <span class="key">P</span>
+                            </div>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Token Mode</span>
+                            <div class="shortcut-keys">
+                                <span class="key">T</span>
+                            </div>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Landmark Mode</span>
+                            <div class="shortcut-keys">
+                                <span class="key">L</span>
+                            </div>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Path Mode</span>
+                            <div class="shortcut-keys">
+                                <span class="key">H</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="shortcut-group">
+                        <h3>View</h3>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Pan Canvas</span>
+                            <div class="shortcut-keys">
+                                <span class="key">Space</span>
+                                <span>+</span>
+                                <span class="key">Drag</span>
+                            </div>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Zoom In/Out</span>
+                            <div class="shortcut-keys">
+                                <span class="key">Scroll</span>
+                            </div>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">Set Brush Size</span>
+                            <div class="shortcut-keys">
+                                <span class="key">1</span>
+                                <span>-</span>
+                                <span class="key">5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('shortcutsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Example Maps Modal -->
+    <div class="modal-overlay" id="examplesModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
+                    </svg>
+                    Example Maps
+                </div>
+                <button class="modal-close" onclick="closeModal('examplesModal')">
+                    <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="example-maps-grid">
+                    <div class="example-map-card" onclick="loadExampleMap('featured-shared')">
+                        <div class="example-map-preview" style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%);">
+                            <div class="example-map-icon">🏰</div>
+                        </div>
+                        <div class="example-map-info">
+                            <div class="example-map-name">Featured Shared Realm</div>
+                            <div class="example-map-desc">A giant public world map used for examples, QA, and performance benchmarking</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted" style="font-size: 14px; margin-top: 16px; text-align: center;">
+                    This example loads from the live shared benchmark map as an editable local copy
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('examplesModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for importing -->
+    <input type="file" id="importFileInput" accept=".json,image/*" style="display: none;">
+    
+    <!-- defer = fetch in parallel, execute in order after HTML parses.
+         All CDN scripts above are also `defer`, so Supabase/Stripe are guaranteed to initialize first. -->
+    <script defer src="mobile-companion.js?v=2026-05-07-13"></script>
+    
+    <!-- <script defer src="auth.js?v=2026-05-07-13"></script> -->
+    <script defer src="mcp-auth.js?v=2026-05-07-13"></script>
+    
+    <!-- <script defer src="cloud-storage.js?v=2026-05-07-13"></script> -->
+    <script defer src="mcp-storage.js?v=2026-05-07-13"></script>
+    
+    <script defer src="game.js?v=2026-05-13-2"></script>
+    <script defer src="compendium.js?v=2026-05-07-13"></script>
+
+<script>
+(function() {
+    function checkMobileDevice() {
+        // Mobile is now fully supported - no notice needed
+    }
+    
+    // Keep dismissMobileNotice for backwards compatibility (sessions may still have it stored)
+    function dismissMobileNotice() {
+        var notice = document.getElementById('mobileNotice');
+        if (notice) notice.remove();
+    }
+    
+    // Legacy fallback account modal functions (auth.js overrides these when loaded)
+    window.openAccountModal = window.openAccountModal || function() {
+        if (typeof showAuthModal === 'function') {
+            showAuthModal('login');
+        } else {
+            var m = document.getElementById('accountModal');
+            if (m) m.style.display = 'flex';
+        }
+    };
+    
+    window.closeAccountModal = window.closeAccountModal || function() {
+        var m = document.getElementById('accountModal');
+        if (m) m.style.display = 'none';
+    };
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // No gate - go straight to map
+        checkMobileDevice();
+        
+        // Account modal tab switching
+        document.querySelectorAll('.account-tab').forEach(function(tab) {
+            tab.onclick = function() {
+                if (tab.classList.contains('disabled')) return;
+                document.querySelectorAll('.account-tab').forEach(function(t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                var isSignup = tab.dataset.tab === 'signup';
+                var sf = document.getElementById('legacySignupForm');
+                var lf = document.getElementById('legacyLoginForm');
+                if (sf) sf.style.display = isSignup ? 'block' : 'none';
+                if (lf) lf.style.display = isSignup ? 'none' : 'block';
+            };
+        });
+        
+        // Hide settlement mode button if it appears
+        var obs = new MutationObserver(function() {
+            var btn = document.querySelector('[data-mode="settlement"]');
+            if (btn) btn.style.display = 'none';
+            var sec = document.getElementById('settlementSection');
+            if (sec) sec.style.display = 'none';
+        });
+        obs.observe(document.body, {childList: true, subtree: true});
+        
+        setTimeout(function() {
+            var et = document.getElementById('eventToggleBtn');
+            if (et) et.style.display = 'none';
+            var ep = document.getElementById('eventPanel');
+            if (ep) ep.style.display = 'none';
+        }, 500);
+    });
+})();
+</script>
+</body>
+</html>
