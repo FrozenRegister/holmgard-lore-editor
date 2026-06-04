@@ -60,6 +60,12 @@
       } catch {
         /* running in browser */
       }
+    } else {
+      // Browser mode: load admin secret from localStorage
+      const stored = localStorage.getItem('hle:adminSecret');
+      if (stored) {
+        adminSecretInput = stored;
+      }
     }
 
     const existingKey = await getClaudeApiKey();
@@ -249,6 +255,68 @@
       showToast(`Connection error: ${err.message}`, "error");
     }
   }
+
+  async function testAdminSecret() {
+    if (!adminSecretInput.trim()) {
+      showToast("Enter admin secret first", "warning");
+      return;
+    }
+    try {
+      const res = await fetch(`${workerHost}/mcp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Secret": adminSecretInput.trim(),
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "list_topics",
+          params: {},
+        }),
+      });
+      if (res.ok) {
+        showToast("Admin secret valid ✓", "success");
+      } else {
+        const json = await res.json().catch(() => ({}));
+        const msg = json.error?.message || `HTTP ${res.status}`;
+        showToast(`Auth failed: ${msg}`, "error");
+      }
+    } catch (err: any) {
+      showToast(`Test error: ${err.message}`, "error");
+    }
+  }
+
+  async function testMcpApiKey() {
+    if (!mcpApiKeyInput.trim()) {
+      showToast("Enter MCP API key first", "warning");
+      return;
+    }
+    try {
+      const res = await fetch(`${workerHost}/mcp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": mcpApiKeyInput.trim(),
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "list_topics",
+          params: {},
+        }),
+      });
+      if (res.ok) {
+        showToast("MCP API key valid ✓", "success");
+      } else {
+        const json = await res.json().catch(() => ({}));
+        const msg = json.error?.message || `HTTP ${res.status}`;
+        showToast(`Auth failed: ${msg}`, "error");
+      }
+    } catch (err: any) {
+      showToast(`Test error: ${err.message}`, "error");
+    }
+  }
 </script>
 
 <div class="page settings-page">
@@ -429,6 +497,13 @@
           >
             {showSecret ? "Hide" : "Show"}
           </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            on:click={testAdminSecret}
+          >
+            Test
+          </button>
         </div>
       </div>
     </section>
@@ -514,6 +589,13 @@
             disabled={savingMcpKey}
           >
             {savingMcpKey ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            on:click={testMcpApiKey}
+          >
+            Test
           </button>
           {#if mcpApiKeySet}
             <button
