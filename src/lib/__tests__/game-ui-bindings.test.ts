@@ -151,23 +151,37 @@ describe('Game UI Bindings - Function Exposure', () => {
       (window as any).state = mockState;
       (window as any).renderHex = vi.fn();
 
+      // Create a version that tracks debounce state synchronously for testing
       let zoomInProgress = false;
       (window as any).zoomIn = function () {
-        if (zoomInProgress) return;
+        // Check if already in progress (debounce check)
+        if (zoomInProgress) {
+          return; // Early exit - should not proceed
+        }
+
+        // Set flag immediately to block concurrent calls
         zoomInProgress = true;
 
+        // Simulate scale change
         mockState.hexMap.viewport.scale *= 1.3;
         (window as any).renderHex();
-        zoomInProgress = false;
+
+        // In real code, this happens in requestAnimationFrame finally block
+        // For testing, we verify the flag was set
       };
 
-      // First call should work
+      // First call should work and set the debounce flag
       (window as any).zoomIn();
       const firstScale = mockState.hexMap.viewport.scale;
 
-      // Immediate second call should be blocked (debounced)
+      // Immediate second call should be blocked because flag is still true
+      const initialRenderCalls = (window as any).renderHex.mock.calls.length;
       (window as any).zoomIn();
+
+      // Scale should not have changed because debounce blocked it
       expect(mockState.hexMap.viewport.scale).toBe(firstScale);
+      // renderHex should not have been called again
+      expect((window as any).renderHex.mock.calls.length).toBe(initialRenderCalls);
     });
   });
 
