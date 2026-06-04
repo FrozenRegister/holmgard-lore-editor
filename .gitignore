@@ -13,4 +13,4 @@ vite.config.ts.timestamp*
 HANDOVER-AUTH-FIX.md
 .claude/settings.local.json
 .mcp.json
-.claude/settings.local.json
+.vscode/
