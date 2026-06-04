@@ -51,6 +51,25 @@ export const activeTopicKey = writable<string | null>(null);
 /** True when the viewport is mobile-width (≤768px). Set by the root layout. */
 export const isMobile = writable(false);
 
+// ── Topic list filters (persisted to localStorage) ────────────────────────────
+
+function createFilterStore<T>(key: string, defaultValue: T) {
+  const stored = typeof window !== 'undefined' ? localStorage.getItem(`lore:filter:${key}`) : null;
+  const initial = stored ? JSON.parse(stored) : defaultValue;
+  const store = writable<T>(initial);
+  store.subscribe((value) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`lore:filter:${key}`, JSON.stringify(value));
+    }
+  });
+  return store;
+}
+
+export const listActiveType = createFilterStore<string | null>('activeType', null);
+export const listActiveStatus = createFilterStore<string | null>('activeStatus', null);
+export const listSortBy = createFilterStore<string>('sortBy', 'name-asc');
+export const selectedForDeletion = createFilterStore<string[]>('selectedForDeletion', []);
+
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
 export interface ChatMessage {
