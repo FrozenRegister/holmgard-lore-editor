@@ -5,6 +5,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [svelte({ hot: !process.env.VITEST })],
   test: {
+    name: 'unit',
     globals: true,
     environment: 'jsdom',
     include: ['src/**/*.{test,spec}.{ts,js}'],
