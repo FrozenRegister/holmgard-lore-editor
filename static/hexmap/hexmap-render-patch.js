@@ -169,7 +169,7 @@
 
   function startZoomWatcher() {
     setInterval(() => {
-      if (!isEarthMap()) return; // never act on other worlds (e.g. workingMap)
+      if (!shouldShowEarthUI()) return; // only the Earth map, only on the hex editor
       const cfg = readZoomCfg();
       if (!cfg.autoZoom) return;
       if (!window.state || !window.state.hexMap || homeScale == null) return;
@@ -187,38 +187,63 @@
     }, 250);
   }
 
-  // ---- Earth-instance gating ------------------------------------------------
+  // ---- Earth-instance + view gating -----------------------------------------
   // The region switcher, zoom-to-load, and drill-down settings only apply to
-  // the Earth 996 world. Any other world (e.g. workingMap.json) is left alone.
+  // the Earth 996 world AND only while the hex map editor is actually on
+  // screen. Any other world (e.g. workingMap.json) — or any other route
+  // (Topics, Settings, ...) — is left alone.
   function isEarthMap() {
     const hm = window.state && window.state.hexMap;
     return !!hm && String(hm.mapInstanceId || '').indexOf('earth-996') === 0;
   }
 
-  // Show/hide the Earth-only UI and (re)sync state whenever the active map
-  // changes. Called after every loadMapDataIntoState via the wrapper below.
-  function onMapChanged() {
-    const earth = isEarthMap();
+  // The switcher bar is appended to <body>, so it would otherwise linger after
+  // navigating away from the hex map (this is an SPA). Tie it to the canvas.
+  function isHexEditorVisible() {
+    const c = document.getElementById('hexCanvas');
+    return !!c && (c.offsetParent !== null || c.getClientRects().length > 0);
+  }
 
+  function shouldShowEarthUI() {
+    return isHexEditorVisible() && isEarthMap();
+  }
+
+  // Toggle the Earth-only UI. Safe to call repeatedly — used by both the
+  // map-change hook and the visibility watcher.
+  function syncEarthUI() {
+    const show = shouldShowEarthUI();
     // Drill-down settings section lives in the Svelte settings modal.
     const grp = document.getElementById('hexEarthDrilldownGroup');
-    if (grp) grp.style.display = earth ? '' : 'none';
+    if (grp) grp.style.display = show ? '' : 'none';
 
     let bar = document.getElementById('hexEarthSwitcher');
-    if (earth) {
+    if (show) {
       if (!bar) { buildSwitcher(); bar = document.getElementById('hexEarthSwitcher'); }
       if (bar) bar.style.display = 'flex';
-      // Sync active region from the loaded map + recapture the fitted scale.
-      const id = String(window.state.hexMap.mapInstanceId || '');
-      const match = manifest.find((r) => r.mapInstanceId === id);
-      if (match) { activeId = match.id; highlightActive(); }
-      cooldownUntil = Date.now() + 1500;
-      setTimeout(() => {
-        if (window.state && window.state.hexMap) homeScale = window.state.hexMap.viewport.scale;
-      }, 120);
     } else if (bar) {
       bar.style.display = 'none';
     }
+  }
+
+  // Show/hide the Earth-only UI and (re)sync state whenever the active map
+  // changes. Called after every loadMapDataIntoState via the wrapper below.
+  function onMapChanged() {
+    syncEarthUI();
+    if (!shouldShowEarthUI()) return;
+    // Sync active region from the loaded map + recapture the fitted scale.
+    const id = String(window.state.hexMap.mapInstanceId || '');
+    const match = manifest.find((r) => r.mapInstanceId === id);
+    if (match) { activeId = match.id; highlightActive(); }
+    cooldownUntil = Date.now() + 1500;
+    setTimeout(() => {
+      if (window.state && window.state.hexMap) homeScale = window.state.hexMap.viewport.scale;
+    }, 120);
+  }
+
+  // Catch route navigation (which doesn't fire loadMapDataIntoState): keep the
+  // body-level switcher in sync with whether the hex editor is on screen.
+  function startVisibilityWatcher() {
+    setInterval(syncEarthUI, 400);
   }
 
   // Decorate game.js's loader so we react to every map load (ours + Open Map).
@@ -255,6 +280,7 @@
         whenReady(() => {
           wrapLoader();
           startZoomWatcher();
+          startVisibilityWatcher();
           const hm = window.state.hexMap;
           const count = hm && Array.isArray(hm.hexes) ? hm.hexes.length
                       : (hm && hm.hexes ? Object.keys(hm.hexes).length : 0);
