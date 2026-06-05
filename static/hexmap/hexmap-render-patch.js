@@ -119,11 +119,51 @@
   // =========================================================================
   // RENDER PRIORITY LOOKUP
   // =========================================================================
+  let loggedOnce = false;
+
   function getHexForRender(q, r, hexMap, scale = 1.3) {
     if (!hexMap) return null;
 
+    // Debug: log structure on first call
+    if (!loggedOnce && hexMap.hexes) {
+      loggedOnce = true;
+      const hexesKeys = Object.keys(hexMap.hexes).slice(0, 5);
+      const sample = hexesKeys.map(k => ({ key: k, value: hexMap.hexes[k] }));
+      console.log(`${PATCH_NAME} [First renderHex call] hexMap.hexes structure:`, {
+        type: typeof hexMap.hexes,
+        isArray: Array.isArray(hexMap.hexes),
+        count: Object.keys(hexMap.hexes).length,
+        sampleKeys: hexesKeys,
+        sampleData: sample,
+      });
+    }
+
     // Priority 1: Check explicit hex array
-    const explicit = hexMap.hexes?.find((h) => h.q === q && h.r === r);
+    let explicit = null;
+    if (Array.isArray(hexMap.hexes)) {
+      explicit = hexMap.hexes.find((h) => h.q === q && h.r === r);
+    } else if (hexMap.hexes && typeof hexMap.hexes === 'object') {
+      // Try multiple key formats
+      let key = `${q},${r}`;
+      explicit = hexMap.hexes[key];
+
+      if (!explicit) {
+        // Try without comma
+        key = `${q}${r}`;
+        explicit = hexMap.hexes[key];
+      }
+
+      if (!explicit) {
+        // Try object with q,r properties
+        for (const k of Object.keys(hexMap.hexes)) {
+          const hex = hexMap.hexes[k];
+          if (hex && hex.q === q && hex.r === r) {
+            explicit = hex;
+            break;
+          }
+        }
+      }
+    }
     if (explicit) return explicit;
 
     // Priority 2: Check if inside coastline → procedural terrain
@@ -174,6 +214,46 @@
     const hexMap = w.state.hexMap;
     const scale = 1.3; // Matches earth-generator.js HEX_SCALE
 
+    const sampleKeys = hexMap.hexes ? Object.keys(hexMap.hexes).slice(0, 5) : [];
+    const sampleHex = sampleKeys.length > 0 ? hexMap.hexes[sampleKeys[0]] : null;
+
+    console.log(`${PATCH_NAME} Initial hexMap structure:`, {
+      hasHexes: !!hexMap.hexes,
+      hexesType: typeof hexMap.hexes,
+      isArray: Array.isArray(hexMap.hexes),
+      hexesCount: hexMap.hexes ? Object.keys(hexMap.hexes).length : 0,
+      sampleKeys,
+      sampleHex,
+      hasCoastlines: !!hexMap.coastlines,
+      mapKeys: Object.keys(hexMap).sort(),
+    });
+
+    // Log full state structure to understand where hex data actually is
+    console.log(`${PATCH_NAME} Full state structure:`, {
+      stateKeys: Object.keys(w.state).sort(),
+      hexMapType: typeof w.state.hexMap,
+      cacheInfo: w.state.cache ? 'cache exists' : 'no cache',
+      simpleCacheInfo: w.state.simpleCache ? 'simpleCache exists' : 'no simpleCache',
+    });
+
+    // Log all properties of hexMap
+    console.log(`${PATCH_NAME} hexMap all properties:`, Object.keys(hexMap).sort());
+
+    // Try to find where data is actually stored
+    if (w.state.cache) console.log(`${PATCH_NAME} cache keys:`, Object.keys(w.state.cache).slice(0, 5));
+    if (w.state.simpleCache) console.log(`${PATCH_NAME} simpleCache keys:`, Object.keys(w.state.simpleCache).slice(0, 5));
+
+    // Check what maps are available in localStorage
+    const localStorage_maps = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('mcp_map_')) {
+        localStorage_maps.push(key);
+      }
+    }
+    console.log(`${PATCH_NAME} Available maps in localStorage:`, localStorage_maps);
+    console.log(`${PATCH_NAME} mapInstanceId:`, w.state.hexMap?.mapInstanceId);
+
     // Override renderHex to use boundary-based lookup
     w.renderHex = function(q, r) {
       // Use our priority lookup
@@ -206,29 +286,68 @@
   }
 
   // =========================================================================
+  // LOAD CUSTOM MAP DATA
+  // =========================================================================
+  function loadCustomMap() {
+    const mapId = 'earth-996';
+    const key = 'mcp_map_' + mapId;
+
+    // Always fetch fresh — map data may have been regenerated
+    // Fetch our custom map
+    return fetch('/src/lib/data/earth-996-hexmap.json')
+      .then((resp) => {
+        if (!resp.ok) throw new Error(`Failed to load map: ${resp.status}`);
+        return resp.json();
+      })
+      .then((mapData) => {
+        // Store in localStorage for game.js to find
+        localStorage.setItem(
+          key,
+          JSON.stringify({
+            mapId: mapId,
+            state: mapData,
+            savedAt: Date.now()
+          })
+        );
+        console.log(`${PATCH_NAME} Loaded earth-996 map:`, {
+          hexes: mapData.hexes?.length,
+          coastlines: mapData.coastlines?.features?.length,
+          mapName: mapData.mapName
+        });
+      })
+      .catch((err) => {
+        console.error(`${PATCH_NAME} Failed to load custom map:`, err);
+      });
+  }
+
+  // =========================================================================
   // INITIALIZATION
   // =========================================================================
   function initPatch() {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', patchGameJsRenderer);
-    } else {
-      patchGameJsRenderer();
-    }
-
-    // Also wait for game.js to fully initialize
-    let attempts = 0;
-    const waitForGameJs = setInterval(() => {
-      attempts++;
-      if (typeof window.state !== 'undefined' && window.state?.hexMap) {
-        clearInterval(waitForGameJs);
-        setTimeout(patchGameJsRenderer, 300);
-      } else if (attempts > 200) {
-        clearInterval(waitForGameJs);
-        console.warn(
-          `${PATCH_NAME} Timeout waiting for game.js initialization`
-        );
+    // First, load the custom map
+    loadCustomMap().then(() => {
+      // Then patch game.js when it's ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', patchGameJsRenderer);
+      } else {
+        patchGameJsRenderer();
       }
-    }, 50);
+
+      // Also wait for game.js to fully initialize
+      let attempts = 0;
+      const waitForGameJs = setInterval(() => {
+        attempts++;
+        if (typeof window.state !== 'undefined' && window.state?.hexMap) {
+          clearInterval(waitForGameJs);
+          setTimeout(patchGameJsRenderer, 300);
+        } else if (attempts > 200) {
+          clearInterval(waitForGameJs);
+          console.warn(
+            `${PATCH_NAME} Timeout waiting for game.js initialization`
+          );
+        }
+      }, 50);
+    });
   }
 
   initPatch();

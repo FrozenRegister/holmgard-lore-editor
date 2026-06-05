@@ -25,3 +25,4 @@ static/hexmap/mobile-companion.js
 static/hexmap/small_logo.svg
 playwright-report/
 test-results/
+src/lib/data/workingMap.json
