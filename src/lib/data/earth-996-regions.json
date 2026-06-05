@@ -1,0 +1,160 @@
+{
+  "regions": [
+    {
+      "id": "world",
+      "name": "World (overview)",
+      "mapInstanceId": "earth-996-world",
+      "file": "earth-996-world.json",
+      "bounds": {
+        "lon": [
+          -180,
+          180
+        ],
+        "lat": [
+          -85,
+          85
+        ]
+      },
+      "hexes": 41676,
+      "isDefault": true,
+      "geo": {
+        "lonMin": -180,
+        "latMax": 85,
+        "dLon": 1.309090909090909,
+        "dLat": 1.1333333333333333,
+        "qc": 101,
+        "rc": 75
+      }
+    },
+    {
+      "id": "oldworld",
+      "name": "Old World",
+      "mapInstanceId": "earth-996-oldworld",
+      "file": "earth-996-oldworld.json",
+      "bounds": {
+        "lon": [
+          -25,
+          150
+        ],
+        "lat": [
+          -36,
+          72
+        ]
+      },
+      "hexes": 53868,
+      "isDefault": false,
+      "geo": {
+        "lonMin": -25,
+        "latMax": 72,
+        "dLon": 0.6554307116104869,
+        "dLat": 0.54,
+        "qc": 84,
+        "rc": 100
+      }
+    },
+    {
+      "id": "europe",
+      "name": "Europe",
+      "mapInstanceId": "earth-996-europe",
+      "file": "earth-996-europe.json",
+      "bounds": {
+        "lon": [
+          -12,
+          45
+        ],
+        "lat": [
+          34,
+          71
+        ]
+      },
+      "hexes": 23769,
+      "isDefault": false,
+      "geo": {
+        "lonMin": -12,
+        "latMax": 71,
+        "dLon": 0.41304347826086957,
+        "dLat": 0.21764705882352942,
+        "qc": 27,
+        "rc": 85
+      }
+    },
+    {
+      "id": "americas",
+      "name": "Americas",
+      "mapInstanceId": "earth-996-americas",
+      "file": "earth-996-americas.json",
+      "bounds": {
+        "lon": [
+          -130,
+          -34
+        ],
+        "lat": [
+          -56,
+          60
+        ]
+      },
+      "hexes": 28743,
+      "isDefault": false,
+      "geo": {
+        "lonMin": -130,
+        "latMax": 60,
+        "dLon": 0.676056338028169,
+        "dLat": 0.58,
+        "qc": 21,
+        "rc": 100
+      }
+    },
+    {
+      "id": "eastasia",
+      "name": "East Asia",
+      "mapInstanceId": "earth-996-eastasia",
+      "file": "earth-996-eastasia.json",
+      "bounds": {
+        "lon": [
+          95,
+          150
+        ],
+        "lat": [
+          18,
+          54
+        ]
+      },
+      "hexes": 24462,
+      "isDefault": false,
+      "geo": {
+        "lonMin": 95,
+        "latMax": 54,
+        "dLon": 0.3416149068322981,
+        "dLat": 0.24,
+        "qc": 44,
+        "rc": 75
+      }
+    },
+    {
+      "id": "africa",
+      "name": "Africa",
+      "mapInstanceId": "earth-996-africa",
+      "file": "earth-996-africa.json",
+      "bounds": {
+        "lon": [
+          -20,
+          52
+        ],
+        "lat": [
+          -36,
+          38
+        ]
+      },
+      "hexes": 30751,
+      "isDefault": false,
+      "geo": {
+        "lonMin": -20,
+        "latMax": 38,
+        "dLon": 0.45,
+        "dLat": 0.3894736842105263,
+        "qc": 33,
+        "rc": 95
+      }
+    }
+  ]
+}

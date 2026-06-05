@@ -4,7 +4,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const map = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'lib', 'data', 'earth-996-hexmap.json'), 'utf8'));
+const region = process.argv[2] || 'world';
+const file = path.join(__dirname, '..', 'src', 'lib', 'data', `earth-996-${region}.json`);
+const map = JSON.parse(fs.readFileSync(file, 'utf8'));
+console.log(`=== ${map.mapName} (${map.hexes.length} hexes) ===`);
 
 // Reconstruct col/row from offset coords: r=row, col = q + floor(row/2)
 const cells = new Map();

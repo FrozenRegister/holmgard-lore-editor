@@ -148,6 +148,33 @@
       showToast(message, toastType, durationMs);
     };
 
+    // ---- Region drill-down zoom settings (read by hexmap-render-patch.js) ----
+    const HEXZOOM_KEY = 'hle:hexzoom';
+    const HEXZOOM_DEFAULTS = { autoZoom: true, zoomInRatio: 2.2, zoomOutRatio: 0.28 };
+    const readHexZoom = () => {
+      try { return { ...HEXZOOM_DEFAULTS, ...JSON.parse(localStorage.getItem(HEXZOOM_KEY) || '{}') }; }
+      catch { return { ...HEXZOOM_DEFAULTS }; }
+    };
+    const writeHexZoom = (patch: Record<string, unknown>) => {
+      localStorage.setItem(HEXZOOM_KEY, JSON.stringify({ ...readHexZoom(), ...patch }));
+    };
+    (window as any).hexEarthToggleAuto = function (el: HTMLElement) {
+      const on = !el.classList.contains('active');
+      el.classList.toggle('active', on);
+      writeHexZoom({ autoZoom: on });
+    };
+    (window as any).hexEarthSetZoomIn = (v: string) => writeHexZoom({ zoomInRatio: Number(v) });
+    (window as any).hexEarthSetZoomOut = (v: string) => writeHexZoom({ zoomOutRatio: Number(v) });
+    // Reflect stored values onto the modal controls once they're in the DOM.
+    setTimeout(() => {
+      const cfg = readHexZoom();
+      document.getElementById('hexEarthAutoZoomToggle')?.classList.toggle('active', !!cfg.autoZoom);
+      const zi = document.getElementById('hexEarthZoomIn') as HTMLSelectElement | null;
+      if (zi) zi.value = String(cfg.zoomInRatio);
+      const zo = document.getElementById('hexEarthZoomOut') as HTMLSelectElement | null;
+      if (zo) zo.value = String(cfg.zoomOutRatio);
+    }, 0);
+
     // Set document title
     document.title = 'TbdHEX App - Hex Map Editor for Tabletop RPGs';
 
@@ -966,6 +993,42 @@
                   <option value="7">7 cells</option>
                   <option value="19">19 cells</option>
                   <option value="37">37 cells</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <h3>Region Drill-down</h3>
+              <div class="setting-item">
+                <div>
+                  <div class="setting-label">Auto Zoom-to-Load</div>
+                  <div class="setting-description">Zoom into a region on the World map to auto-load its detailed map; zoom back out to return to the overview</div>
+                </div>
+                <div class="toggle-switch" id="hexEarthAutoZoomToggle" onclick="window.hexEarthToggleAuto?.(this)"></div>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <div class="setting-label">Drill-in Sensitivity</div>
+                  <div class="setting-description">How far you zoom in past the World fit before a region loads</div>
+                </div>
+                <select class="form-select" id="hexEarthZoomIn" onchange="window.hexEarthSetZoomIn?.(this.value)" style="max-width: 170px;">
+                  <option value="1.6">Sensitive (1.6×)</option>
+                  <option value="2.2">Default (2.2×)</option>
+                  <option value="3">Relaxed (3×)</option>
+                  <option value="4">Far (4×)</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <div>
+                  <div class="setting-label">Return-to-World Threshold</div>
+                  <div class="setting-description">How far you zoom out within a region before snapping back to the World overview (lower = more zoom-out room)</div>
+                </div>
+                <select class="form-select" id="hexEarthZoomOut" onchange="window.hexEarthSetZoomOut?.(this.value)" style="max-width: 170px;">
+                  <option value="0.5">Quick (0.50×)</option>
+                  <option value="0.35">Medium (0.35×)</option>
+                  <option value="0.28">Default (0.28×)</option>
+                  <option value="0.2">Roomy (0.20×)</option>
+                  <option value="0.12">Max room (0.12×)</option>
                 </select>
               </div>
             </div>
