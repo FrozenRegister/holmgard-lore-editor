@@ -1,0 +1,2902 @@
+{
+  "features": [
+    {
+      "name": "London",
+      "description": "Major city in England",
+      "type": "kingdom_capital",
+      "region": "England",
+      "lat": 51.5,
+      "lon": -0.1,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Winchester",
+      "description": "Major city in England",
+      "type": "city",
+      "region": "England",
+      "lat": 51.06,
+      "lon": -1.31,
+      "terrain": "grassland"
+    },
+    {
+      "name": "York",
+      "description": "Major city in England",
+      "type": "city",
+      "region": "England",
+      "lat": 53.96,
+      "lon": -1.08,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Paris",
+      "description": "Major city in France",
+      "type": "kingdom_capital",
+      "region": "France",
+      "lat": 48.85,
+      "lon": 2.35,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Orleans",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 47.9,
+      "lon": 1.9,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Reims",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 49.26,
+      "lon": 4.03,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bordeaux",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 44.84,
+      "lon": -0.57,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Lyon",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 45.76,
+      "lon": 4.84,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Cologne",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 50.93,
+      "lon": 6.96,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Mainz",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 50,
+      "lon": 8.27,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Aachen",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 50.77,
+      "lon": 6.09,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Regensburg",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 48.37,
+      "lon": 12.1,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Prague",
+      "description": "Major city in Bohemia",
+      "type": "kingdom_capital",
+      "region": "Bohemia",
+      "lat": 50.08,
+      "lon": 14.43,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Warsaw",
+      "description": "Major city in Poland",
+      "type": "kingdom_capital",
+      "region": "Poland",
+      "lat": 52.23,
+      "lon": 21.01,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Krakow",
+      "description": "Major city in Poland",
+      "type": "city",
+      "region": "Poland",
+      "lat": 50.05,
+      "lon": 19.94,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Gniezno",
+      "description": "Major city in Poland",
+      "type": "city",
+      "region": "Poland",
+      "lat": 52.32,
+      "lon": 17.58,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Budapest",
+      "description": "Major city in Hungary",
+      "type": "kingdom_capital",
+      "region": "Hungary",
+      "lat": 47.5,
+      "lon": 19.04,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kiev",
+      "description": "Major city in Kievan Rus",
+      "type": "kingdom_capital",
+      "region": "Kievan Rus",
+      "lat": 50.45,
+      "lon": 30.52,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Novgorod",
+      "description": "Major city in Kievan Rus",
+      "type": "city",
+      "region": "Kievan Rus",
+      "lat": 58.52,
+      "lon": 31.27,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Copenhagen",
+      "description": "Major city in Denmark",
+      "type": "kingdom_capital",
+      "region": "Denmark",
+      "lat": 55.68,
+      "lon": 12.57,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Oslo",
+      "description": "Major city in Norway",
+      "type": "kingdom_capital",
+      "region": "Norway",
+      "lat": 59.91,
+      "lon": 10.75,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Bergen",
+      "description": "Major city in Norway",
+      "type": "city",
+      "region": "Norway",
+      "lat": 60.39,
+      "lon": 5.32,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Stockholm",
+      "description": "Major city in Sweden",
+      "type": "kingdom_capital",
+      "region": "Sweden",
+      "lat": 59.33,
+      "lon": 18.07,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Toledo",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 39.86,
+      "lon": -4.03,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Leon",
+      "description": "Major city in Kingdom of Leon",
+      "type": "kingdom_capital",
+      "region": "Kingdom of Leon",
+      "lat": 42.6,
+      "lon": -5.57,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Burgos",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 42.34,
+      "lon": -3.69,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Cordoba",
+      "description": "Major city in Al-Andalus",
+      "type": "city",
+      "region": "Al-Andalus",
+      "lat": 37.89,
+      "lon": -4.77,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Seville",
+      "description": "Major city in Al-Andalus",
+      "type": "city",
+      "region": "Al-Andalus",
+      "lat": 37.39,
+      "lon": -5.98,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Granada",
+      "description": "Major city in Al-Andalus",
+      "type": "city",
+      "region": "Al-Andalus",
+      "lat": 37.2,
+      "lon": -3.6,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Lisbon",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 38.71,
+      "lon": -9.14,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Rome",
+      "description": "Major city in Papal States",
+      "type": "city",
+      "region": "Papal States",
+      "lat": 41.9,
+      "lon": 12.5,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Venice",
+      "description": "Major city in Venice",
+      "type": "city",
+      "region": "Venice",
+      "lat": 45.44,
+      "lon": 12.34,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Genoa",
+      "description": "Major city in Genoa",
+      "type": "city",
+      "region": "Genoa",
+      "lat": 44.41,
+      "lon": 8.94,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Milan",
+      "description": "Major city in Lombardy",
+      "type": "city",
+      "region": "Lombardy",
+      "lat": 45.46,
+      "lon": 9.19,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Florence",
+      "description": "Major city in Tuscany",
+      "type": "city",
+      "region": "Tuscany",
+      "lat": 43.77,
+      "lon": 11.25,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Naples",
+      "description": "Major city in Southern Italy",
+      "type": "city",
+      "region": "Southern Italy",
+      "lat": 40.85,
+      "lon": 14.27,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Palermo",
+      "description": "Major city in Sicily",
+      "type": "city",
+      "region": "Sicily",
+      "lat": 38.11,
+      "lon": 13.36,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Salerno",
+      "description": "Major city in Southern Italy",
+      "type": "city",
+      "region": "Southern Italy",
+      "lat": 40.68,
+      "lon": 14.77,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Athens",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 37.97,
+      "lon": 23.73,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Constantinople",
+      "description": "Major city in Byzantine Empire",
+      "type": "empire_capital",
+      "region": "Byzantine Empire",
+      "lat": 41.01,
+      "lon": 28.98,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Thessalonica",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 40.64,
+      "lon": 22.94,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Antioch",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 36.2,
+      "lon": 36.16,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Alexandria",
+      "description": "Major city in Fatimid Egypt",
+      "type": "city",
+      "region": "Fatimid Egypt",
+      "lat": 31.2,
+      "lon": 29.92,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Cairo",
+      "description": "Major city in Fatimid Egypt",
+      "type": "kingdom_capital",
+      "region": "Fatimid Egypt",
+      "lat": 30.04,
+      "lon": 31.24,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Jerusalem",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 31.77,
+      "lon": 35.23,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Damascus",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 33.51,
+      "lon": 36.28,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Aleppo",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 36.2,
+      "lon": 37.16,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Baghdad",
+      "description": "Major city in Abbasid Caliphate",
+      "type": "kingdom_capital",
+      "region": "Abbasid Caliphate",
+      "lat": 33.31,
+      "lon": 44.36,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Basra",
+      "description": "Major city in Abbasid Caliphate",
+      "type": "city",
+      "region": "Abbasid Caliphate",
+      "lat": 30.5,
+      "lon": 47.81,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Isfahan",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 32.67,
+      "lon": 51.67,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Shiraz",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 29.61,
+      "lon": 52.54,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Merv",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 37.63,
+      "lon": 61.87,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bukhara",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 39.77,
+      "lon": 64.43,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Samarkand",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 39.65,
+      "lon": 66.95,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kashgar",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 39.47,
+      "lon": 75.98,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Khotan",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 37.01,
+      "lon": 79.92,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Leh",
+      "description": "Major city in Kashmir",
+      "type": "city",
+      "region": "Kashmir",
+      "lat": 34.16,
+      "lon": 77.57,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Varanasi",
+      "description": "Major city in India",
+      "type": "city",
+      "region": "India",
+      "lat": 25.32,
+      "lon": 82.99,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Delhi",
+      "description": "Major city in India",
+      "type": "city",
+      "region": "India",
+      "lat": 28.61,
+      "lon": 77.23,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Agra",
+      "description": "Major city in India",
+      "type": "city",
+      "region": "India",
+      "lat": 27.18,
+      "lon": 78.01,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Lahore",
+      "description": "Major city in Punjab",
+      "type": "city",
+      "region": "Punjab",
+      "lat": 31.54,
+      "lon": 74.31,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Multan",
+      "description": "Major city in Punjab",
+      "type": "city",
+      "region": "Punjab",
+      "lat": 30.2,
+      "lon": 71.43,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Calicut",
+      "description": "Major city in Kerala",
+      "type": "city",
+      "region": "Kerala",
+      "lat": 11.25,
+      "lon": 75.78,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Chiang Mai",
+      "description": "Major city in Southeast Asia",
+      "type": "city",
+      "region": "Southeast Asia",
+      "lat": 18.79,
+      "lon": 98.98,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Pagan",
+      "description": "Major city in Burma",
+      "type": "city",
+      "region": "Burma",
+      "lat": 21.17,
+      "lon": 94.86,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Hanoi",
+      "description": "Major city in Vietnam",
+      "type": "city",
+      "region": "Vietnam",
+      "lat": 21.03,
+      "lon": 105.85,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Angkor",
+      "description": "Major city in Cambodia",
+      "type": "city",
+      "region": "Cambodia",
+      "lat": 13.36,
+      "lon": 103.84,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Kaifeng",
+      "description": "Major city in Song Dynasty",
+      "type": "kingdom_capital",
+      "region": "Song Dynasty",
+      "lat": 34.78,
+      "lon": 114.86,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Chang'an",
+      "description": "Major city in Song Dynasty",
+      "type": "city",
+      "region": "Song Dynasty",
+      "lat": 34.27,
+      "lon": 108.95,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Hangzhou",
+      "description": "Major city in Song Dynasty",
+      "type": "city",
+      "region": "Song Dynasty",
+      "lat": 30.27,
+      "lon": 120.15,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Canton",
+      "description": "Major city in Song Dynasty",
+      "type": "city",
+      "region": "Song Dynasty",
+      "lat": 23.13,
+      "lon": 113.26,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Quanzhou",
+      "description": "Major city in Song Dynasty",
+      "type": "city",
+      "region": "Song Dynasty",
+      "lat": 24.87,
+      "lon": 118.59,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Luoyang",
+      "description": "Major city in Song Dynasty",
+      "type": "city",
+      "region": "Song Dynasty",
+      "lat": 34.68,
+      "lon": 112.45,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Beijing",
+      "description": "Major city in Liao Dynasty",
+      "type": "city",
+      "region": "Liao Dynasty",
+      "lat": 39.9,
+      "lon": 116.41,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kyoto",
+      "description": "Major city in Japan",
+      "type": "kingdom_capital",
+      "region": "Japan",
+      "lat": 35.01,
+      "lon": 135.77,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Osaka",
+      "description": "Major city in Japan",
+      "type": "city",
+      "region": "Japan",
+      "lat": 34.67,
+      "lon": 135.5,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Seoul",
+      "description": "Major city in Korea",
+      "type": "kingdom_capital",
+      "region": "Korea",
+      "lat": 37.57,
+      "lon": 126.98,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Goryeo",
+      "description": "Major city in Korea",
+      "type": "city",
+      "region": "Korea",
+      "lat": 37.99,
+      "lon": 125.75,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Timbuktu",
+      "description": "Major city in Mali",
+      "type": "city",
+      "region": "Mali",
+      "lat": 16.77,
+      "lon": -3.01,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Gao",
+      "description": "Major city in Mali",
+      "type": "city",
+      "region": "Mali",
+      "lat": 16.27,
+      "lon": -0.04,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Kumbi Saleh",
+      "description": "Major city in Ghana",
+      "type": "city",
+      "region": "Ghana",
+      "lat": 16.81,
+      "lon": -8.17,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Jenne",
+      "description": "Major city in Mali",
+      "type": "city",
+      "region": "Mali",
+      "lat": 13.91,
+      "lon": -4.26,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Mecca",
+      "description": "Major city in Arabia",
+      "type": "city",
+      "region": "Arabia",
+      "lat": 21.43,
+      "lon": 39.83,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Medina",
+      "description": "Major city in Arabia",
+      "type": "city",
+      "region": "Arabia",
+      "lat": 24.47,
+      "lon": 39.61,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Aden",
+      "description": "Major city in Arabia",
+      "type": "city",
+      "region": "Arabia",
+      "lat": 12.78,
+      "lon": 45.04,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Sanaa",
+      "description": "Major city in Yemen",
+      "type": "city",
+      "region": "Yemen",
+      "lat": 15.55,
+      "lon": 48.52,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Muscat",
+      "description": "Major city in Oman",
+      "type": "city",
+      "region": "Oman",
+      "lat": 23.61,
+      "lon": 58.54,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bristol",
+      "description": "Major city in England",
+      "type": "city",
+      "region": "England",
+      "lat": 51.45,
+      "lon": -2.59,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Exeter",
+      "description": "Major city in England",
+      "type": "city",
+      "region": "England",
+      "lat": 50.72,
+      "lon": -3.53,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Nottingham",
+      "description": "Major city in England",
+      "type": "city",
+      "region": "England",
+      "lat": 52.95,
+      "lon": -1.15,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Chester",
+      "description": "Major city in England",
+      "type": "city",
+      "region": "England",
+      "lat": 53.19,
+      "lon": -2.89,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Rouen",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 49.44,
+      "lon": 1.1,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Amiens",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 49.89,
+      "lon": 2.3,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Troyes",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 48.3,
+      "lon": 4.07,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Dijon",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 47.32,
+      "lon": 5.04,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Perpignan",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 42.7,
+      "lon": 2.9,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Marseille",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 43.3,
+      "lon": 5.37,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Toulouse",
+      "description": "Major city in France",
+      "type": "city",
+      "region": "France",
+      "lat": 43.6,
+      "lon": 1.44,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Hamburg",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 53.55,
+      "lon": 10,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Luebeck",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 53.87,
+      "lon": 10.69,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bremen",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 53.08,
+      "lon": 8.81,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Magdeburg",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 52.13,
+      "lon": 11.63,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Frankfurt",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 50.11,
+      "lon": 8.68,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Strasbourg",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 48.57,
+      "lon": 7.75,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Augsburg",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 48.37,
+      "lon": 10.9,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Munich",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 48.14,
+      "lon": 11.58,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Vienna",
+      "description": "Major city in Austria",
+      "type": "city",
+      "region": "Austria",
+      "lat": 48.21,
+      "lon": 16.37,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Salzburg",
+      "description": "Major city in Austria",
+      "type": "city",
+      "region": "Austria",
+      "lat": 47.81,
+      "lon": 13.05,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Osnabrueck",
+      "description": "Major city in Holy Roman Empire",
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "lat": 52.27,
+      "lon": 8.07,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Nijmegen",
+      "description": "Major city in Low Countries",
+      "type": "city",
+      "region": "Low Countries",
+      "lat": 51.84,
+      "lon": 5.86,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bruges",
+      "description": "Major city in Low Countries",
+      "type": "city",
+      "region": "Low Countries",
+      "lat": 51.21,
+      "lon": 3.22,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ghent",
+      "description": "Major city in Low Countries",
+      "type": "city",
+      "region": "Low Countries",
+      "lat": 51.05,
+      "lon": 3.72,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Antwerp",
+      "description": "Major city in Low Countries",
+      "type": "city",
+      "region": "Low Countries",
+      "lat": 51.22,
+      "lon": 4.4,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Amsterdam",
+      "description": "Major city in Low Countries",
+      "type": "city",
+      "region": "Low Countries",
+      "lat": 52.37,
+      "lon": 4.89,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Utrecht",
+      "description": "Major city in Low Countries",
+      "type": "city",
+      "region": "Low Countries",
+      "lat": 52.09,
+      "lon": 5.12,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Breslau",
+      "description": "Major city in Poland",
+      "type": "city",
+      "region": "Poland",
+      "lat": 51.11,
+      "lon": 17.03,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Poznan",
+      "description": "Major city in Poland",
+      "type": "city",
+      "region": "Poland",
+      "lat": 52.41,
+      "lon": 16.93,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Gdansk",
+      "description": "Major city in Poland",
+      "type": "city",
+      "region": "Poland",
+      "lat": 54.37,
+      "lon": 18.65,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Vilnius",
+      "description": "Major city in Lithuania",
+      "type": "city",
+      "region": "Lithuania",
+      "lat": 54.69,
+      "lon": 25.27,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Minsk",
+      "description": "Major city in Kievan Rus",
+      "type": "city",
+      "region": "Kievan Rus",
+      "lat": 53.9,
+      "lon": 27.57,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Smolensk",
+      "description": "Major city in Kievan Rus",
+      "type": "city",
+      "region": "Kievan Rus",
+      "lat": 54.96,
+      "lon": 34.97,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Vladimir",
+      "description": "Major city in Kievan Rus",
+      "type": "city",
+      "region": "Kievan Rus",
+      "lat": 56.14,
+      "lon": 40.41,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Suzdal",
+      "description": "Major city in Kievan Rus",
+      "type": "city",
+      "region": "Kievan Rus",
+      "lat": 56.42,
+      "lon": 40.44,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Tver",
+      "description": "Major city in Kievan Rus",
+      "type": "city",
+      "region": "Kievan Rus",
+      "lat": 56.86,
+      "lon": 35.93,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Pskov",
+      "description": "Major city in Kievan Rus",
+      "type": "city",
+      "region": "Kievan Rus",
+      "lat": 57.81,
+      "lon": 28.33,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Lund",
+      "description": "Major city in Sweden",
+      "type": "city",
+      "region": "Sweden",
+      "lat": 55.7,
+      "lon": 13.19,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Goteborg",
+      "description": "Major city in Sweden",
+      "type": "city",
+      "region": "Sweden",
+      "lat": 57.71,
+      "lon": 11.97,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Visby",
+      "description": "Major city in Gotland",
+      "type": "city",
+      "region": "Gotland",
+      "lat": 57.64,
+      "lon": 18.29,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Trondheim",
+      "description": "Major city in Norway",
+      "type": "city",
+      "region": "Norway",
+      "lat": 63.43,
+      "lon": 10.4,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Stavanger",
+      "description": "Major city in Norway",
+      "type": "city",
+      "region": "Norway",
+      "lat": 58.97,
+      "lon": 5.73,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Aarhus",
+      "description": "Major city in Denmark",
+      "type": "city",
+      "region": "Denmark",
+      "lat": 56.15,
+      "lon": 10.21,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Odense",
+      "description": "Major city in Denmark",
+      "type": "city",
+      "region": "Denmark",
+      "lat": 55.4,
+      "lon": 10.39,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Ribe",
+      "description": "Major city in Denmark",
+      "type": "city",
+      "region": "Denmark",
+      "lat": 55.33,
+      "lon": 8.76,
+      "terrain": "taiga"
+    },
+    {
+      "name": "Valladolid",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 41.65,
+      "lon": -4.72,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Palencia",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 42.01,
+      "lon": -4.55,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Zamora",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 41.5,
+      "lon": -5.75,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Segovia",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 40.95,
+      "lon": -4.12,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Barcelona",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 41.39,
+      "lon": 2.17,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Valencia",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 39.47,
+      "lon": -0.38,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Tarragona",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 41.12,
+      "lon": 1.25,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Corunna",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 43.37,
+      "lon": -8.39,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Santiago de Compostela",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 42.88,
+      "lon": -8.54,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Porto",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 41.16,
+      "lon": -8.63,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Coimbra",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 40.28,
+      "lon": -8.5,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Evora",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 38.66,
+      "lon": -8.26,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Silves",
+      "description": "Major city in Iberian Peninsula",
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "lat": 37.18,
+      "lon": -8.44,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Malaga",
+      "description": "Major city in Al-Andalus",
+      "type": "city",
+      "region": "Al-Andalus",
+      "lat": 36.72,
+      "lon": -3.73,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Almeria",
+      "description": "Major city in Al-Andalus",
+      "type": "city",
+      "region": "Al-Andalus",
+      "lat": 36.84,
+      "lon": -2.41,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Jaen",
+      "description": "Major city in Al-Andalus",
+      "type": "city",
+      "region": "Al-Andalus",
+      "lat": 37.78,
+      "lon": -3.79,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Murcia",
+      "description": "Major city in Al-Andalus",
+      "type": "city",
+      "region": "Al-Andalus",
+      "lat": 37.99,
+      "lon": -1.13,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Montpellier",
+      "description": "Major city in Southern France",
+      "type": "city",
+      "region": "Southern France",
+      "lat": 43.61,
+      "lon": 3.88,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Arles",
+      "description": "Major city in Southern France",
+      "type": "city",
+      "region": "Southern France",
+      "lat": 43.68,
+      "lon": 4.63,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Nice",
+      "description": "Major city in Southern France",
+      "type": "city",
+      "region": "Southern France",
+      "lat": 43.7,
+      "lon": 7.26,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Menton",
+      "description": "Major city in Southern France",
+      "type": "city",
+      "region": "Southern France",
+      "lat": 43.77,
+      "lon": 7.51,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Turin",
+      "description": "Major city in Piedmont",
+      "type": "city",
+      "region": "Piedmont",
+      "lat": 45.07,
+      "lon": 7.69,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Asti",
+      "description": "Major city in Piedmont",
+      "type": "city",
+      "region": "Piedmont",
+      "lat": 44.9,
+      "lon": 8.19,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Como",
+      "description": "Major city in Lombardy",
+      "type": "city",
+      "region": "Lombardy",
+      "lat": 45.81,
+      "lon": 9.09,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bergamo",
+      "description": "Major city in Lombardy",
+      "type": "city",
+      "region": "Lombardy",
+      "lat": 45.7,
+      "lon": 9.67,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Mantua",
+      "description": "Major city in Lombardy",
+      "type": "city",
+      "region": "Lombardy",
+      "lat": 45.16,
+      "lon": 10.8,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Padua",
+      "description": "Major city in Veneto",
+      "type": "city",
+      "region": "Veneto",
+      "lat": 45.41,
+      "lon": 11.88,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Aquileia",
+      "description": "Major city in Friuli",
+      "type": "city",
+      "region": "Friuli",
+      "lat": 45.77,
+      "lon": 13.38,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Trieste",
+      "description": "Major city in Friuli",
+      "type": "city",
+      "region": "Friuli",
+      "lat": 45.65,
+      "lon": 13.78,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ravenna",
+      "description": "Major city in Emilia Romagna",
+      "type": "city",
+      "region": "Emilia Romagna",
+      "lat": 44.42,
+      "lon": 12.2,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bologna",
+      "description": "Major city in Emilia Romagna",
+      "type": "city",
+      "region": "Emilia Romagna",
+      "lat": 44.49,
+      "lon": 11.34,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Modena",
+      "description": "Major city in Emilia Romagna",
+      "type": "city",
+      "region": "Emilia Romagna",
+      "lat": 44.65,
+      "lon": 10.93,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Parma",
+      "description": "Major city in Emilia Romagna",
+      "type": "city",
+      "region": "Emilia Romagna",
+      "lat": 44.8,
+      "lon": 10.33,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Pisa",
+      "description": "Major city in Tuscany",
+      "type": "city",
+      "region": "Tuscany",
+      "lat": 43.72,
+      "lon": 10.4,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Volterra",
+      "description": "Major city in Tuscany",
+      "type": "city",
+      "region": "Tuscany",
+      "lat": 43.4,
+      "lon": 10.86,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Livorno",
+      "description": "Major city in Tuscany",
+      "type": "city",
+      "region": "Tuscany",
+      "lat": 43.55,
+      "lon": 10.3,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ancona",
+      "description": "Major city in Marche",
+      "type": "city",
+      "region": "Marche",
+      "lat": 43.62,
+      "lon": 13.5,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Perugia",
+      "description": "Major city in Umbria",
+      "type": "city",
+      "region": "Umbria",
+      "lat": 43.11,
+      "lon": 12.39,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Aquila",
+      "description": "Major city in Abruzzi",
+      "type": "city",
+      "region": "Abruzzi",
+      "lat": 42.35,
+      "lon": 13.4,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Pescara",
+      "description": "Major city in Abruzzi",
+      "type": "city",
+      "region": "Abruzzi",
+      "lat": 42.46,
+      "lon": 14.22,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Taranto",
+      "description": "Major city in Apulia",
+      "type": "city",
+      "region": "Apulia",
+      "lat": 40.48,
+      "lon": 17.23,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Brindisi",
+      "description": "Major city in Apulia",
+      "type": "city",
+      "region": "Apulia",
+      "lat": 40.64,
+      "lon": 17.95,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Lecce",
+      "description": "Major city in Apulia",
+      "type": "city",
+      "region": "Apulia",
+      "lat": 40.35,
+      "lon": 18.17,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Reggio Calabria",
+      "description": "Major city in Calabria",
+      "type": "city",
+      "region": "Calabria",
+      "lat": 38.11,
+      "lon": 15.65,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Cosenza",
+      "description": "Major city in Calabria",
+      "type": "city",
+      "region": "Calabria",
+      "lat": 39.3,
+      "lon": 16.25,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Catanzaro",
+      "description": "Major city in Calabria",
+      "type": "city",
+      "region": "Calabria",
+      "lat": 38.89,
+      "lon": 16.6,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Catania",
+      "description": "Major city in Sicily",
+      "type": "city",
+      "region": "Sicily",
+      "lat": 37.5,
+      "lon": 15.09,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Syracuse",
+      "description": "Major city in Sicily",
+      "type": "city",
+      "region": "Sicily",
+      "lat": 37.07,
+      "lon": 15.29,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Agrigento",
+      "description": "Major city in Sicily",
+      "type": "city",
+      "region": "Sicily",
+      "lat": 37.31,
+      "lon": 13.59,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Trapani",
+      "description": "Major city in Sicily",
+      "type": "city",
+      "region": "Sicily",
+      "lat": 38.02,
+      "lon": 12.51,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Crete",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 35.3,
+      "lon": 25.13,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Rhodes",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 36.43,
+      "lon": 28.23,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Corfu",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 39.63,
+      "lon": 19.92,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Durrazzo",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 41.31,
+      "lon": 19.44,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Patras",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 38.25,
+      "lon": 21.73,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Thebes",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 38.32,
+      "lon": 23.32,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Smyrna",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 38.42,
+      "lon": 27.14,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ephesus",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 37.95,
+      "lon": 27.34,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Pergamon",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 39.13,
+      "lon": 27.18,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Tarsus",
+      "description": "Major city in Byzantine Empire",
+      "type": "city",
+      "region": "Byzantine Empire",
+      "lat": 36.92,
+      "lon": 34.89,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Tripoli",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 34.44,
+      "lon": 35.84,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Tyre",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 33.27,
+      "lon": 35.2,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Sidon",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 33.62,
+      "lon": 35.37,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Caesarea",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 32.43,
+      "lon": 34.9,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Jaffa",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 32.05,
+      "lon": 34.75,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Gaza",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 31.53,
+      "lon": 34.47,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Aqaba",
+      "description": "Major city in Arabia",
+      "type": "city",
+      "region": "Arabia",
+      "lat": 29.53,
+      "lon": 34.94,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Petra",
+      "description": "Major city in Arabia",
+      "type": "city",
+      "region": "Arabia",
+      "lat": 30.33,
+      "lon": 35.43,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Amman",
+      "description": "Major city in Arabia",
+      "type": "city",
+      "region": "Arabia",
+      "lat": 31.94,
+      "lon": 35.93,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Hama",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 34.73,
+      "lon": 36.75,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Palmyra",
+      "description": "Major city in Levant",
+      "type": "city",
+      "region": "Levant",
+      "lat": 34.55,
+      "lon": 38.27,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Nishapur",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 36.21,
+      "lon": 58.63,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ray",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 35.75,
+      "lon": 51.42,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Qazvin",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 36.27,
+      "lon": 50,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Qom",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 34.64,
+      "lon": 50.88,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Yazd",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 31.9,
+      "lon": 54.36,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kerman",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 30.28,
+      "lon": 57.08,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bam",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 29.11,
+      "lon": 58.36,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bandar Abbas",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 27.18,
+      "lon": 56.27,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Hormuz",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 26.15,
+      "lon": 56.3,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Jask",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 25.68,
+      "lon": 57.78,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Susa",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 32.2,
+      "lon": 48.95,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kufa",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 32.02,
+      "lon": 44.32,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Karbala",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 32.55,
+      "lon": 44.04,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Baquba",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 33.74,
+      "lon": 44.61,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Anah",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 34.35,
+      "lon": 42.3,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Hit",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 33.64,
+      "lon": 42.83,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Mosul",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 36.34,
+      "lon": 43.16,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Tikrit",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 34.6,
+      "lon": 43.57,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kirkuk",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 35.47,
+      "lon": 44.39,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Arbil",
+      "description": "Major city in Mesopotamia",
+      "type": "city",
+      "region": "Mesopotamia",
+      "lat": 36.19,
+      "lon": 44.01,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Tabriz",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 38.08,
+      "lon": 46.3,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Maragheh",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 37.4,
+      "lon": 46.23,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ardabil",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 38.14,
+      "lon": 48.29,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Rasht",
+      "description": "Major city in Persia",
+      "type": "city",
+      "region": "Persia",
+      "lat": 37.28,
+      "lon": 49.58,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Baku",
+      "description": "Major city in Caucasus",
+      "type": "city",
+      "region": "Caucasus",
+      "lat": 40.38,
+      "lon": 49.86,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Shamakhi",
+      "description": "Major city in Caucasus",
+      "type": "city",
+      "region": "Caucasus",
+      "lat": 40.63,
+      "lon": 48.63,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Shaki",
+      "description": "Major city in Caucasus",
+      "type": "city",
+      "region": "Caucasus",
+      "lat": 41.57,
+      "lon": 47.52,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Derbent",
+      "description": "Major city in Caucasus",
+      "type": "city",
+      "region": "Caucasus",
+      "lat": 42.05,
+      "lon": 48.27,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Tiflis",
+      "description": "Major city in Georgia",
+      "type": "city",
+      "region": "Georgia",
+      "lat": 41.71,
+      "lon": 44.79,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ganja",
+      "description": "Major city in Caucasus",
+      "type": "city",
+      "region": "Caucasus",
+      "lat": 40.68,
+      "lon": 46.36,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ani",
+      "description": "Major city in Armenia",
+      "type": "city",
+      "region": "Armenia",
+      "lat": 40.52,
+      "lon": 43.55,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kars",
+      "description": "Major city in Armenia",
+      "type": "city",
+      "region": "Armenia",
+      "lat": 40.6,
+      "lon": 43.1,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Van",
+      "description": "Major city in Armenia",
+      "type": "city",
+      "region": "Armenia",
+      "lat": 38.45,
+      "lon": 43.38,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kokand",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 40.52,
+      "lon": 70.49,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ferghana",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 40.38,
+      "lon": 71.75,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Osh",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 42.48,
+      "lon": 72.8,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Tashkent",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 41.27,
+      "lon": 69.21,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Khiva",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 41.38,
+      "lon": 60.36,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Urgench",
+      "description": "Major city in Central Asia",
+      "type": "city",
+      "region": "Central Asia",
+      "lat": 41.55,
+      "lon": 60.63,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Balkh",
+      "description": "Major city in Afghanistan",
+      "type": "city",
+      "region": "Afghanistan",
+      "lat": 36.76,
+      "lon": 66.9,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Herat",
+      "description": "Major city in Afghanistan",
+      "type": "city",
+      "region": "Afghanistan",
+      "lat": 34.35,
+      "lon": 62.2,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kabul",
+      "description": "Major city in Afghanistan",
+      "type": "city",
+      "region": "Afghanistan",
+      "lat": 34.52,
+      "lon": 69.18,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kandahar",
+      "description": "Major city in Afghanistan",
+      "type": "city",
+      "region": "Afghanistan",
+      "lat": 31.61,
+      "lon": 65.71,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ghazni",
+      "description": "Major city in Afghanistan",
+      "type": "city",
+      "region": "Afghanistan",
+      "lat": 33.55,
+      "lon": 68.43,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Peshawar",
+      "description": "Major city in Punjab",
+      "type": "city",
+      "region": "Punjab",
+      "lat": 34.02,
+      "lon": 71.57,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Rawalpindi",
+      "description": "Major city in Punjab",
+      "type": "city",
+      "region": "Punjab",
+      "lat": 33.57,
+      "lon": 73.18,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Jhang",
+      "description": "Major city in Punjab",
+      "type": "city",
+      "region": "Punjab",
+      "lat": 31.28,
+      "lon": 72.32,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Khanewal",
+      "description": "Major city in Punjab",
+      "type": "city",
+      "region": "Punjab",
+      "lat": 30.29,
+      "lon": 71.93,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bahawalpur",
+      "description": "Major city in Punjab",
+      "type": "city",
+      "region": "Punjab",
+      "lat": 29.55,
+      "lon": 71.68,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Hyderabad",
+      "description": "Major city in Sindh",
+      "type": "city",
+      "region": "Sindh",
+      "lat": 25.37,
+      "lon": 68.35,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Karachi",
+      "description": "Major city in Sindh",
+      "type": "city",
+      "region": "Sindh",
+      "lat": 24.86,
+      "lon": 67.01,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Surat",
+      "description": "Major city in Gujarat",
+      "type": "city",
+      "region": "Gujarat",
+      "lat": 21.17,
+      "lon": 72.83,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Bhera",
+      "description": "Major city in Gujarat",
+      "type": "city",
+      "region": "Gujarat",
+      "lat": 22.78,
+      "lon": 72.61,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Broach",
+      "description": "Major city in Gujarat",
+      "type": "city",
+      "region": "Gujarat",
+      "lat": 21.71,
+      "lon": 72.62,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Cambay",
+      "description": "Major city in Gujarat",
+      "type": "city",
+      "region": "Gujarat",
+      "lat": 22.18,
+      "lon": 72.6,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Daman",
+      "description": "Major city in Gujarat",
+      "type": "city",
+      "region": "Gujarat",
+      "lat": 20.76,
+      "lon": 72.85,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Diu",
+      "description": "Major city in Gujarat",
+      "type": "city",
+      "region": "Gujarat",
+      "lat": 20.71,
+      "lon": 70.98,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Goa",
+      "description": "Major city in India",
+      "type": "city",
+      "region": "India",
+      "lat": 15.48,
+      "lon": 73.83,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Belgaum",
+      "description": "Major city in Deccan",
+      "type": "city",
+      "region": "Deccan",
+      "lat": 15.86,
+      "lon": 74.5,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Bijapur",
+      "description": "Major city in Deccan",
+      "type": "city",
+      "region": "Deccan",
+      "lat": 16.83,
+      "lon": 75.73,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Gulbarga",
+      "description": "Major city in Deccan",
+      "type": "city",
+      "region": "Deccan",
+      "lat": 17.33,
+      "lon": 76.83,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Aurangabad",
+      "description": "Major city in Deccan",
+      "type": "city",
+      "region": "Deccan",
+      "lat": 19.88,
+      "lon": 75.34,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Junnar",
+      "description": "Major city in Maharashtra",
+      "type": "city",
+      "region": "Maharashtra",
+      "lat": 19.26,
+      "lon": 73.88,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Nasik",
+      "description": "Major city in Maharashtra",
+      "type": "city",
+      "region": "Maharashtra",
+      "lat": 19.98,
+      "lon": 73.79,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Ujjain",
+      "description": "Major city in Central India",
+      "type": "city",
+      "region": "Central India",
+      "lat": 23.18,
+      "lon": 75.77,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Mandu",
+      "description": "Major city in Central India",
+      "type": "city",
+      "region": "Central India",
+      "lat": 22.33,
+      "lon": 75.4,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Chanderi",
+      "description": "Major city in Central India",
+      "type": "city",
+      "region": "Central India",
+      "lat": 24.44,
+      "lon": 78.43,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Mahoba",
+      "description": "Major city in Central India",
+      "type": "city",
+      "region": "Central India",
+      "lat": 24.88,
+      "lon": 79.38,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Khajuraho",
+      "description": "Major city in Central India",
+      "type": "city",
+      "region": "Central India",
+      "lat": 24.93,
+      "lon": 79.92,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Banda",
+      "description": "Major city in Central India",
+      "type": "city",
+      "region": "Central India",
+      "lat": 25.48,
+      "lon": 80.35,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kanauj",
+      "description": "Major city in Northern India",
+      "type": "city",
+      "region": "Northern India",
+      "lat": 27.07,
+      "lon": 79.92,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Ayodhya",
+      "description": "Major city in Northern India",
+      "type": "city",
+      "region": "Northern India",
+      "lat": 26.81,
+      "lon": 82.19,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Jaunpur",
+      "description": "Major city in Northern India",
+      "type": "city",
+      "region": "Northern India",
+      "lat": 25.75,
+      "lon": 82.68,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Lucknow",
+      "description": "Major city in Northern India",
+      "type": "city",
+      "region": "Northern India",
+      "lat": 26.85,
+      "lon": 80.95,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kanpur",
+      "description": "Major city in Northern India",
+      "type": "city",
+      "region": "Northern India",
+      "lat": 26.45,
+      "lon": 80.33,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Allahabad",
+      "description": "Major city in Northern India",
+      "type": "city",
+      "region": "Northern India",
+      "lat": 25.43,
+      "lon": 81.85,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Gaya",
+      "description": "Major city in Bihar",
+      "type": "city",
+      "region": "Bihar",
+      "lat": 24.8,
+      "lon": 84.99,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Patna",
+      "description": "Major city in Bihar",
+      "type": "city",
+      "region": "Bihar",
+      "lat": 25.59,
+      "lon": 85.12,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Nalanda",
+      "description": "Major city in Bihar",
+      "type": "city",
+      "region": "Bihar",
+      "lat": 25.13,
+      "lon": 85.47,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Munger",
+      "description": "Major city in Bihar",
+      "type": "city",
+      "region": "Bihar",
+      "lat": 25.38,
+      "lon": 86.47,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Bhagalpur",
+      "description": "Major city in Bihar",
+      "type": "city",
+      "region": "Bihar",
+      "lat": 25.25,
+      "lon": 87.02,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Kolkata",
+      "description": "Major city in Bengal",
+      "type": "city",
+      "region": "Bengal",
+      "lat": 22.57,
+      "lon": 88.36,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Mymensingh",
+      "description": "Major city in Bengal",
+      "type": "city",
+      "region": "Bengal",
+      "lat": 24.74,
+      "lon": 90.41,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Dhaka",
+      "description": "Major city in Bengal",
+      "type": "city",
+      "region": "Bengal",
+      "lat": 23.81,
+      "lon": 90.41,
+      "terrain": "grassland"
+    },
+    {
+      "name": "Chittagong",
+      "description": "Major city in Bengal",
+      "type": "city",
+      "region": "Bengal",
+      "lat": 22.34,
+      "lon": 91.81,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Bhubaneswar",
+      "description": "Major city in Orissa",
+      "type": "city",
+      "region": "Orissa",
+      "lat": 20.27,
+      "lon": 85.84,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Visakhapatnam",
+      "description": "Major city in Andhra Pradesh",
+      "type": "city",
+      "region": "Andhra Pradesh",
+      "lat": 17.69,
+      "lon": 83.32,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Warangal",
+      "description": "Major city in Andhra Pradesh",
+      "type": "city",
+      "region": "Andhra Pradesh",
+      "lat": 17.96,
+      "lon": 79.59,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Hyderabad (Deccan)",
+      "description": "Major city in Andhra Pradesh",
+      "type": "city",
+      "region": "Andhra Pradesh",
+      "lat": 17.36,
+      "lon": 78.47,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Bangalore",
+      "description": "Major city in Karnataka",
+      "type": "city",
+      "region": "Karnataka",
+      "lat": 12.97,
+      "lon": 77.59,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Mysore",
+      "description": "Major city in Karnataka",
+      "type": "city",
+      "region": "Karnataka",
+      "lat": 12.3,
+      "lon": 76.64,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Hampi",
+      "description": "Major city in Karnataka",
+      "type": "city",
+      "region": "Karnataka",
+      "lat": 15.34,
+      "lon": 76.47,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Madurai",
+      "description": "Major city in Tamil Nadu",
+      "type": "city",
+      "region": "Tamil Nadu",
+      "lat": 9.93,
+      "lon": 78.12,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Tanjavur",
+      "description": "Major city in Tamil Nadu",
+      "type": "city",
+      "region": "Tamil Nadu",
+      "lat": 10.77,
+      "lon": 79.13,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Chidambaram",
+      "description": "Major city in Tamil Nadu",
+      "type": "city",
+      "region": "Tamil Nadu",
+      "lat": 11.4,
+      "lon": 79.7,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Tirupati",
+      "description": "Major city in Tamil Nadu",
+      "type": "city",
+      "region": "Tamil Nadu",
+      "lat": 13.18,
+      "lon": 79.89,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Cochin",
+      "description": "Major city in Kerala",
+      "type": "city",
+      "region": "Kerala",
+      "lat": 9.97,
+      "lon": 76.24,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Quilon",
+      "description": "Major city in Kerala",
+      "type": "city",
+      "region": "Kerala",
+      "lat": 8.88,
+      "lon": 76.57,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Kannur",
+      "description": "Major city in Kerala",
+      "type": "city",
+      "region": "Kerala",
+      "lat": 12.02,
+      "lon": 75.37,
+      "terrain": "savanna"
+    },
+    {
+      "name": "Mount Everest",
+      "description": "mountain",
+      "type": "mountain",
+      "region": null,
+      "lat": 27.99,
+      "lon": 86.92,
+      "terrain": "mountain"
+    },
+    {
+      "name": "K2",
+      "description": "mountain",
+      "type": "mountain",
+      "region": null,
+      "lat": 35.88,
+      "lon": 76.51,
+      "terrain": "mountain"
+    },
+    {
+      "name": "Kilimanjaro",
+      "description": "mountain",
+      "type": "mountain",
+      "region": null,
+      "lat": -3.07,
+      "lon": 37.35,
+      "terrain": "mountain"
+    },
+    {
+      "name": "Mont Blanc",
+      "description": "mountain",
+      "type": "mountain",
+      "region": null,
+      "lat": 45.83,
+      "lon": 6.86,
+      "terrain": "mountain"
+    },
+    {
+      "name": "Alps",
+      "description": "mountain_range",
+      "type": "mountain_range",
+      "region": null,
+      "lat": 46.5,
+      "lon": 10.5,
+      "terrain": "mountain_range"
+    },
+    {
+      "name": "Pyrenees",
+      "description": "mountain_range",
+      "type": "mountain_range",
+      "region": null,
+      "lat": 42.59,
+      "lon": 1.5,
+      "terrain": "mountain_range"
+    },
+    {
+      "name": "Carpathians",
+      "description": "mountain_range",
+      "type": "mountain_range",
+      "region": null,
+      "lat": 46.5,
+      "lon": 24.5,
+      "terrain": "mountain_range"
+    },
+    {
+      "name": "Caucasus",
+      "description": "mountain_range",
+      "type": "mountain_range",
+      "region": null,
+      "lat": 43,
+      "lon": 45,
+      "terrain": "mountain_range"
+    },
+    {
+      "name": "Ural Mountains",
+      "description": "mountain_range",
+      "type": "mountain_range",
+      "region": null,
+      "lat": 60,
+      "lon": 60,
+      "terrain": "mountain_range"
+    },
+    {
+      "name": "Himalayas",
+      "description": "mountain_range",
+      "type": "mountain_range",
+      "region": null,
+      "lat": 28,
+      "lon": 85,
+      "terrain": "mountain_range"
+    },
+    {
+      "name": "Tian Shan",
+      "description": "mountain_range",
+      "type": "mountain_range",
+      "region": null,
+      "lat": 42.5,
+      "lon": 77.5,
+      "terrain": "mountain_range"
+    },
+    {
+      "name": "Danube River",
+      "description": "river",
+      "type": "river",
+      "region": null,
+      "lat": 48.5,
+      "lon": 20,
+      "terrain": "river"
+    },
+    {
+      "name": "Volga River",
+      "description": "river",
+      "type": "river",
+      "region": null,
+      "lat": 56,
+      "lon": 44,
+      "terrain": "river"
+    },
+    {
+      "name": "Euphrates River",
+      "description": "river",
+      "type": "river",
+      "region": null,
+      "lat": 35,
+      "lon": 40,
+      "terrain": "river"
+    },
+    {
+      "name": "Tigris River",
+      "description": "river",
+      "type": "river",
+      "region": null,
+      "lat": 35,
+      "lon": 43,
+      "terrain": "river"
+    },
+    {
+      "name": "Yellow River",
+      "description": "river",
+      "type": "river",
+      "region": null,
+      "lat": 35,
+      "lon": 110,
+      "terrain": "river"
+    },
+    {
+      "name": "Yangtze River",
+      "description": "river",
+      "type": "river",
+      "region": null,
+      "lat": 31,
+      "lon": 115,
+      "terrain": "river"
+    },
+    {
+      "name": "Indus River",
+      "description": "river",
+      "type": "river",
+      "region": null,
+      "lat": 27,
+      "lon": 70,
+      "terrain": "river"
+    },
+    {
+      "name": "Nile River",
+      "description": "river",
+      "type": "river",
+      "region": null,
+      "lat": 26,
+      "lon": 33,
+      "terrain": "river"
+    }
+  ]
+}
