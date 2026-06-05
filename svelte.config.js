@@ -4,19 +4,6 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   preprocess: vitePreprocess(),
-  onwarn: (warning, handler) => {
-    // Suppress known false-positive warnings in game UI with interactive divs and dynamic CSS
-    // TODO: Refactor to use proper semantic elements (buttons) and form associations
-    if (
-      warning.code === 'a11y-click-events-have-key-events' ||
-      warning.code === 'a11y-no-static-element-interactions' ||
-      warning.code === 'a11y-label-has-associated-control' ||
-      warning.code === 'css-unused-selector'
-    ) {
-      return;
-    }
-    handler(warning);
-  },
   kit: {
     adapter: adapter({
       pages: 'build',
