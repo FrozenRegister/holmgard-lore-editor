@@ -47,6 +47,12 @@ The MCP Worker lives at `https://holmgard-lore-mcp.frozenregister.workers.dev` (
 
 `src-tauri/src/main.rs` exposes: `keyring_get`, `keyring_set`, `keyring_delete`, `fs_read`, `fs_write`, `fs_list`, `fs_delete`. All filesystem paths are relative to the OS app-data directory.
 
+### Hex Map Editor
+
+The hex map editor uses the external `game.js` library (`static/hexmap/game.js`) for rendering and manipulation. Supporting patch/extension files (e.g., `game-ui-bindings.js`, `worker-patch.js`) provide UI integration and address library limitations.
+
+**⚠️ External JS Files:** Do not edit the `.js` files in `static/hexmap/` that are in `.gitignore` (e.g., `game.js`, `auth.js`, `cloud-storage.js`). These are generated/maintained externally in the sibling `external-hex-map-library` project. Our custom patches (e.g., `game-ui-bindings.js`) are the only editor-maintained JS files in that directory.
+
 ### Testing
 
 Tests use Vitest + jsdom. SvelteKit path aliases (`$lib`, `$app`) are remapped in `vitest.config.ts`; `$app` points to `src/app-mock/` which stubs SvelteKit navigation/stores. `svelte-kit sync` must run before type checking or tests that import generated types.

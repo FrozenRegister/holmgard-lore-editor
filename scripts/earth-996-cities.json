@@ -1,0 +1,2922 @@
+{
+  "year": 996,
+  "description": "Major cities, capitals, and landmarks for Earth circa 996 AD",
+  "cities": [
+    {
+      "name": "London",
+      "lat": 51.5,
+      "lon": -0.1,
+      "type": "kingdom_capital",
+      "region": "England",
+      "population_class": "major"
+    },
+    {
+      "name": "Winchester",
+      "lat": 51.06,
+      "lon": -1.31,
+      "type": "city",
+      "region": "England",
+      "population_class": "major"
+    },
+    {
+      "name": "York",
+      "lat": 53.96,
+      "lon": -1.08,
+      "type": "city",
+      "region": "England",
+      "population_class": "major"
+    },
+    {
+      "name": "Paris",
+      "lat": 48.85,
+      "lon": 2.35,
+      "type": "kingdom_capital",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Orleans",
+      "lat": 47.9,
+      "lon": 1.9,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Reims",
+      "lat": 49.26,
+      "lon": 4.03,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Bordeaux",
+      "lat": 44.84,
+      "lon": -0.57,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Lyon",
+      "lat": 45.76,
+      "lon": 4.84,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Cologne",
+      "lat": 50.93,
+      "lon": 6.96,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Mainz",
+      "lat": 50.0,
+      "lon": 8.27,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Aachen",
+      "lat": 50.77,
+      "lon": 6.09,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Regensburg",
+      "lat": 48.37,
+      "lon": 12.10,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Prague",
+      "lat": 50.08,
+      "lon": 14.43,
+      "type": "kingdom_capital",
+      "region": "Bohemia",
+      "population_class": "major"
+    },
+    {
+      "name": "Warsaw",
+      "lat": 52.23,
+      "lon": 21.01,
+      "type": "kingdom_capital",
+      "region": "Poland",
+      "population_class": "major"
+    },
+    {
+      "name": "Krakow",
+      "lat": 50.05,
+      "lon": 19.94,
+      "type": "city",
+      "region": "Poland",
+      "population_class": "major"
+    },
+    {
+      "name": "Gniezno",
+      "lat": 52.32,
+      "lon": 17.58,
+      "type": "city",
+      "region": "Poland",
+      "population_class": "major"
+    },
+    {
+      "name": "Budapest",
+      "lat": 47.50,
+      "lon": 19.04,
+      "type": "kingdom_capital",
+      "region": "Hungary",
+      "population_class": "major"
+    },
+    {
+      "name": "Kiev",
+      "lat": 50.45,
+      "lon": 30.52,
+      "type": "kingdom_capital",
+      "region": "Kievan Rus",
+      "population_class": "major"
+    },
+    {
+      "name": "Novgorod",
+      "lat": 58.52,
+      "lon": 31.27,
+      "type": "city",
+      "region": "Kievan Rus",
+      "population_class": "major"
+    },
+    {
+      "name": "Copenhagen",
+      "lat": 55.68,
+      "lon": 12.57,
+      "type": "kingdom_capital",
+      "region": "Denmark",
+      "population_class": "major"
+    },
+    {
+      "name": "Roskilde",
+      "lat": 55.64,
+      "lon": 12.08,
+      "type": "city",
+      "region": "Denmark",
+      "population_class": "major"
+    },
+    {
+      "name": "Oslo",
+      "lat": 59.91,
+      "lon": 10.75,
+      "type": "kingdom_capital",
+      "region": "Norway",
+      "population_class": "major"
+    },
+    {
+      "name": "Bergen",
+      "lat": 60.39,
+      "lon": 5.32,
+      "type": "city",
+      "region": "Norway",
+      "population_class": "major"
+    },
+    {
+      "name": "Stockholm",
+      "lat": 59.33,
+      "lon": 18.07,
+      "type": "kingdom_capital",
+      "region": "Sweden",
+      "population_class": "major"
+    },
+    {
+      "name": "Toledo",
+      "lat": 39.86,
+      "lon": -4.03,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Leon",
+      "lat": 42.60,
+      "lon": -5.57,
+      "type": "kingdom_capital",
+      "region": "Kingdom of Leon",
+      "population_class": "major"
+    },
+    {
+      "name": "Burgos",
+      "lat": 42.34,
+      "lon": -3.69,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Cordoba",
+      "lat": 37.89,
+      "lon": -4.77,
+      "type": "city",
+      "region": "Al-Andalus",
+      "population_class": "major"
+    },
+    {
+      "name": "Seville",
+      "lat": 37.39,
+      "lon": -5.98,
+      "type": "city",
+      "region": "Al-Andalus",
+      "population_class": "major"
+    },
+    {
+      "name": "Granada",
+      "lat": 37.20,
+      "lon": -3.60,
+      "type": "city",
+      "region": "Al-Andalus",
+      "population_class": "major"
+    },
+    {
+      "name": "Lisbon",
+      "lat": 38.71,
+      "lon": -9.14,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Rome",
+      "lat": 41.90,
+      "lon": 12.50,
+      "type": "city",
+      "region": "Papal States",
+      "population_class": "major"
+    },
+    {
+      "name": "Venice",
+      "lat": 45.44,
+      "lon": 12.34,
+      "type": "city",
+      "region": "Venice",
+      "population_class": "major"
+    },
+    {
+      "name": "Genoa",
+      "lat": 44.41,
+      "lon": 8.94,
+      "type": "city",
+      "region": "Genoa",
+      "population_class": "major"
+    },
+    {
+      "name": "Milan",
+      "lat": 45.46,
+      "lon": 9.19,
+      "type": "city",
+      "region": "Lombardy",
+      "population_class": "major"
+    },
+    {
+      "name": "Florence",
+      "lat": 43.77,
+      "lon": 11.25,
+      "type": "city",
+      "region": "Tuscany",
+      "population_class": "major"
+    },
+    {
+      "name": "Naples",
+      "lat": 40.85,
+      "lon": 14.27,
+      "type": "city",
+      "region": "Southern Italy",
+      "population_class": "major"
+    },
+    {
+      "name": "Palermo",
+      "lat": 38.11,
+      "lon": 13.36,
+      "type": "city",
+      "region": "Sicily",
+      "population_class": "major"
+    },
+    {
+      "name": "Salerno",
+      "lat": 40.68,
+      "lon": 14.77,
+      "type": "city",
+      "region": "Southern Italy",
+      "population_class": "major"
+    },
+    {
+      "name": "Athens",
+      "lat": 37.97,
+      "lon": 23.73,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Constantinople",
+      "lat": 41.01,
+      "lon": 28.98,
+      "type": "empire_capital",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Thessalonica",
+      "lat": 40.64,
+      "lon": 22.94,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Antioch",
+      "lat": 36.20,
+      "lon": 36.16,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Alexandria",
+      "lat": 31.20,
+      "lon": 29.92,
+      "type": "city",
+      "region": "Fatimid Egypt",
+      "population_class": "major"
+    },
+    {
+      "name": "Cairo",
+      "lat": 30.04,
+      "lon": 31.24,
+      "type": "kingdom_capital",
+      "region": "Fatimid Egypt",
+      "population_class": "major"
+    },
+    {
+      "name": "Jerusalem",
+      "lat": 31.77,
+      "lon": 35.23,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Damascus",
+      "lat": 33.51,
+      "lon": 36.28,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Aleppo",
+      "lat": 36.20,
+      "lon": 37.16,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Baghdad",
+      "lat": 33.31,
+      "lon": 44.36,
+      "type": "kingdom_capital",
+      "region": "Abbasid Caliphate",
+      "population_class": "major"
+    },
+    {
+      "name": "Basra",
+      "lat": 30.50,
+      "lon": 47.81,
+      "type": "city",
+      "region": "Abbasid Caliphate",
+      "population_class": "major"
+    },
+    {
+      "name": "Isfahan",
+      "lat": 32.67,
+      "lon": 51.67,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Shiraz",
+      "lat": 29.61,
+      "lon": 52.54,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Ctesiphon",
+      "lat": 33.07,
+      "lon": 44.58,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Merv",
+      "lat": 37.63,
+      "lon": 61.87,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Bukhara",
+      "lat": 39.77,
+      "lon": 64.43,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Samarkand",
+      "lat": 39.65,
+      "lon": 66.95,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Kashgar",
+      "lat": 39.47,
+      "lon": 75.98,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Khotan",
+      "lat": 37.01,
+      "lon": 79.92,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Leh",
+      "lat": 34.16,
+      "lon": 77.57,
+      "type": "city",
+      "region": "Kashmir",
+      "population_class": "major"
+    },
+    {
+      "name": "Varanasi",
+      "lat": 25.32,
+      "lon": 82.99,
+      "type": "city",
+      "region": "India",
+      "population_class": "major"
+    },
+    {
+      "name": "Delhi",
+      "lat": 28.61,
+      "lon": 77.23,
+      "type": "city",
+      "region": "India",
+      "population_class": "major"
+    },
+    {
+      "name": "Agra",
+      "lat": 27.18,
+      "lon": 78.01,
+      "type": "city",
+      "region": "India",
+      "population_class": "major"
+    },
+    {
+      "name": "Lahore",
+      "lat": 31.54,
+      "lon": 74.31,
+      "type": "city",
+      "region": "Punjab",
+      "population_class": "major"
+    },
+    {
+      "name": "Multan",
+      "lat": 30.20,
+      "lon": 71.43,
+      "type": "city",
+      "region": "Punjab",
+      "population_class": "major"
+    },
+    {
+      "name": "Calicut",
+      "lat": 11.25,
+      "lon": 75.78,
+      "type": "city",
+      "region": "Kerala",
+      "population_class": "major"
+    },
+    {
+      "name": "Chiang Mai",
+      "lat": 18.79,
+      "lon": 98.98,
+      "type": "city",
+      "region": "Southeast Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Pagan",
+      "lat": 21.17,
+      "lon": 94.86,
+      "type": "city",
+      "region": "Burma",
+      "population_class": "major"
+    },
+    {
+      "name": "Hanoi",
+      "lat": 21.03,
+      "lon": 105.85,
+      "type": "city",
+      "region": "Vietnam",
+      "population_class": "major"
+    },
+    {
+      "name": "Angkor",
+      "lat": 13.36,
+      "lon": 103.84,
+      "type": "city",
+      "region": "Cambodia",
+      "population_class": "major"
+    },
+    {
+      "name": "Kaifeng",
+      "lat": 34.78,
+      "lon": 114.86,
+      "type": "kingdom_capital",
+      "region": "Song Dynasty",
+      "population_class": "major"
+    },
+    {
+      "name": "Chang'an",
+      "lat": 34.27,
+      "lon": 108.95,
+      "type": "city",
+      "region": "Song Dynasty",
+      "population_class": "major"
+    },
+    {
+      "name": "Hangzhou",
+      "lat": 30.27,
+      "lon": 120.15,
+      "type": "city",
+      "region": "Song Dynasty",
+      "population_class": "major"
+    },
+    {
+      "name": "Canton",
+      "lat": 23.13,
+      "lon": 113.26,
+      "type": "city",
+      "region": "Song Dynasty",
+      "population_class": "major"
+    },
+    {
+      "name": "Quanzhou",
+      "lat": 24.87,
+      "lon": 118.59,
+      "type": "city",
+      "region": "Song Dynasty",
+      "population_class": "major"
+    },
+    {
+      "name": "Luoyang",
+      "lat": 34.68,
+      "lon": 112.45,
+      "type": "city",
+      "region": "Song Dynasty",
+      "population_class": "major"
+    },
+    {
+      "name": "Beijing",
+      "lat": 39.90,
+      "lon": 116.41,
+      "type": "city",
+      "region": "Liao Dynasty",
+      "population_class": "major"
+    },
+    {
+      "name": "Kyoto",
+      "lat": 35.01,
+      "lon": 135.77,
+      "type": "kingdom_capital",
+      "region": "Japan",
+      "population_class": "major"
+    },
+    {
+      "name": "Osaka",
+      "lat": 34.67,
+      "lon": 135.50,
+      "type": "city",
+      "region": "Japan",
+      "population_class": "major"
+    },
+    {
+      "name": "Seoul",
+      "lat": 37.57,
+      "lon": 126.98,
+      "type": "kingdom_capital",
+      "region": "Korea",
+      "population_class": "major"
+    },
+    {
+      "name": "Goryeo",
+      "lat": 37.99,
+      "lon": 125.75,
+      "type": "city",
+      "region": "Korea",
+      "population_class": "major"
+    },
+    {
+      "name": "Timbuktu",
+      "lat": 16.77,
+      "lon": -3.01,
+      "type": "city",
+      "region": "Mali",
+      "population_class": "major"
+    },
+    {
+      "name": "Gao",
+      "lat": 16.27,
+      "lon": -0.04,
+      "type": "city",
+      "region": "Mali",
+      "population_class": "major"
+    },
+    {
+      "name": "Kumbi Saleh",
+      "lat": 16.81,
+      "lon": -8.17,
+      "type": "city",
+      "region": "Ghana",
+      "population_class": "major"
+    },
+    {
+      "name": "Jenne",
+      "lat": 13.91,
+      "lon": -4.26,
+      "type": "city",
+      "region": "Mali",
+      "population_class": "major"
+    },
+    {
+      "name": "Mecca",
+      "lat": 21.43,
+      "lon": 39.83,
+      "type": "city",
+      "region": "Arabia",
+      "population_class": "major"
+    },
+    {
+      "name": "Medina",
+      "lat": 24.47,
+      "lon": 39.61,
+      "type": "city",
+      "region": "Arabia",
+      "population_class": "major"
+    },
+    {
+      "name": "Aden",
+      "lat": 12.78,
+      "lon": 45.04,
+      "type": "city",
+      "region": "Arabia",
+      "population_class": "major"
+    },
+    {
+      "name": "Sanaa",
+      "lat": 15.55,
+      "lon": 48.52,
+      "type": "city",
+      "region": "Yemen",
+      "population_class": "major"
+    },
+    {
+      "name": "Muscat",
+      "lat": 23.61,
+      "lon": 58.54,
+      "type": "city",
+      "region": "Oman",
+      "population_class": "major"
+    },
+    {
+      "name": "Bristol",
+      "lat": 51.45,
+      "lon": -2.59,
+      "type": "city",
+      "region": "England",
+      "population_class": "major"
+    },
+    {
+      "name": "Exeter",
+      "lat": 50.72,
+      "lon": -3.53,
+      "type": "city",
+      "region": "England",
+      "population_class": "major"
+    },
+    {
+      "name": "Nottingham",
+      "lat": 52.95,
+      "lon": -1.15,
+      "type": "city",
+      "region": "England",
+      "population_class": "major"
+    },
+    {
+      "name": "Chester",
+      "lat": 53.19,
+      "lon": -2.89,
+      "type": "city",
+      "region": "England",
+      "population_class": "major"
+    },
+    {
+      "name": "Rouen",
+      "lat": 49.44,
+      "lon": 1.10,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Amiens",
+      "lat": 49.89,
+      "lon": 2.30,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Troyes",
+      "lat": 48.30,
+      "lon": 4.07,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Dijon",
+      "lat": 47.32,
+      "lon": 5.04,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Perpignan",
+      "lat": 42.70,
+      "lon": 2.90,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Marseille",
+      "lat": 43.30,
+      "lon": 5.37,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Toulouse",
+      "lat": 43.60,
+      "lon": 1.44,
+      "type": "city",
+      "region": "France",
+      "population_class": "major"
+    },
+    {
+      "name": "Hamburg",
+      "lat": 53.55,
+      "lon": 10.00,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Luebeck",
+      "lat": 53.87,
+      "lon": 10.69,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Bremen",
+      "lat": 53.08,
+      "lon": 8.81,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Magdeburg",
+      "lat": 52.13,
+      "lon": 11.63,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Frankfurt",
+      "lat": 50.11,
+      "lon": 8.68,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Worms",
+      "lat": 49.63,
+      "lon": 8.36,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Strasbourg",
+      "lat": 48.57,
+      "lon": 7.75,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Augsburg",
+      "lat": 48.37,
+      "lon": 10.90,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Munich",
+      "lat": 48.14,
+      "lon": 11.58,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Vienna",
+      "lat": 48.21,
+      "lon": 16.37,
+      "type": "city",
+      "region": "Austria",
+      "population_class": "major"
+    },
+    {
+      "name": "Salzburg",
+      "lat": 47.81,
+      "lon": 13.05,
+      "type": "city",
+      "region": "Austria",
+      "population_class": "major"
+    },
+    {
+      "name": "Osnabrueck",
+      "lat": 52.27,
+      "lon": 8.07,
+      "type": "city",
+      "region": "Holy Roman Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Nijmegen",
+      "lat": 51.84,
+      "lon": 5.86,
+      "type": "city",
+      "region": "Low Countries",
+      "population_class": "major"
+    },
+    {
+      "name": "Bruges",
+      "lat": 51.21,
+      "lon": 3.22,
+      "type": "city",
+      "region": "Low Countries",
+      "population_class": "major"
+    },
+    {
+      "name": "Ghent",
+      "lat": 51.05,
+      "lon": 3.72,
+      "type": "city",
+      "region": "Low Countries",
+      "population_class": "major"
+    },
+    {
+      "name": "Antwerp",
+      "lat": 51.22,
+      "lon": 4.40,
+      "type": "city",
+      "region": "Low Countries",
+      "population_class": "major"
+    },
+    {
+      "name": "Amsterdam",
+      "lat": 52.37,
+      "lon": 4.89,
+      "type": "city",
+      "region": "Low Countries",
+      "population_class": "major"
+    },
+    {
+      "name": "Utrecht",
+      "lat": 52.09,
+      "lon": 5.12,
+      "type": "city",
+      "region": "Low Countries",
+      "population_class": "major"
+    },
+    {
+      "name": "Breslau",
+      "lat": 51.11,
+      "lon": 17.03,
+      "type": "city",
+      "region": "Poland",
+      "population_class": "major"
+    },
+    {
+      "name": "Wroclaw",
+      "lat": 51.11,
+      "lon": 17.03,
+      "type": "city",
+      "region": "Poland",
+      "population_class": "major"
+    },
+    {
+      "name": "Poznan",
+      "lat": 52.41,
+      "lon": 16.93,
+      "type": "city",
+      "region": "Poland",
+      "population_class": "major"
+    },
+    {
+      "name": "Gdansk",
+      "lat": 54.37,
+      "lon": 18.65,
+      "type": "city",
+      "region": "Poland",
+      "population_class": "major"
+    },
+    {
+      "name": "Vilnius",
+      "lat": 54.69,
+      "lon": 25.27,
+      "type": "city",
+      "region": "Lithuania",
+      "population_class": "major"
+    },
+    {
+      "name": "Minsk",
+      "lat": 53.90,
+      "lon": 27.57,
+      "type": "city",
+      "region": "Kievan Rus",
+      "population_class": "major"
+    },
+    {
+      "name": "Smolensk",
+      "lat": 54.96,
+      "lon": 34.97,
+      "type": "city",
+      "region": "Kievan Rus",
+      "population_class": "major"
+    },
+    {
+      "name": "Vladimir",
+      "lat": 56.14,
+      "lon": 40.41,
+      "type": "city",
+      "region": "Kievan Rus",
+      "population_class": "major"
+    },
+    {
+      "name": "Suzdal",
+      "lat": 56.42,
+      "lon": 40.44,
+      "type": "city",
+      "region": "Kievan Rus",
+      "population_class": "major"
+    },
+    {
+      "name": "Tver",
+      "lat": 56.86,
+      "lon": 35.93,
+      "type": "city",
+      "region": "Kievan Rus",
+      "population_class": "major"
+    },
+    {
+      "name": "Pskov",
+      "lat": 57.81,
+      "lon": 28.33,
+      "type": "city",
+      "region": "Kievan Rus",
+      "population_class": "major"
+    },
+    {
+      "name": "Lund",
+      "lat": 55.70,
+      "lon": 13.19,
+      "type": "city",
+      "region": "Sweden",
+      "population_class": "major"
+    },
+    {
+      "name": "Goteborg",
+      "lat": 57.71,
+      "lon": 11.97,
+      "type": "city",
+      "region": "Sweden",
+      "population_class": "major"
+    },
+    {
+      "name": "Visby",
+      "lat": 57.64,
+      "lon": 18.29,
+      "type": "city",
+      "region": "Gotland",
+      "population_class": "major"
+    },
+    {
+      "name": "Trondheim",
+      "lat": 63.43,
+      "lon": 10.40,
+      "type": "city",
+      "region": "Norway",
+      "population_class": "major"
+    },
+    {
+      "name": "Stavanger",
+      "lat": 58.97,
+      "lon": 5.73,
+      "type": "city",
+      "region": "Norway",
+      "population_class": "major"
+    },
+    {
+      "name": "Aarhus",
+      "lat": 56.15,
+      "lon": 10.21,
+      "type": "city",
+      "region": "Denmark",
+      "population_class": "major"
+    },
+    {
+      "name": "Odense",
+      "lat": 55.40,
+      "lon": 10.39,
+      "type": "city",
+      "region": "Denmark",
+      "population_class": "major"
+    },
+    {
+      "name": "Ribe",
+      "lat": 55.33,
+      "lon": 8.76,
+      "type": "city",
+      "region": "Denmark",
+      "population_class": "major"
+    },
+    {
+      "name": "Valladolid",
+      "lat": 41.65,
+      "lon": -4.72,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Palencia",
+      "lat": 42.01,
+      "lon": -4.55,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Zamora",
+      "lat": 41.50,
+      "lon": -5.75,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Salamanca",
+      "lat": 40.96,
+      "lon": -5.66,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Segovia",
+      "lat": 40.95,
+      "lon": -4.12,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Barcelona",
+      "lat": 41.39,
+      "lon": 2.17,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Valencia",
+      "lat": 39.47,
+      "lon": -0.38,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Tarragona",
+      "lat": 41.12,
+      "lon": 1.25,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Corunna",
+      "lat": 43.37,
+      "lon": -8.39,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Santiago de Compostela",
+      "lat": 42.88,
+      "lon": -8.54,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Porto",
+      "lat": 41.16,
+      "lon": -8.63,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Coimbra",
+      "lat": 40.28,
+      "lon": -8.50,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Evora",
+      "lat": 38.66,
+      "lon": -8.26,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Silves",
+      "lat": 37.18,
+      "lon": -8.44,
+      "type": "city",
+      "region": "Iberian Peninsula",
+      "population_class": "major"
+    },
+    {
+      "name": "Malaga",
+      "lat": 36.72,
+      "lon": -3.73,
+      "type": "city",
+      "region": "Al-Andalus",
+      "population_class": "major"
+    },
+    {
+      "name": "Almeria",
+      "lat": 36.84,
+      "lon": -2.41,
+      "type": "city",
+      "region": "Al-Andalus",
+      "population_class": "major"
+    },
+    {
+      "name": "Jaen",
+      "lat": 37.78,
+      "lon": -3.79,
+      "type": "city",
+      "region": "Al-Andalus",
+      "population_class": "major"
+    },
+    {
+      "name": "Murcia",
+      "lat": 37.99,
+      "lon": -1.13,
+      "type": "city",
+      "region": "Al-Andalus",
+      "population_class": "major"
+    },
+    {
+      "name": "Valencia",
+      "lat": 39.47,
+      "lon": -0.38,
+      "type": "city",
+      "region": "Al-Andalus",
+      "population_class": "major"
+    },
+    {
+      "name": "Barcelona",
+      "lat": 41.39,
+      "lon": 2.17,
+      "type": "city",
+      "region": "County of Barcelona",
+      "population_class": "major"
+    },
+    {
+      "name": "Montpellier",
+      "lat": 43.61,
+      "lon": 3.88,
+      "type": "city",
+      "region": "Southern France",
+      "population_class": "major"
+    },
+    {
+      "name": "Arles",
+      "lat": 43.68,
+      "lon": 4.63,
+      "type": "city",
+      "region": "Southern France",
+      "population_class": "major"
+    },
+    {
+      "name": "Avignon",
+      "lat": 43.95,
+      "lon": 4.81,
+      "type": "city",
+      "region": "Southern France",
+      "population_class": "major"
+    },
+    {
+      "name": "Nice",
+      "lat": 43.70,
+      "lon": 7.26,
+      "type": "city",
+      "region": "Southern France",
+      "population_class": "major"
+    },
+    {
+      "name": "Cannes",
+      "lat": 43.55,
+      "lon": 7.01,
+      "type": "city",
+      "region": "Southern France",
+      "population_class": "major"
+    },
+    {
+      "name": "Menton",
+      "lat": 43.77,
+      "lon": 7.51,
+      "type": "city",
+      "region": "Southern France",
+      "population_class": "major"
+    },
+    {
+      "name": "Turin",
+      "lat": 45.07,
+      "lon": 7.69,
+      "type": "city",
+      "region": "Piedmont",
+      "population_class": "major"
+    },
+    {
+      "name": "Asti",
+      "lat": 44.90,
+      "lon": 8.19,
+      "type": "city",
+      "region": "Piedmont",
+      "population_class": "major"
+    },
+    {
+      "name": "Alessandria",
+      "lat": 44.91,
+      "lon": 8.63,
+      "type": "city",
+      "region": "Piedmont",
+      "population_class": "major"
+    },
+    {
+      "name": "Pavia",
+      "lat": 45.19,
+      "lon": 9.16,
+      "type": "city",
+      "region": "Lombardy",
+      "population_class": "major"
+    },
+    {
+      "name": "Lodi",
+      "lat": 45.32,
+      "lon": 9.50,
+      "type": "city",
+      "region": "Lombardy",
+      "population_class": "major"
+    },
+    {
+      "name": "Como",
+      "lat": 45.81,
+      "lon": 9.09,
+      "type": "city",
+      "region": "Lombardy",
+      "population_class": "major"
+    },
+    {
+      "name": "Bergamo",
+      "lat": 45.70,
+      "lon": 9.67,
+      "type": "city",
+      "region": "Lombardy",
+      "population_class": "major"
+    },
+    {
+      "name": "Brescia",
+      "lat": 45.54,
+      "lon": 10.22,
+      "type": "city",
+      "region": "Lombardy",
+      "population_class": "major"
+    },
+    {
+      "name": "Mantua",
+      "lat": 45.16,
+      "lon": 10.80,
+      "type": "city",
+      "region": "Lombardy",
+      "population_class": "major"
+    },
+    {
+      "name": "Verona",
+      "lat": 45.44,
+      "lon": 10.98,
+      "type": "city",
+      "region": "Veneto",
+      "population_class": "major"
+    },
+    {
+      "name": "Padua",
+      "lat": 45.41,
+      "lon": 11.88,
+      "type": "city",
+      "region": "Veneto",
+      "population_class": "major"
+    },
+    {
+      "name": "Treviso",
+      "lat": 45.67,
+      "lon": 12.24,
+      "type": "city",
+      "region": "Veneto",
+      "population_class": "major"
+    },
+    {
+      "name": "Vicenza",
+      "lat": 45.55,
+      "lon": 11.55,
+      "type": "city",
+      "region": "Veneto",
+      "population_class": "major"
+    },
+    {
+      "name": "Aquileia",
+      "lat": 45.77,
+      "lon": 13.38,
+      "type": "city",
+      "region": "Friuli",
+      "population_class": "major"
+    },
+    {
+      "name": "Trieste",
+      "lat": 45.65,
+      "lon": 13.78,
+      "type": "city",
+      "region": "Friuli",
+      "population_class": "major"
+    },
+    {
+      "name": "Ravenna",
+      "lat": 44.42,
+      "lon": 12.20,
+      "type": "city",
+      "region": "Emilia Romagna",
+      "population_class": "major"
+    },
+    {
+      "name": "Bologna",
+      "lat": 44.49,
+      "lon": 11.34,
+      "type": "city",
+      "region": "Emilia Romagna",
+      "population_class": "major"
+    },
+    {
+      "name": "Modena",
+      "lat": 44.65,
+      "lon": 10.93,
+      "type": "city",
+      "region": "Emilia Romagna",
+      "population_class": "major"
+    },
+    {
+      "name": "Parma",
+      "lat": 44.80,
+      "lon": 10.33,
+      "type": "city",
+      "region": "Emilia Romagna",
+      "population_class": "major"
+    },
+    {
+      "name": "Pisa",
+      "lat": 43.72,
+      "lon": 10.40,
+      "type": "city",
+      "region": "Tuscany",
+      "population_class": "major"
+    },
+    {
+      "name": "Siena",
+      "lat": 43.32,
+      "lon": 11.33,
+      "type": "city",
+      "region": "Tuscany",
+      "population_class": "major"
+    },
+    {
+      "name": "Arezzo",
+      "lat": 43.47,
+      "lon": 11.88,
+      "type": "city",
+      "region": "Tuscany",
+      "population_class": "major"
+    },
+    {
+      "name": "Volterra",
+      "lat": 43.40,
+      "lon": 10.86,
+      "type": "city",
+      "region": "Tuscany",
+      "population_class": "major"
+    },
+    {
+      "name": "Lucca",
+      "lat": 43.84,
+      "lon": 10.50,
+      "type": "city",
+      "region": "Tuscany",
+      "population_class": "major"
+    },
+    {
+      "name": "Livorno",
+      "lat": 43.55,
+      "lon": 10.30,
+      "type": "city",
+      "region": "Tuscany",
+      "population_class": "major"
+    },
+    {
+      "name": "Ancona",
+      "lat": 43.62,
+      "lon": 13.50,
+      "type": "city",
+      "region": "Marche",
+      "population_class": "major"
+    },
+    {
+      "name": "Perugia",
+      "lat": 43.11,
+      "lon": 12.39,
+      "type": "city",
+      "region": "Umbria",
+      "population_class": "major"
+    },
+    {
+      "name": "Assisi",
+      "lat": 43.07,
+      "lon": 12.61,
+      "type": "city",
+      "region": "Umbria",
+      "population_class": "major"
+    },
+    {
+      "name": "Aquila",
+      "lat": 42.35,
+      "lon": 13.40,
+      "type": "city",
+      "region": "Abruzzi",
+      "population_class": "major"
+    },
+    {
+      "name": "Pescara",
+      "lat": 42.46,
+      "lon": 14.22,
+      "type": "city",
+      "region": "Abruzzi",
+      "population_class": "major"
+    },
+    {
+      "name": "Chieti",
+      "lat": 42.35,
+      "lon": 14.17,
+      "type": "city",
+      "region": "Abruzzi",
+      "population_class": "major"
+    },
+    {
+      "name": "Benevento",
+      "lat": 41.14,
+      "lon": 14.77,
+      "type": "city",
+      "region": "Campania",
+      "population_class": "major"
+    },
+    {
+      "name": "Caserta",
+      "lat": 41.05,
+      "lon": 14.33,
+      "type": "city",
+      "region": "Campania",
+      "population_class": "major"
+    },
+    {
+      "name": "Amalfi",
+      "lat": 40.63,
+      "lon": 14.60,
+      "type": "city",
+      "region": "Campania",
+      "population_class": "major"
+    },
+    {
+      "name": "Ravello",
+      "lat": 40.63,
+      "lon": 14.61,
+      "type": "city",
+      "region": "Campania",
+      "population_class": "major"
+    },
+    {
+      "name": "Taranto",
+      "lat": 40.48,
+      "lon": 17.23,
+      "type": "city",
+      "region": "Apulia",
+      "population_class": "major"
+    },
+    {
+      "name": "Bari",
+      "lat": 41.12,
+      "lon": 16.87,
+      "type": "city",
+      "region": "Apulia",
+      "population_class": "major"
+    },
+    {
+      "name": "Brindisi",
+      "lat": 40.64,
+      "lon": 17.95,
+      "type": "city",
+      "region": "Apulia",
+      "population_class": "major"
+    },
+    {
+      "name": "Lecce",
+      "lat": 40.35,
+      "lon": 18.17,
+      "type": "city",
+      "region": "Apulia",
+      "population_class": "major"
+    },
+    {
+      "name": "Reggio Calabria",
+      "lat": 38.11,
+      "lon": 15.65,
+      "type": "city",
+      "region": "Calabria",
+      "population_class": "major"
+    },
+    {
+      "name": "Cosenza",
+      "lat": 39.30,
+      "lon": 16.25,
+      "type": "city",
+      "region": "Calabria",
+      "population_class": "major"
+    },
+    {
+      "name": "Catanzaro",
+      "lat": 38.89,
+      "lon": 16.60,
+      "type": "city",
+      "region": "Calabria",
+      "population_class": "major"
+    },
+    {
+      "name": "Messina",
+      "lat": 38.19,
+      "lon": 15.56,
+      "type": "city",
+      "region": "Sicily",
+      "population_class": "major"
+    },
+    {
+      "name": "Catania",
+      "lat": 37.50,
+      "lon": 15.09,
+      "type": "city",
+      "region": "Sicily",
+      "population_class": "major"
+    },
+    {
+      "name": "Syracuse",
+      "lat": 37.07,
+      "lon": 15.29,
+      "type": "city",
+      "region": "Sicily",
+      "population_class": "major"
+    },
+    {
+      "name": "Agrigento",
+      "lat": 37.31,
+      "lon": 13.59,
+      "type": "city",
+      "region": "Sicily",
+      "population_class": "major"
+    },
+    {
+      "name": "Trapani",
+      "lat": 38.02,
+      "lon": 12.51,
+      "type": "city",
+      "region": "Sicily",
+      "population_class": "major"
+    },
+    {
+      "name": "Crete",
+      "lat": 35.30,
+      "lon": 25.13,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Rhodes",
+      "lat": 36.43,
+      "lon": 28.23,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Corfu",
+      "lat": 39.63,
+      "lon": 19.92,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Durrazzo",
+      "lat": 41.31,
+      "lon": 19.44,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Patras",
+      "lat": 38.25,
+      "lon": 21.73,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Thebes",
+      "lat": 38.32,
+      "lon": 23.32,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Smyrna",
+      "lat": 38.42,
+      "lon": 27.14,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Ephesus",
+      "lat": 37.95,
+      "lon": 27.34,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Pergamon",
+      "lat": 39.13,
+      "lon": 27.18,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Tarsus",
+      "lat": 36.92,
+      "lon": 34.89,
+      "type": "city",
+      "region": "Byzantine Empire",
+      "population_class": "major"
+    },
+    {
+      "name": "Tripoli",
+      "lat": 34.44,
+      "lon": 35.84,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Tyre",
+      "lat": 33.27,
+      "lon": 35.20,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Sidon",
+      "lat": 33.62,
+      "lon": 35.37,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Caesarea",
+      "lat": 32.43,
+      "lon": 34.90,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Jaffa",
+      "lat": 32.05,
+      "lon": 34.75,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Gaza",
+      "lat": 31.53,
+      "lon": 34.47,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Aqaba",
+      "lat": 29.53,
+      "lon": 34.94,
+      "type": "city",
+      "region": "Arabia",
+      "population_class": "major"
+    },
+    {
+      "name": "Petra",
+      "lat": 30.33,
+      "lon": 35.43,
+      "type": "city",
+      "region": "Arabia",
+      "population_class": "major"
+    },
+    {
+      "name": "Amman",
+      "lat": 31.94,
+      "lon": 35.93,
+      "type": "city",
+      "region": "Arabia",
+      "population_class": "major"
+    },
+    {
+      "name": "Hama",
+      "lat": 34.73,
+      "lon": 36.75,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Homs",
+      "lat": 34.73,
+      "lon": 36.72,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Palmyra",
+      "lat": 34.55,
+      "lon": 38.27,
+      "type": "city",
+      "region": "Levant",
+      "population_class": "major"
+    },
+    {
+      "name": "Nishapur",
+      "lat": 36.21,
+      "lon": 58.63,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Ray",
+      "lat": 35.75,
+      "lon": 51.42,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Qazvin",
+      "lat": 36.27,
+      "lon": 50.00,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Qom",
+      "lat": 34.64,
+      "lon": 50.88,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Yazd",
+      "lat": 31.90,
+      "lon": 54.36,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Kerman",
+      "lat": 30.28,
+      "lon": 57.08,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Bam",
+      "lat": 29.11,
+      "lon": 58.36,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Bandar Abbas",
+      "lat": 27.18,
+      "lon": 56.27,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Hormuz",
+      "lat": 26.15,
+      "lon": 56.30,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Jask",
+      "lat": 25.68,
+      "lon": 57.78,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Susa",
+      "lat": 32.20,
+      "lon": 48.95,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Wasit",
+      "lat": 32.74,
+      "lon": 44.65,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Kufa",
+      "lat": 32.02,
+      "lon": 44.32,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Najaf",
+      "lat": 31.95,
+      "lon": 44.34,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Karbala",
+      "lat": 32.55,
+      "lon": 44.04,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Baquba",
+      "lat": 33.74,
+      "lon": 44.61,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Anah",
+      "lat": 34.35,
+      "lon": 42.30,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Hit",
+      "lat": 33.64,
+      "lon": 42.83,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Mosul",
+      "lat": 36.34,
+      "lon": 43.16,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Tikrit",
+      "lat": 34.60,
+      "lon": 43.57,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Kirkuk",
+      "lat": 35.47,
+      "lon": 44.39,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Arbil",
+      "lat": 36.19,
+      "lon": 44.01,
+      "type": "city",
+      "region": "Mesopotamia",
+      "population_class": "major"
+    },
+    {
+      "name": "Tabriz",
+      "lat": 38.08,
+      "lon": 46.30,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Maragheh",
+      "lat": 37.40,
+      "lon": 46.23,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Ardabil",
+      "lat": 38.14,
+      "lon": 48.29,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Rasht",
+      "lat": 37.28,
+      "lon": 49.58,
+      "type": "city",
+      "region": "Persia",
+      "population_class": "major"
+    },
+    {
+      "name": "Baku",
+      "lat": 40.38,
+      "lon": 49.86,
+      "type": "city",
+      "region": "Caucasus",
+      "population_class": "major"
+    },
+    {
+      "name": "Shamakhi",
+      "lat": 40.63,
+      "lon": 48.63,
+      "type": "city",
+      "region": "Caucasus",
+      "population_class": "major"
+    },
+    {
+      "name": "Shaki",
+      "lat": 41.57,
+      "lon": 47.52,
+      "type": "city",
+      "region": "Caucasus",
+      "population_class": "major"
+    },
+    {
+      "name": "Derbent",
+      "lat": 42.05,
+      "lon": 48.27,
+      "type": "city",
+      "region": "Caucasus",
+      "population_class": "major"
+    },
+    {
+      "name": "Tiflis",
+      "lat": 41.71,
+      "lon": 44.79,
+      "type": "city",
+      "region": "Georgia",
+      "population_class": "major"
+    },
+    {
+      "name": "Ganja",
+      "lat": 40.68,
+      "lon": 46.36,
+      "type": "city",
+      "region": "Caucasus",
+      "population_class": "major"
+    },
+    {
+      "name": "Ani",
+      "lat": 40.52,
+      "lon": 43.55,
+      "type": "city",
+      "region": "Armenia",
+      "population_class": "major"
+    },
+    {
+      "name": "Kars",
+      "lat": 40.60,
+      "lon": 43.10,
+      "type": "city",
+      "region": "Armenia",
+      "population_class": "major"
+    },
+    {
+      "name": "Van",
+      "lat": 38.45,
+      "lon": 43.38,
+      "type": "city",
+      "region": "Armenia",
+      "population_class": "major"
+    },
+    {
+      "name": "Tabriz",
+      "lat": 38.08,
+      "lon": 46.30,
+      "type": "city",
+      "region": "Azerbaijan",
+      "population_class": "major"
+    },
+    {
+      "name": "Samarkand",
+      "lat": 39.65,
+      "lon": 66.95,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Kokand",
+      "lat": 40.52,
+      "lon": 70.49,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Ferghana",
+      "lat": 40.38,
+      "lon": 71.75,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Osh",
+      "lat": 42.48,
+      "lon": 72.80,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Tashkent",
+      "lat": 41.27,
+      "lon": 69.21,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Khiva",
+      "lat": 41.38,
+      "lon": 60.36,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Urgench",
+      "lat": 41.55,
+      "lon": 60.63,
+      "type": "city",
+      "region": "Central Asia",
+      "population_class": "major"
+    },
+    {
+      "name": "Balkh",
+      "lat": 36.76,
+      "lon": 66.90,
+      "type": "city",
+      "region": "Afghanistan",
+      "population_class": "major"
+    },
+    {
+      "name": "Mazari Sharif",
+      "lat": 36.70,
+      "lon": 67.11,
+      "type": "city",
+      "region": "Afghanistan",
+      "population_class": "major"
+    },
+    {
+      "name": "Herat",
+      "lat": 34.35,
+      "lon": 62.20,
+      "type": "city",
+      "region": "Afghanistan",
+      "population_class": "major"
+    },
+    {
+      "name": "Kabul",
+      "lat": 34.52,
+      "lon": 69.18,
+      "type": "city",
+      "region": "Afghanistan",
+      "population_class": "major"
+    },
+    {
+      "name": "Kandahar",
+      "lat": 31.61,
+      "lon": 65.71,
+      "type": "city",
+      "region": "Afghanistan",
+      "population_class": "major"
+    },
+    {
+      "name": "Ghazni",
+      "lat": 33.55,
+      "lon": 68.43,
+      "type": "city",
+      "region": "Afghanistan",
+      "population_class": "major"
+    },
+    {
+      "name": "Peshawar",
+      "lat": 34.02,
+      "lon": 71.57,
+      "type": "city",
+      "region": "Punjab",
+      "population_class": "major"
+    },
+    {
+      "name": "Rawalpindi",
+      "lat": 33.57,
+      "lon": 73.18,
+      "type": "city",
+      "region": "Punjab",
+      "population_class": "major"
+    },
+    {
+      "name": "Islamabad",
+      "lat": 33.68,
+      "lon": 73.15,
+      "type": "city",
+      "region": "Punjab",
+      "population_class": "major"
+    },
+    {
+      "name": "Jhang",
+      "lat": 31.28,
+      "lon": 72.32,
+      "type": "city",
+      "region": "Punjab",
+      "population_class": "major"
+    },
+    {
+      "name": "Khanewal",
+      "lat": 30.29,
+      "lon": 71.93,
+      "type": "city",
+      "region": "Punjab",
+      "population_class": "major"
+    },
+    {
+      "name": "Bahawalpur",
+      "lat": 29.55,
+      "lon": 71.68,
+      "type": "city",
+      "region": "Punjab",
+      "population_class": "major"
+    },
+    {
+      "name": "Hyderabad",
+      "lat": 25.37,
+      "lon": 68.35,
+      "type": "city",
+      "region": "Sindh",
+      "population_class": "major"
+    },
+    {
+      "name": "Karachi",
+      "lat": 24.86,
+      "lon": 67.01,
+      "type": "city",
+      "region": "Sindh",
+      "population_class": "major"
+    },
+    {
+      "name": "Thatta",
+      "lat": 24.76,
+      "lon": 67.28,
+      "type": "city",
+      "region": "Sindh",
+      "population_class": "major"
+    },
+    {
+      "name": "Surat",
+      "lat": 21.17,
+      "lon": 72.83,
+      "type": "city",
+      "region": "Gujarat",
+      "population_class": "major"
+    },
+    {
+      "name": "Bhera",
+      "lat": 22.78,
+      "lon": 72.61,
+      "type": "city",
+      "region": "Gujarat",
+      "population_class": "major"
+    },
+    {
+      "name": "Broach",
+      "lat": 21.71,
+      "lon": 72.62,
+      "type": "city",
+      "region": "Gujarat",
+      "population_class": "major"
+    },
+    {
+      "name": "Cambay",
+      "lat": 22.18,
+      "lon": 72.60,
+      "type": "city",
+      "region": "Gujarat",
+      "population_class": "major"
+    },
+    {
+      "name": "Khambhat",
+      "lat": 22.31,
+      "lon": 72.62,
+      "type": "city",
+      "region": "Gujarat",
+      "population_class": "major"
+    },
+    {
+      "name": "Daman",
+      "lat": 20.76,
+      "lon": 72.85,
+      "type": "city",
+      "region": "Gujarat",
+      "population_class": "major"
+    },
+    {
+      "name": "Diu",
+      "lat": 20.71,
+      "lon": 70.98,
+      "type": "city",
+      "region": "Gujarat",
+      "population_class": "major"
+    },
+    {
+      "name": "Goa",
+      "lat": 15.48,
+      "lon": 73.83,
+      "type": "city",
+      "region": "India",
+      "population_class": "major"
+    },
+    {
+      "name": "Goan",
+      "lat": 15.50,
+      "lon": 73.85,
+      "type": "city",
+      "region": "India",
+      "population_class": "major"
+    },
+    {
+      "name": "Belgaum",
+      "lat": 15.86,
+      "lon": 74.50,
+      "type": "city",
+      "region": "Deccan",
+      "population_class": "major"
+    },
+    {
+      "name": "Bijapur",
+      "lat": 16.83,
+      "lon": 75.73,
+      "type": "city",
+      "region": "Deccan",
+      "population_class": "major"
+    },
+    {
+      "name": "Gulbarga",
+      "lat": 17.33,
+      "lon": 76.83,
+      "type": "city",
+      "region": "Deccan",
+      "population_class": "major"
+    },
+    {
+      "name": "Aurangabad",
+      "lat": 19.88,
+      "lon": 75.34,
+      "type": "city",
+      "region": "Deccan",
+      "population_class": "major"
+    },
+    {
+      "name": "Junnar",
+      "lat": 19.26,
+      "lon": 73.88,
+      "type": "city",
+      "region": "Maharashtra",
+      "population_class": "major"
+    },
+    {
+      "name": "Paithan",
+      "lat": 19.97,
+      "lon": 75.20,
+      "type": "city",
+      "region": "Maharashtra",
+      "population_class": "major"
+    },
+    {
+      "name": "Nasik",
+      "lat": 19.98,
+      "lon": 73.79,
+      "type": "city",
+      "region": "Maharashtra",
+      "population_class": "major"
+    },
+    {
+      "name": "Ujjain",
+      "lat": 23.18,
+      "lon": 75.77,
+      "type": "city",
+      "region": "Central India",
+      "population_class": "major"
+    },
+    {
+      "name": "Mandu",
+      "lat": 22.33,
+      "lon": 75.40,
+      "type": "city",
+      "region": "Central India",
+      "population_class": "major"
+    },
+    {
+      "name": "Chanderi",
+      "lat": 24.44,
+      "lon": 78.43,
+      "type": "city",
+      "region": "Central India",
+      "population_class": "major"
+    },
+    {
+      "name": "Mahoba",
+      "lat": 24.88,
+      "lon": 79.38,
+      "type": "city",
+      "region": "Central India",
+      "population_class": "major"
+    },
+    {
+      "name": "Khajuraho",
+      "lat": 24.93,
+      "lon": 79.92,
+      "type": "city",
+      "region": "Central India",
+      "population_class": "major"
+    },
+    {
+      "name": "Banda",
+      "lat": 25.48,
+      "lon": 80.35,
+      "type": "city",
+      "region": "Central India",
+      "population_class": "major"
+    },
+    {
+      "name": "Kanauj",
+      "lat": 27.07,
+      "lon": 79.92,
+      "type": "city",
+      "region": "Northern India",
+      "population_class": "major"
+    },
+    {
+      "name": "Mathura",
+      "lat": 27.49,
+      "lon": 77.67,
+      "type": "city",
+      "region": "Northern India",
+      "population_class": "major"
+    },
+    {
+      "name": "Ayodhya",
+      "lat": 26.81,
+      "lon": 82.19,
+      "type": "city",
+      "region": "Northern India",
+      "population_class": "major"
+    },
+    {
+      "name": "Jaunpur",
+      "lat": 25.75,
+      "lon": 82.68,
+      "type": "city",
+      "region": "Northern India",
+      "population_class": "major"
+    },
+    {
+      "name": "Lucknow",
+      "lat": 26.85,
+      "lon": 80.95,
+      "type": "city",
+      "region": "Northern India",
+      "population_class": "major"
+    },
+    {
+      "name": "Kanpur",
+      "lat": 26.45,
+      "lon": 80.33,
+      "type": "city",
+      "region": "Northern India",
+      "population_class": "major"
+    },
+    {
+      "name": "Allahabad",
+      "lat": 25.43,
+      "lon": 81.85,
+      "type": "city",
+      "region": "Northern India",
+      "population_class": "major"
+    },
+    {
+      "name": "Gaya",
+      "lat": 24.80,
+      "lon": 84.99,
+      "type": "city",
+      "region": "Bihar",
+      "population_class": "major"
+    },
+    {
+      "name": "Patna",
+      "lat": 25.59,
+      "lon": 85.12,
+      "type": "city",
+      "region": "Bihar",
+      "population_class": "major"
+    },
+    {
+      "name": "Nalanda",
+      "lat": 25.13,
+      "lon": 85.47,
+      "type": "city",
+      "region": "Bihar",
+      "population_class": "major"
+    },
+    {
+      "name": "Munger",
+      "lat": 25.38,
+      "lon": 86.47,
+      "type": "city",
+      "region": "Bihar",
+      "population_class": "major"
+    },
+    {
+      "name": "Bhagalpur",
+      "lat": 25.25,
+      "lon": 87.02,
+      "type": "city",
+      "region": "Bihar",
+      "population_class": "major"
+    },
+    {
+      "name": "Kolkata",
+      "lat": 22.57,
+      "lon": 88.36,
+      "type": "city",
+      "region": "Bengal",
+      "population_class": "major"
+    },
+    {
+      "name": "Hooghly",
+      "lat": 22.91,
+      "lon": 88.41,
+      "type": "city",
+      "region": "Bengal",
+      "population_class": "major"
+    },
+    {
+      "name": "Mymensingh",
+      "lat": 24.74,
+      "lon": 90.41,
+      "type": "city",
+      "region": "Bengal",
+      "population_class": "major"
+    },
+    {
+      "name": "Dhaka",
+      "lat": 23.81,
+      "lon": 90.41,
+      "type": "city",
+      "region": "Bengal",
+      "population_class": "major"
+    },
+    {
+      "name": "Chittagong",
+      "lat": 22.34,
+      "lon": 91.81,
+      "type": "city",
+      "region": "Bengal",
+      "population_class": "major"
+    },
+    {
+      "name": "Bhubaneswar",
+      "lat": 20.27,
+      "lon": 85.84,
+      "type": "city",
+      "region": "Orissa",
+      "population_class": "major"
+    },
+    {
+      "name": "Puri",
+      "lat": 19.80,
+      "lon": 85.83,
+      "type": "city",
+      "region": "Orissa",
+      "population_class": "major"
+    },
+    {
+      "name": "Visakhapatnam",
+      "lat": 17.69,
+      "lon": 83.32,
+      "type": "city",
+      "region": "Andhra Pradesh",
+      "population_class": "major"
+    },
+    {
+      "name": "Warangal",
+      "lat": 17.96,
+      "lon": 79.59,
+      "type": "city",
+      "region": "Andhra Pradesh",
+      "population_class": "major"
+    },
+    {
+      "name": "Hyderabad (Deccan)",
+      "lat": 17.36,
+      "lon": 78.47,
+      "type": "city",
+      "region": "Andhra Pradesh",
+      "population_class": "major"
+    },
+    {
+      "name": "Golconda",
+      "lat": 17.36,
+      "lon": 78.41,
+      "type": "city",
+      "region": "Andhra Pradesh",
+      "population_class": "major"
+    },
+    {
+      "name": "Bangalore",
+      "lat": 12.97,
+      "lon": 77.59,
+      "type": "city",
+      "region": "Karnataka",
+      "population_class": "major"
+    },
+    {
+      "name": "Mysore",
+      "lat": 12.30,
+      "lon": 76.64,
+      "type": "city",
+      "region": "Karnataka",
+      "population_class": "major"
+    },
+    {
+      "name": "Hampi",
+      "lat": 15.34,
+      "lon": 76.47,
+      "type": "city",
+      "region": "Karnataka",
+      "population_class": "major"
+    },
+    {
+      "name": "Madurai",
+      "lat": 9.93,
+      "lon": 78.12,
+      "type": "city",
+      "region": "Tamil Nadu",
+      "population_class": "major"
+    },
+    {
+      "name": "Tanjavur",
+      "lat": 10.77,
+      "lon": 79.13,
+      "type": "city",
+      "region": "Tamil Nadu",
+      "population_class": "major"
+    },
+    {
+      "name": "Chidambaram",
+      "lat": 11.40,
+      "lon": 79.70,
+      "type": "city",
+      "region": "Tamil Nadu",
+      "population_class": "major"
+    },
+    {
+      "name": "Tirupati",
+      "lat": 13.18,
+      "lon": 79.89,
+      "type": "city",
+      "region": "Tamil Nadu",
+      "population_class": "major"
+    },
+    {
+      "name": "Kanchipuram",
+      "lat": 12.83,
+      "lon": 79.72,
+      "type": "city",
+      "region": "Tamil Nadu",
+      "population_class": "major"
+    },
+    {
+      "name": "Chennai",
+      "lat": 13.04,
+      "lon": 80.27,
+      "type": "city",
+      "region": "Tamil Nadu",
+      "population_class": "major"
+    },
+    {
+      "name": "Cochin",
+      "lat": 9.97,
+      "lon": 76.24,
+      "type": "city",
+      "region": "Kerala",
+      "population_class": "major"
+    },
+    {
+      "name": "Quilon",
+      "lat": 8.88,
+      "lon": 76.57,
+      "type": "city",
+      "region": "Kerala",
+      "population_class": "major"
+    },
+    {
+      "name": "Kozhikode",
+      "lat": 11.26,
+      "lon": 75.78,
+      "type": "city",
+      "region": "Kerala",
+      "population_class": "major"
+    },
+    {
+      "name": "Kannur",
+      "lat": 12.02,
+      "lon": 75.37,
+      "type": "city",
+      "region": "Kerala",
+      "population_class": "major"
+    }
+  ],
+  "landmarks": [
+    {
+      "name": "Mount Everest",
+      "lat": 27.99,
+      "lon": 86.92,
+      "type": "mountain",
+      "elevation": 8848
+    },
+    {
+      "name": "K2",
+      "lat": 35.88,
+      "lon": 76.51,
+      "type": "mountain",
+      "elevation": 8611
+    },
+    {
+      "name": "Kilimanjaro",
+      "lat": -3.07,
+      "lon": 37.35,
+      "type": "mountain",
+      "elevation": 5895
+    },
+    {
+      "name": "Mont Blanc",
+      "lat": 45.83,
+      "lon": 6.86,
+      "type": "mountain",
+      "elevation": 4808
+    },
+    {
+      "name": "Alps",
+      "lat": 46.50,
+      "lon": 10.50,
+      "type": "mountain_range"
+    },
+    {
+      "name": "Pyrenees",
+      "lat": 42.59,
+      "lon": 1.50,
+      "type": "mountain_range"
+    },
+    {
+      "name": "Carpathians",
+      "lat": 46.50,
+      "lon": 24.50,
+      "type": "mountain_range"
+    },
+    {
+      "name": "Caucasus",
+      "lat": 43.00,
+      "lon": 45.00,
+      "type": "mountain_range"
+    },
+    {
+      "name": "Ural Mountains",
+      "lat": 60.00,
+      "lon": 60.00,
+      "type": "mountain_range"
+    },
+    {
+      "name": "Himalayas",
+      "lat": 28.00,
+      "lon": 85.00,
+      "type": "mountain_range"
+    },
+    {
+      "name": "Tian Shan",
+      "lat": 42.50,
+      "lon": 77.50,
+      "type": "mountain_range"
+    },
+    {
+      "name": "Danube River",
+      "lat": 48.50,
+      "lon": 20.00,
+      "type": "river"
+    },
+    {
+      "name": "Rhine River",
+      "lat": 51.50,
+      "lon": 6.00,
+      "type": "river"
+    },
+    {
+      "name": "Volga River",
+      "lat": 56.00,
+      "lon": 44.00,
+      "type": "river"
+    },
+    {
+      "name": "Euphrates River",
+      "lat": 35.00,
+      "lon": 40.00,
+      "type": "river"
+    },
+    {
+      "name": "Tigris River",
+      "lat": 35.00,
+      "lon": 43.00,
+      "type": "river"
+    },
+    {
+      "name": "Yellow River",
+      "lat": 35.00,
+      "lon": 110.00,
+      "type": "river"
+    },
+    {
+      "name": "Yangtze River",
+      "lat": 31.00,
+      "lon": 115.00,
+      "type": "river"
+    },
+    {
+      "name": "Indus River",
+      "lat": 27.00,
+      "lon": 70.00,
+      "type": "river"
+    },
+    {
+      "name": "Ganges River",
+      "lat": 26.00,
+      "lon": 85.00,
+      "type": "river"
+    },
+    {
+      "name": "Nile River",
+      "lat": 26.00,
+      "lon": 33.00,
+      "type": "river"
+    }
+  ]
+}
