@@ -214,6 +214,7 @@
       '/hexmap/parent-child-terrain-sync.js',  // Aggregate detail hex terrain to parents
       '/hexmap/compendium.js',
       '/hexmap/mobile-companion.js',
+      '/hexmap/river-edges.js',        // Edge-based river painting
       '/hexmap/game-ui-bindings.js'  // Exposes game.js functions to window
     ];
 

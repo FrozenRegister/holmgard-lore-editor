@@ -297,6 +297,21 @@ export interface CustomTerrain {
   mainColor: string;
 }
 
+// Dir 0=NE(1,-1), 1=E(1,0), 2=SE(0,1) — canonical directions only.
+// Dirs 3/4/5 are stored as their canonical opposite from the neighbor hex.
+export type RiverEdgeDir = 0 | 1 | 2;
+
+export interface RiverEdgeData {
+  riverId: string;
+}
+
+export interface River {
+  id: string;
+  name: string;
+  color: string;
+  width: number;
+}
+
 export interface DungeonTile {
   isCustom: boolean;
   name: string;
