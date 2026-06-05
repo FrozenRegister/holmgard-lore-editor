@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { topics, syncState, chatOpen } from '$lib/stores';
+  import { topics, syncState, chatOpen, collapseSidebar } from '$lib/stores';
   import { getClaudeApiKey } from '$lib/auth';
   import { mcpOpen } from '$lib/stores';
 
@@ -22,6 +22,8 @@
     { href: '/import-export', label: 'Import/Export', icon: '↕️' },
     { href: '/settings',      label: 'Settings',      icon: '⚙️' },
   ];
+
+  $: shouldCollapse = currentPath === '/world-editor' && $collapseSidebar;
 
   $: statusColor =
     $syncState.status === 'success'  ? '#4caf50' :
@@ -45,7 +47,7 @@
   }
 </script>
 
-<nav class="sidebar" class:mobile-open={open} aria-label="Main navigation">
+<nav class="sidebar" class:mobile-open={open} class:collapsed={shouldCollapse} aria-label="Main navigation">
   <div class="sidebar-brand">
     <span class="brand-rune">⚔</span>
     <div class="brand-text">
@@ -129,6 +131,14 @@
     height: 100%;
     overflow: hidden;
     user-select: none;
+    transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease;
+  }
+
+  .sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .sidebar-brand {

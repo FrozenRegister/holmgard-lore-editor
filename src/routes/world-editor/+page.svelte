@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { showToast } from '$lib/stores';
+  import { exposeAggregationAPI } from '$lib/terrain-aggregation';
 
   let isLoaded = false;
   let pageContainer: HTMLElement;
@@ -147,6 +148,9 @@
     // The hex editor requires a full page structure with specific IDs and classes
     // We load it in a way that respects SvelteKit's routing while using the existing hex editor code
 
+    // Expose terrain aggregation API to window (for parent-child terrain sync)
+    exposeAggregationAPI();
+
     // Expose showNotification to game.js
     (window as any).showNotification = function(message: string, type: string = 'info', durationMs?: number) {
       const toastType = (type === 'error' || type === 'success' || type === 'warning' || type === 'info') ? type : 'info';
@@ -207,6 +211,7 @@
       '/hexmap/mcp-storage.js',
       '/hexmap/game.js',
       '/hexmap/hexmap-render-patch.js',  // Boundary-based sparse hex rendering
+      '/hexmap/parent-child-terrain-sync.js',  // Aggregate detail hex terrain to parents
       '/hexmap/compendium.js',
       '/hexmap/mobile-companion.js',
       '/hexmap/game-ui-bindings.js'  // Exposes game.js functions to window
