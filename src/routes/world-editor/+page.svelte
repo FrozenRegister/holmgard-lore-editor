@@ -239,7 +239,7 @@
   <link rel="stylesheet" href="/hexmap/style.css?v=2026-05-07-13" />
   <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-05-07-13" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link
     rel="preload"
     as="style"
@@ -249,7 +249,10 @@
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=EB+Garamond:wght@400;700&family=Great+Vibes&family=MedievalSharp&family=Merriweather:wght@400;700&family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&family=Pirata+One&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&family=Uncial+Antiqua&display=swap"
     rel="stylesheet"
     media="print"
-    onload="this.media='all'"
+    on:load={(e) => {
+      const link = e.currentTarget;
+      if (link) link.setAttribute('media', 'all');
+    }}
   />
   <noscript
     ><link
@@ -356,51 +359,51 @@
           <span>File</span>
         </button>
         <div class="dropdown-menu header-dropdown-menu" id="fileMenu">
-          <div class="dropdown-item" onclick="window.newMap?.()">
+          <div class="dropdown-item" on:click={() => window.newMap?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2zm-3-7V3.5L18.5 9H13z"/>
             </svg>
             New Map
           </div>
-          <div class="dropdown-item" onclick="window.quickCloudSave?.()">
+          <div class="dropdown-item" on:click={() => window.quickCloudSave?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
             </svg>
             Save
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" onclick="window.importMapFromFile?.()">
+          <div class="dropdown-item" on:click={() => window.importMapFromFile?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
             </svg>
             Import Map (JSON)
           </div>
-          <div class="dropdown-item" onclick="window.exportAsPNG?.()">
+          <div class="dropdown-item" on:click={() => window.exportAsPNG?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
             </svg>
             Export as PNG
           </div>
-          <div class="dropdown-item" onclick="window.exportAsJSON?.()">
+          <div class="dropdown-item" on:click={() => window.exportAsJSON?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
             </svg>
             Export as JSON
           </div>
-          <div class="dropdown-item" onclick="window.showFoundryExportDialog?.()">
+          <div class="dropdown-item" on:click={() => window.showFoundryExportDialog?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
             Export to Foundry VTT
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" onclick="window.shareMap?.()">
+          <div class="dropdown-item" on:click={() => window.shareMap?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
             </svg>
             Share Link
           </div>
-          <div class="dropdown-item" onclick="window.openExamplesModal?.()">
+          <div class="dropdown-item" on:click={() => window.openExamplesModal?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
             </svg>
@@ -418,12 +421,12 @@
       </button>
 
       <!-- Undo/Redo Buttons -->
-      <button class="header-btn" id="undoBtn" onclick="window.undoRedoSystem?.undo?.()" title="Undo (Ctrl+Z)" disabled style="opacity: 0.5;">
+      <button class="header-btn" id="undoBtn" on:click={() => window.undoRedoSystem?.undo?.()} title="Undo (Ctrl+Z)" disabled style="opacity: 0.5;">
         <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
         </svg>
       </button>
-      <button class="header-btn" id="redoBtn" onclick="window.undoRedoSystem?.redo?.()" title="Redo (Ctrl+Shift+Z)" disabled style="opacity: 0.5;">
+      <button class="header-btn" id="redoBtn" on:click={() => window.undoRedoSystem?.redo?.()} title="Redo (Ctrl+Shift+Z)" disabled style="opacity: 0.5;">
         <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/>
         </svg>
@@ -437,7 +440,7 @@
           </svg>
         </button>
         <div class="dropdown-menu header-dropdown-menu" id="moreMenu">
-          <div class="dropdown-item" onclick="window.openSettingsModal?.()">
+          <div class="dropdown-item" on:click={() => window.openSettingsModal?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
             </svg>
@@ -456,44 +459,44 @@
             Keyboard Shortcuts <span class="coming-soon-badge">Soon</span>
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" onclick="window.resetToolTutorials?.()">
+          <div class="dropdown-item" on:click={() => window.resetToolTutorials?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
             </svg>
             Reset Tool Tutorials
           </div>
           <div class="dropdown-divider" data-dev-tools-item></div>
-          <div class="dropdown-item" data-dev-tools-item onclick="window.togglePerfHud?.()">
+          <div class="dropdown-item" data-dev-tools-item on:click={() => window.togglePerfHud?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M3 3h18v2H3V3zm2 6h3v10H5V9zm5-4h3v14h-3V5zm5 7h3v7h-3v-7z"/>
             </svg>
             Toggle Performance HUD
           </div>
-          <div class="dropdown-item" data-dev-tools-item onclick="window.runHexMapPerfBenchmarksFromUI?.()">
+          <div class="dropdown-item" data-dev-tools-item on:click={() => window.runHexMapPerfBenchmarksFromUI?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M13 2L3 14h7v8l10-12h-7z"/>
             </svg>
             Run Performance Benchmark
           </div>
-          <div class="dropdown-item" data-dev-tools-item onclick="window.saveLatestHexMapBenchmarkBaseline?.()">
+          <div class="dropdown-item" data-dev-tools-item on:click={() => window.saveLatestHexMapBenchmarkBaseline?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
             </svg>
             Save Benchmark Baseline
           </div>
-          <div class="dropdown-item" data-dev-tools-item onclick="window.copyLatestHexMapBenchmarkReportFromUI?.()">
+          <div class="dropdown-item" data-dev-tools-item on:click={() => window.copyLatestHexMapBenchmarkReportFromUI?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/>
             </svg>
             Copy Benchmark Report
           </div>
-          <div class="dropdown-item" data-dev-tools-item onclick="window.copyLatestHexMapBenchmarkComparisonFromUI?.()">
+          <div class="dropdown-item" data-dev-tools-item on:click={() => window.copyLatestHexMapBenchmarkComparisonFromUI?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M10 3H5c-1.1 0-2 .9-2 2v5h2V5h5V3zm9 0h-5v2h5v5h2V5c0-1.1-.9-2-2-2zM5 14H3v5c0 1.1.9 2 2 2h5v-2H5v-5zm16 0v5h-5v2h5c1.1 0 2-.9 2-2v-5h-2zM8 16l3-8h2l3 8h-2l-.6-1.8H10.6L10 16H8zm3.1-3.6h1.8L12 9.8l-.9 2.6z"/>
             </svg>
             Copy Baseline Comparison
           </div>
-          <div class="dropdown-item" data-dev-tools-item onclick="window.clearHexMapBenchmarkBaseline?.()">
+          <div class="dropdown-item" data-dev-tools-item on:click={() => window.clearHexMapBenchmarkBaseline?.()}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1z"/>
             </svg>
@@ -513,26 +516,26 @@
             Help & Support <span class="coming-soon-badge">Soon</span>
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" onclick="window.location.href='/world-editor?marketing=1'">
+          <div class="dropdown-item" on:click={() => window.location.href='/world-editor?marketing=1'}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
             </svg>
             Homepage
           </div>
-          <div class="dropdown-item" onclick="window.open('/world-editor?marketing=1#pricing', '_blank')">
+          <div class="dropdown-item" on:click={() => window.open('/world-editor?marketing=1#pricing', '_blank')}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/>
             </svg>
             Pricing
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" onclick="window.open('privacy.html', '_blank')">
+          <div class="dropdown-item" on:click={() => window.open('privacy.html', '_blank')}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
             </svg>
             Privacy Policy
           </div>
-          <div class="dropdown-item" onclick="window.open('terms.html', '_blank')">
+          <div class="dropdown-item" on:click={() => window.open('terms.html', '_blank')}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
             </svg>
@@ -543,7 +546,7 @@
 
       <!-- Auth Container -->
       <div id="authContainer" style="position: relative;">
-        <button class="header-btn" onclick="window.showAuthModal?.('login') || (window.showNotification?.('Auth not loaded', 'error') ?? console.error('Auth not loaded'))">
+        <button class="header-btn" on:click={() => window.showAuthModal?.('login') || (window.showNotification?.('Auth not loaded', 'error') ?? console.error('Auth not loaded'))}>
           <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
           </svg>
@@ -552,16 +555,16 @@
       </div>
 
       <div class="mobile-topbar-sidecluster" aria-label="Mobile quick actions">
-        <button class="mobile-chip-btn mobile-icon-chip mobile-cluster-chip" id="mobileCompendiumBtn" onclick="window.handleMobileCompendiumButton?.()" type="button" aria-label="Open compendium" title="Open compendium">
+        <button class="mobile-chip-btn mobile-icon-chip mobile-cluster-chip" id="mobileCompendiumBtn" on:click={() => window.handleMobileCompendiumButton?.()} type="button" aria-label="Open compendium" title="Open compendium">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M18 2H8C6.9 2 6 2.9 6 4V20C6 21.1 6.9 22 8 22H18C19.1 22 20 21.1 20 20V4C20 2.9 19.1 2 18 2ZM18 20H8V4H18V20ZM4 6H2V22C2 23.1 2.9 24 4 24H16V22H4V6Z"/>
           </svg>
         </button>
         <div class="mobile-touch-toggle" role="group" aria-label="Touch controls">
-          <button class="mobile-touch-toggle-btn active" id="mobileTouchEditBtn" onclick="window.toggleMobilePanMode?.(false)" type="button">
+          <button class="mobile-touch-toggle-btn active" id="mobileTouchEditBtn" on:click={() => window.toggleMobilePanMode?.(false)} type="button">
             Edit
           </button>
-          <button class="mobile-touch-toggle-btn" id="mobileTouchPanBtn" onclick="window.toggleMobilePanMode?.(true)" type="button">
+          <button class="mobile-touch-toggle-btn" id="mobileTouchPanBtn" on:click={() => window.toggleMobilePanMode?.(true)} type="button">
             Move Map
           </button>
         </div>
@@ -587,7 +590,7 @@
       <div class="view-mode-section">
         <h3 style="margin-bottom: 12px;">Mode</h3>
         <div class="view-mode-toggle">
-          <button class="view-mode-option active" onclick="window.setViewMode?.('builder')" data-view-mode="builder">
+          <button class="view-mode-option active" on:click={() => window.setViewMode?.('builder')} data-view-mode="builder">
             <div class="view-mode-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
@@ -595,7 +598,7 @@
             </div>
             Edit
           </button>
-          <button class="view-mode-option" onclick="window.setViewMode?.('explorer')" data-view-mode="explorer">
+          <button class="view-mode-option" on:click={() => window.setViewMode?.('explorer')} data-view-mode="explorer">
             <div class="view-mode-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18 2H8C6.9 2 6 2.9 6 4V20C6 21.1 6.9 22 8 22H18C19.1 22 20 21.1 20 20V4C20 2.9 19.1 2 18 2ZM18 20H8V4H18V20ZM4 6H2V22C2 23.1 2.9 24 4 24H16V22H4V6Z"/>
@@ -610,7 +613,7 @@
       <div class="tool-section" id="toolsSection">
         <h3>Tools</h3>
         <div class="mode-selector">
-          <button class="mode-btn" onclick="window.setHexMode?.('select')" data-mode="select" data-tooltip-id="select-mode">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('select')} data-mode="select" data-tooltip-id="select-mode">
             <div class="mode-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M7 2l12 11.2-5.8.5 3.3 7.3-2.2 1-3.2-7.4L7 18.5V2z"/>
@@ -618,7 +621,7 @@
             </div>
             Select
           </button>
-          <button class="mode-btn active" onclick="window.setHexMode?.('paint')" data-mode="paint" data-tooltip-id="paint-mode">
+          <button class="mode-btn active" on:click={() => window.setHexMode?.('paint')} data-mode="paint" data-tooltip-id="paint-mode">
             <div class="mode-icon">
               <svg viewBox="0 0 512 512" fill="currentColor">
                 <path d="M54.438 29.794a24 24 0 0 0-1.204.01c-4.688.157-7.914 1.736-10.113 3.935c-2.932 2.932-4.761 7.689-3.588 15.305s5.683 17.754 15.272 28.941c67.894 79.21 132.935 155.56 183.703 211.969c12.273 13.637 23.693 26.08 34.125 37.135c12.095-31.902 34.57-54.144 62.902-64.715c-10.825-10.199-22.936-21.313-36.197-33.248C242.93 178.358 166.578 113.314 87.369 45.42c-11.186-9.589-21.325-14.098-28.941-15.272a30 30 0 0 0-3.99-.355zm295.783 246.64c-30.461 7.627-53.241 29.185-63.608 65.219c5.652 5.785 10.956 11.085 15.78 15.707c7.58 7.264 14.095 13.007 19.21 16.957c1.776-17.225 10.045-33.062 21.645-44.691c10.601-10.628 24.496-18.006 39.125-19.092c-3.871-4.836-9.14-10.751-15.63-17.524c-4.838-5.047-10.415-10.623-16.522-16.576m35.351 51.95c-10.397.137-20.929 5.28-29.582 13.955c-11.537 11.565-18.674 28.85-16.267 45.7c5.334 37.342 23.749 65.81 49.46 81.237c22.727 13.636 51.452 17.35 83.643 6.983c-24.222-4.01-46.475-30.706-48.197-50.65c10.63 12.814 23.94 24.547 38.426 31.75c-9.881-22.578-9.201-45.452-11.088-64.321c-1.352-13.522-3.891-24.982-11.377-35.162s-20.423-19.8-44.74-27.907a31 31 0 0 0-10.278-1.585"/>
@@ -626,7 +629,7 @@
             </div>
             <span class="mode-label">Paint</span>
           </button>
-          <button class="mode-btn" onclick="window.setHexMode?.('erase')" data-mode="erase" data-tooltip-id="paint-mode">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('erase')} data-mode="erase" data-tooltip-id="paint-mode">
             <div class="mode-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M16.24 3c-.44 0-.88.17-1.21.5L4.39 14.14a2 2 0 0 0 0 2.83l3.64 3.64A2 2 0 0 0 9.44 21h10.62a1 1 0 0 0 0-2h-5.65l4.62-4.62a2 2 0 0 0 0-2.83L17.66 3.5A1.71 1.71 0 0 0 16.24 3zm0 2.12 1.37 1.37-7.8 7.8-1.37-1.37 7.8-7.8zM7.02 14.26l1.37 1.37-1.37 1.37-1.37-1.37 1.37-1.37z"/>
@@ -634,7 +637,7 @@
             </div>
             <span class="mode-label">Erase</span>
           </button>
-          <button class="mode-btn" onclick="window.setHexMode?.('token')" data-mode="token" data-tooltip-id="token-mode">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('token')} data-mode="token" data-tooltip-id="token-mode">
             <div class="mode-icon">
               <svg viewBox="0 0 512 512" fill="currentColor">
                 <circle cx="256" cy="256" r="200" fill="none" stroke="currentColor" stroke-width="40"/>
@@ -643,7 +646,7 @@
             </div>
             <span class="mode-label">Token</span>
           </button>
-          <button class="mode-btn" onclick="window.setHexMode?.('path')" data-mode="path" data-tooltip-id="path-mode">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('path')} data-mode="path" data-tooltip-id="path-mode">
             <div class="mode-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
                 <path d="M149.9 27.2 34.25 56.74v76.76L157.8 93.85l46.7-44.67-54.6-21.98zm132.8 57c-7.4.18-10.1 1.88.9 7.13C346.9 121.6 441.7 206.8 391.3 216.9 232.2 249 130.4 292.3 48.51 390.8 25.42 418.6 18 494.8 18 494.8h432.6s-139-21.1-147.8-75.7c-14.9-92.2 194.5-102.7 196.5-199.9.9-43.2-88.3-124.99-184.4-132.52-5.6-.44-22.7-2.71-32.2-2.48zm-163.5 40.9-32.69 10.5v122.2l35.99-10-3.3-122.7z"/>
@@ -651,7 +654,7 @@
             </div>
             <span class="mode-label">Path</span>
           </button>
-          <button class="mode-btn" onclick="window.setHexMode?.('landmark')" data-mode="landmark" data-tooltip-id="landmark-mode">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('landmark')} data-mode="landmark" data-tooltip-id="landmark-mode">
             <div class="mode-icon">
               <svg viewBox="0 0 512 512" fill="currentColor">
                 <path d="M97.812 23.375v92.875l46.22 51.72V351h-25.845L94.594 491.906H414.53L390.938 351h-25.875V167.97l46.22-51.72V23.375h-53.938v43.97H324.5v-43.97h-53.938v43.97h-32.437v-43.97h-53.938v43.97H151.75v-43.97zm73.75 152.875h18.688v50.22h-18.688zm73.594 0h18.688v50.22h-18.688zm74.156 0H338v50.22h-18.688z"/>
@@ -659,7 +662,7 @@
             </div>
             <span class="mode-label">Landmark</span>
           </button>
-          <button class="mode-btn" onclick="window.setHexMode?.('text')" data-mode="text" data-tooltip-id="text-mode">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('text')} data-mode="text" data-tooltip-id="text-mode">
             <div class="mode-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M5 4v3h5.5v12h3V7H19V4H5z"/>
@@ -667,7 +670,7 @@
             </div>
             Text
           </button>
-          <button class="mode-btn" onclick="window.setHexMode?.('image')" data-mode="image" data-tooltip-id="image-mode">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('image')} data-mode="image" data-tooltip-id="image-mode">
             <div class="mode-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
@@ -675,7 +678,7 @@
             </div>
             Image
           </button>
-          <button class="mode-btn" onclick="window.setHexMode?.('fog')" data-mode="fog" data-tooltip-id="fog-mode">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('fog')} data-mode="fog" data-tooltip-id="fog-mode">
             <div class="mode-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z" opacity="0.3"/>
@@ -684,7 +687,7 @@
             </div>
             Fog
           </button>
-          <button class="mode-btn" onclick="window.setHexMode?.('dungeon-door')" data-mode="dungeon-door">
+          <button class="mode-btn" on:click={() => window.setHexMode?.('dungeon-door')} data-mode="dungeon-door">
             <div class="mode-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M6 3h9a2 2 0 0 1 2 2v14h-2v-1H8v1H6V3zm2 2v11h7V5H8zm4 5.5a1 1 0 1 0 .001 2.001A1 1 0 0 0 12 10.5z"/>
@@ -703,13 +706,13 @@
         <div class="brush-control">
           <label class="section-label">Tool</label>
           <div style="display: flex; gap: 12px; justify-content: center;">
-            <button class="path-type-btn active" data-tool="brush" onclick="window.selectTerrainTool?.('brush')" id="terrainTool_brush" style="flex: 1; max-width: 120px;">
+            <button class="path-type-btn active" data-tool="brush" on:click={() => window.selectTerrainTool?.('brush')} id="terrainTool_brush" style="flex: 1; max-width: 120px;">
               <div class="path-type-icon">
                 <img src="https://api.iconify.design/game-icons/paint-brush.svg?color=white" style="width: 100%; height: 100%;" alt="Brush">
               </div>
               <span class="path-type-label">Brush</span>
             </button>
-            <button class="path-type-btn" data-tool="fill" onclick="window.selectTerrainTool?.('fill')" id="terrainTool_fill" style="flex: 1; max-width: 120px;">
+            <button class="path-type-btn" data-tool="fill" on:click={() => window.selectTerrainTool?.('fill')} id="terrainTool_fill" style="flex: 1; max-width: 120px;">
               <div class="path-type-icon">
                 <img src="https://api.iconify.design/game-icons/paint-bucket.svg?color=white" style="width: 100%; height: 100%;" alt="Fill">
               </div>
@@ -722,7 +725,7 @@
           <!-- Hide fill mode checkbox since we now have tool buttons -->
           <div class="brush-control" style="display: none;">
             <label>
-              <input type="checkbox" id="fillMode" onchange="window.toggleFillMode?.(this.checked)" style="margin-right: 8px;">
+              <input type="checkbox" id="fillMode" on:change={(e) => window.toggleFillMode?.(e.currentTarget.checked)} style="margin-right: 8px;">
               Fill Connected Area
             </label>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Paint all connected hexes at once</div>
@@ -733,7 +736,7 @@
             <div class="slider-container">
               <input type="range" class="slider" id="brushSize"
                      min="1" max="15" value="1"
-                     oninput="window.updateBrushSize?.(this.value)">
+                     on:input={(e) => window.updateBrushSize?.(e.currentTarget.value)}>
               <span class="slider-value" id="brushSizeValue">1</span>
             </div>
           </div>
@@ -744,7 +747,7 @@
             <div class="slider-container">
               <input type="range" class="slider" id="settlementBrushOpacity"
                      min="0.05" max="1" step="0.01" value="0.92"
-                     oninput="window.updateSettlementBrushOpacity?.(this.value)">
+                     on:input={(e) => window.updateSettlementBrushOpacity?.(e.currentTarget.value)}>
               <span class="slider-value" id="settlementBrushOpacityValue">92%</span>
             </div>
           </div>
@@ -771,7 +774,7 @@
       <div class="tool-section" id="tokenCreatorSection" style="display: none;">
         <h3>Create Token</h3>
         <div style="display: flex; flex-direction: column; gap: 12px;">
-          <button class="btn btn-primary" style="width: 100%;" onclick="window.showTokenCreator?.()">
+          <button class="btn btn-primary" style="width: 100%;" on:click={() => window.showTokenCreator?.()}>
             ➕ New Token
           </button>
           <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5;">
@@ -790,7 +793,7 @@
       <div class="tool-section" id="landmarkCreatorSection" style="display: none;">
         <h3>Create Landmark</h3>
         <div style="display: flex; flex-direction: column; gap: 12px;">
-          <button class="btn btn-primary" style="width: 100%;" onclick="window.showLandmarkCreator?.()">
+          <button class="btn btn-primary" style="width: 100%;" on:click={() => window.showLandmarkCreator?.()}>
             ➕ New Landmark
           </button>
           <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5;">
@@ -847,7 +850,7 @@
 
       <!-- Layers Section -->
       <div class="tool-section tool-section--layers" id="layersSection" hidden>
-        <button class="layers-toggle" id="layersToggleButton" type="button" onclick="window.toggleLayersPanel?.()" aria-expanded="false" aria-controls="layersList">
+        <button class="layers-toggle" id="layersToggleButton" type="button" on:click={() => window.toggleLayersPanel?.()} aria-expanded="false" aria-controls="layersList">
           <span class="layers-toggle-copy">
             <span class="layers-toggle-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="currentColor">
@@ -880,15 +883,15 @@
         <span id="instructionText">Click to paint · Drag for multiple · Keys 1-5 for brush size</span>
       </div>
 
-      <button id="dungeonBackFloat" class="dungeon-back-float" type="button" onclick="window.returnToParentMap?.()" style="display:none;" title="Return to the parent world map">
+      <button id="dungeonBackFloat" class="dungeon-back-float" type="button" on:click={() => window.returnToParentMap?.()} style="display:none;" title="Return to the parent world map">
         <svg class="dungeon-back-float-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
         <span class="dungeon-back-float-label">Back to <span id="dungeonBackFloatName">World</span></span>
       </button>
 
       <div class="zoom-controls">
-        <button class="zoom-btn" onclick="window.zoomIn?.()">+</button>
+        <button class="zoom-btn" on:click={() => window.zoomIn?.()}>+</button>
         <button class="zoom-btn zoom-level" id="zoomLevel">100%</button>
-        <button class="zoom-btn" onclick="window.zoomOut?.()">−</button>
+        <button class="zoom-btn" on:click={() => window.zoomOut?.()}>−</button>
       </div>
 
       <div class="mobile-footer-stack" id="mobileFooter">
@@ -923,7 +926,7 @@
         <p style="margin-top: 8px; font-size: 12px;">Click any hex on the map</p>
       </div>
     </div>
-    <div class="mobile-panel-backdrop" id="mobilePanelBackdrop" onclick="window.closeMobilePanels?.()"></div>
+    <div class="mobile-panel-backdrop" id="mobilePanelBackdrop" on:click={() => window.closeMobilePanels?.()}></div>
   </div>
 
   <!-- Settings Modal -->
@@ -936,7 +939,7 @@
           </svg>
           Settings
         </div>
-        <button class="modal-close" onclick="window.closeModal?.('settingsModal')">
+        <button class="modal-close" on:click={() => window.closeModal?.('settingsModal')}>
           <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
           </svg>
@@ -952,21 +955,21 @@
                   <div class="setting-label">Show Region Numbers</div>
                   <div class="setting-description">Display coordinate numbers on each region hex (0,0 at center)</div>
                 </div>
-                <div class="toggle-switch" id="hexCoordinatesToggle" onclick="window.toggleHexCoordinates?.(this)"></div>
+                <div class="toggle-switch" id="hexCoordinatesToggle" on:click={(e) => window.toggleHexCoordinates?.(e.currentTarget)}></div>
               </div>
               <div class="setting-item" id="continentGridSettingItem">
                 <div>
                   <div class="setting-label setting-label-with-badge">Continent Layer <span class="pro-feature-indicator">PRO</span></div>
                   <div class="setting-description">Fade into a broader continent grid when you zoom far enough out</div>
                 </div>
-                <div class="toggle-switch" id="continentGridToggle" onclick="window.toggleContinentGrid?.(this)"></div>
+                <div class="toggle-switch" id="continentGridToggle" on:click={(e) => window.toggleContinentGrid?.(e.currentTarget)}></div>
               </div>
               <div class="setting-item" id="continentGridDensitySettingItem">
                 <div>
                   <div class="setting-label setting-label-with-badge">Continent Density <span class="pro-feature-indicator">PRO</span></div>
                   <div class="setting-description">Choose how many region hexes are compacted into each continent cell</div>
                 </div>
-                <select class="form-select" id="continentGridDensity" onchange="window.updateContinentGridDensity?.(this.value)" style="max-width: 150px;">
+                <select class="form-select" id="continentGridDensity" on:change={(e) => window.updateContinentGridDensity?.(e.currentTarget.value)} style="max-width: 150px;">
                   <option value="7">7 cells</option>
                   <option value="19">19 cells</option>
                   <option value="37">37 cells</option>
@@ -982,14 +985,14 @@
                   <div class="setting-label setting-label-with-badge">Settlement Layer <span class="pro-feature-indicator">PRO</span></div>
                   <div class="setting-description">Fade into a denser editable settlement grid when zoomed far enough in</div>
                 </div>
-                <div class="toggle-switch" id="detailGridToggle" onclick="window.toggleDetailGrid?.(this)"></div>
+                <div class="toggle-switch" id="detailGridToggle" on:click={(e) => window.toggleDetailGrid?.(e.currentTarget)}></div>
               </div>
               <div class="setting-item" id="detailGridDensitySettingItem">
                 <div>
                   <div class="setting-label setting-label-with-badge">Settlement Density <span class="pro-feature-indicator">PRO</span></div>
                   <div class="setting-description">Choose how much extra settlement detail becomes available when the zoomed-in grid activates</div>
                 </div>
-                <select class="form-select" id="detailGridDensity" onchange="window.updateDetailGridDensity?.(this.value)" style="max-width: 150px;">
+                <select class="form-select" id="detailGridDensity" on:change={(e) => window.updateDetailGridDensity?.(e.currentTarget.value)} style="max-width: 150px;">
                   <option value="7">7 cells</option>
                   <option value="19">19 cells</option>
                   <option value="37">37 cells</option>
@@ -1004,14 +1007,14 @@
                   <div class="setting-label">Auto Zoom-to-Load</div>
                   <div class="setting-description">Zoom into a region on the World map to auto-load its detailed map; zoom back out to return to the overview</div>
                 </div>
-                <div class="toggle-switch" id="hexEarthAutoZoomToggle" onclick="window.hexEarthToggleAuto?.(this)"></div>
+                <div class="toggle-switch" id="hexEarthAutoZoomToggle" on:click={(e) => window.hexEarthToggleAuto?.(e.currentTarget)}></div>
               </div>
               <div class="setting-item">
                 <div>
                   <div class="setting-label">Drill-in Sensitivity</div>
                   <div class="setting-description">How far you zoom in past the World fit before a region loads</div>
                 </div>
-                <select class="form-select" id="hexEarthZoomIn" onchange="window.hexEarthSetZoomIn?.(this.value)" style="max-width: 170px;">
+                <select class="form-select" id="hexEarthZoomIn" on:change={(e) => window.hexEarthSetZoomIn?.(e.currentTarget.value)} style="max-width: 170px;">
                   <option value="1.6">Sensitive (1.6×)</option>
                   <option value="2.2">Default (2.2×)</option>
                   <option value="3">Relaxed (3×)</option>
@@ -1023,7 +1026,7 @@
                   <div class="setting-label">Return-to-World Threshold</div>
                   <div class="setting-description">How far you zoom out within a region before snapping back to the World overview (lower = more zoom-out room)</div>
                 </div>
-                <select class="form-select" id="hexEarthZoomOut" onchange="window.hexEarthSetZoomOut?.(this.value)" style="max-width: 170px;">
+                <select class="form-select" id="hexEarthZoomOut" on:change={(e) => window.hexEarthSetZoomOut?.(e.currentTarget.value)} style="max-width: 170px;">
                   <option value="0.5">Quick (0.50×)</option>
                   <option value="0.35">Medium (0.35×)</option>
                   <option value="0.28">Default (0.28×)</option>
@@ -1041,11 +1044,11 @@
                   <div class="setting-description">Flat-top (horizontal) or pointy-top (vertical) hexagons</div>
                 </div>
                 <div class="hex-orientation-toggle" id="hexOrientationToggle">
-                  <button class="hex-orient-btn active" data-orient="flat" onclick="window.setHexOrientationUI?.('flat')">
+                  <button class="hex-orient-btn active" data-orient="flat" on:click={() => window.setHexOrientationUI?.('flat')}>
                     <svg width="28" height="24" viewBox="0 0 28 24"><polygon points="7,0 21,0 28,12 21,24 7,24 0,12" fill="none" stroke="currentColor" stroke-width="2"/></svg>
                     <span>Flat</span>
                   </button>
-                  <button class="hex-orient-btn" data-orient="pointy" onclick="window.setHexOrientationUI?.('pointy')">
+                  <button class="hex-orient-btn" data-orient="pointy" on:click={() => window.setHexOrientationUI?.('pointy')}>
                     <svg width="24" height="28" viewBox="0 0 24 28"><polygon points="12,0 24,7 24,21 12,28 0,21 0,7" fill="none" stroke="currentColor" stroke-width="2"/></svg>
                     <span>Pointy</span>
                   </button>
@@ -1067,7 +1070,7 @@
                   <div class="setting-label">Developer Tools</div>
                   <div class="setting-description">Show performance HUD and benchmark controls in the menus on this browser only</div>
                 </div>
-                <div class="toggle-switch" id="developerToolsToggle" onclick="window.toggleDeveloperTools?.(this)"></div>
+                <div class="toggle-switch" id="developerToolsToggle" on:click={(e) => window.toggleDeveloperTools?.(e.currentTarget)}></div>
               </div>
             </div>
 
@@ -1096,8 +1099,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="window.closeModal?.('settingsModal')">Cancel</button>
-        <button class="btn btn-primary" onclick="window.saveSettings?.()">Save Settings</button>
+        <button class="btn btn-secondary" on:click={() => window.closeModal?.('settingsModal')}>Cancel</button>
+        <button class="btn btn-primary" on:click={() => window.saveSettings?.()}>Save Settings</button>
       </div>
     </div>
   </div>
