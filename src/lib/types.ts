@@ -111,6 +111,10 @@ export interface Hex extends HexCoord {
   elevation?: number; // 0-10 scale; optional for backwards compatibility
   name: string;
   description: string;
+  type?: string; // alias for terrain in some contexts
+  region?: string;
+  lat?: number;
+  lon?: number;
 }
 
 export interface DetailHex extends HexCoord {
@@ -320,4 +324,18 @@ export interface ExportMetadata {
   levelMode: string;
   scope: string;
   exportedAt: string;
+}
+
+// ── GeoJSON for coastlines ────────────────────────────────────────────────────
+
+export interface CoastlineMap {
+  type: 'FeatureCollection';
+  features: Array<{
+    type: 'Feature';
+    geometry: {
+      type: 'Polygon' | 'MultiPolygon';
+      coordinates: number[][][] | number[][][][];
+    };
+    properties?: Record<string, unknown>;
+  }>;
 }

@@ -25,7 +25,7 @@ export function isInsideCoastline(
       feature.geometry?.type === 'Polygon' &&
       Array.isArray(feature.geometry.coordinates)
     ) {
-      const ring = feature.geometry.coordinates[0];
+      const ring = feature.geometry.coordinates[0] as [number, number][];
       if (pointInPolygon(lat, lon, ring)) {
         return true;
       }
@@ -34,7 +34,7 @@ export function isInsideCoastline(
       Array.isArray(feature.geometry.coordinates)
     ) {
       for (const polygon of feature.geometry.coordinates) {
-        const ring = polygon[0];
+        const ring = polygon[0] as [number, number][];
         if (pointInPolygon(lat, lon, ring)) {
           return true;
         }

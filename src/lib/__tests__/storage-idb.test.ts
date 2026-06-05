@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, skip } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   idbLoadAllTopics,
+  idbLoadTopic,
   idbSaveTopic,
   idbDeleteTopic,
   idbLoadQueue,
@@ -89,16 +90,14 @@ describe.skip('IndexedDB storage layer', () => {
         {
           key: 'topic1',
           text: 'Content 1',
-          attempt: 1,
+          attempts: 1,
           enqueuedAt: new Date().toISOString(),
-          nextRetryAt: new Date().toISOString(),
         },
         {
           key: 'topic2',
           text: 'Content 2',
-          attempt: 2,
+          attempts: 2,
           enqueuedAt: new Date().toISOString(),
-          nextRetryAt: new Date().toISOString(),
         },
       ];
 
@@ -115,9 +114,8 @@ describe.skip('IndexedDB storage layer', () => {
         {
           key: 'old',
           text: 'Old',
-          attempt: 1,
+          attempts: 1,
           enqueuedAt: new Date().toISOString(),
-          nextRetryAt: new Date().toISOString(),
         },
       ];
 
@@ -126,9 +124,8 @@ describe.skip('IndexedDB storage layer', () => {
         {
           key: 'new',
           text: 'New',
-          attempt: 1,
+          attempts: 1,
           enqueuedAt: new Date().toISOString(),
-          nextRetryAt: new Date().toISOString(),
         },
       ];
 
@@ -153,9 +150,8 @@ describe.skip('IndexedDB storage layer', () => {
         {
           key: 'queued-topic',
           text: 'Queued',
-          attempt: 1,
+          attempts: 1,
           enqueuedAt: new Date().toISOString(),
-          nextRetryAt: new Date().toISOString(),
         },
       ]));
     });
