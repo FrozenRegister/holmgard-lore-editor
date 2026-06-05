@@ -1,23 +1,22 @@
 // ============================================================================
-// PARENT-CHILD TERRAIN SYNC FOR WORKINGMAP.JSON
-// Automatically aggregates detail hex terrain changes back to parent hexes.
+// PARENT-CHILD TERRAIN SYNC
+// Watches detailHexes for changes, aggregates majority terrain back to parent
+// hexes so the stored terrain stays consistent with what's been painted.
 //
-// When a detail hex (child of a parent via landmark anchor region) is painted,
-// this patch detects the change, finds the parent landmark, aggregates the
-// majority terrain of all detail hexes in that region, and updates the parent
-// hex to match.
+// game.js stores hexes and detailHexes as Map<string, Hex> internally.
+// The TerrainAggregation module (terrain-aggregation.ts) works with plain
+// arrays, so we convert before calling it.
 // ============================================================================
 
-(function () {
+;(function () {
   'use strict'
 
   const TAG = '[TerrainSync]'
   const DEBOUNCE_MS = 300
 
   let debounceTimer = null
-  let lastHexesSnapshot = null
+  let lastDetailSnapshot = null
 
-  // Wait for the terrain aggregation module to be available
   function whenAggregationReady(fn) {
     let tries = 0
     const timer = setInterval(() => {
@@ -26,15 +25,11 @@
         fn()
       } else if (++tries > 300) {
         clearInterval(timer)
-        console.warn(`${TAG} Timed out waiting for TerrainAggregation module`)
+        console.warn(TAG + ' Timed out waiting for TerrainAggregation module')
       }
     }, 50)
   }
 
-  /**
-   * Check if this is the workingMap.json (not an Earth region).
-   * Earth regions have mapInstanceId starting with "earth-996".
-   */
   function isWorkingMap() {
     const hm = window.state && window.state.hexMap
     if (!hm) return false
@@ -42,144 +37,150 @@
     return id.indexOf('earth-996') !== 0 && id.indexOf('earth-') !== 0
   }
 
-  /**
-   * Snapshot the current hex terrain state for change detection.
-   */
-  function snapshotHexes() {
+  // Snapshot detailHexes (a Map in game state) to detect changes.
+  function snapshotDetailHexes() {
     const hm = window.state && window.state.hexMap
-    if (!hm || !hm.hexes) return null
+    if (!hm) return null
 
     const snap = {}
-    const hexes = Array.isArray(hm.hexes) ? hm.hexes : Object.values(hm.hexes)
-    for (const hex of hexes) {
-      const key = `${hex.q},${hex.r}`
-      snap[key] = hex.terrain
+    if (hm.detailHexes instanceof Map) {
+      hm.detailHexes.forEach(function (hex, key) {
+        snap[key] = hex.terrain
+      })
+    } else if (Array.isArray(hm.detailHexes)) {
+      for (const hex of hm.detailHexes) {
+        snap[hex.q + ',' + hex.r] = hex.terrain
+      }
     }
     return snap
   }
 
-  /**
-   * Detect which hexes have changed terrain since last snapshot.
-   */
-  function detectChangedHexes(newSnapshot) {
-    if (!lastHexesSnapshot || !newSnapshot) return []
-
-    const changed = []
-    for (const key in newSnapshot) {
-      if (newSnapshot[key] !== lastHexesSnapshot[key]) {
-        const [q, r] = key.split(',').map(Number)
-        changed.push({ q, r, terrain: newSnapshot[key] })
-      }
+  function hasDetailChanged(newSnapshot) {
+    if (!lastDetailSnapshot || !newSnapshot) return false
+    const keys1 = Object.keys(lastDetailSnapshot)
+    const keys2 = Object.keys(newSnapshot)
+    if (keys1.length !== keys2.length) return true
+    for (const key of keys2) {
+      if (newSnapshot[key] !== lastDetailSnapshot[key]) return true
     }
-    return changed
+    return false
   }
 
-  /**
-   * Update parent hex terrain in the game.js state.
-   * Both in the hexes array and in the hexes object (game.js uses both).
-   */
+  // Update a parent hex terrain in game.js state (which uses Map<string, Hex>).
   function updateParentHex(parentQ, parentR, newTerrain) {
     const hm = window.state && window.state.hexMap
     if (!hm || !hm.hexes) return
 
-    const hexKey = `${parentQ},${parentR}`
+    const hexKey = parentQ + ',' + parentR
 
-    // Update in array (if hexes is an array)
-    if (Array.isArray(hm.hexes)) {
+    if (hm.hexes instanceof Map) {
+      const hex = hm.hexes.get(hexKey)
+      if (hex) hex.terrain = newTerrain
+    } else if (Array.isArray(hm.hexes)) {
       for (const hex of hm.hexes) {
         if (hex.q === parentQ && hex.r === parentR) {
           hex.terrain = newTerrain
           break
         }
       }
-    }
-
-    // Update in object (if hexes is a Record<string, Hex>)
-    if (hm.hexes && typeof hm.hexes === 'object' && hexKey in hm.hexes) {
+    } else if (hm.hexes && typeof hm.hexes === 'object' && hexKey in hm.hexes) {
       hm.hexes[hexKey].terrain = newTerrain
     }
   }
 
-  /**
-   * Perform aggregation: compute majority terrain for each parent's detail region
-   * and update parent hexes.
-   */
+  // Convert game.js Map-based state to the array format expected by TerrainAggregation.
+  function buildHexMapData() {
+    const hm = window.state && window.state.hexMap
+    if (!hm) return null
+
+    const hexesArray = []
+    if (hm.hexes instanceof Map) {
+      hm.hexes.forEach(function (hex) { hexesArray.push(hex) })
+    } else if (Array.isArray(hm.hexes)) {
+      hexesArray.push.apply(hexesArray, hm.hexes)
+    } else if (hm.hexes && typeof hm.hexes === 'object') {
+      for (const hex of Object.values(hm.hexes)) hexesArray.push(hex)
+    }
+
+    const detailHexesArray = []
+    if (hm.detailHexes instanceof Map) {
+      hm.detailHexes.forEach(function (hex) { detailHexesArray.push(hex) })
+    } else if (Array.isArray(hm.detailHexes)) {
+      detailHexesArray.push.apply(detailHexesArray, hm.detailHexes)
+    }
+
+    if (!detailHexesArray.length) return null
+
+    return {
+      hexes: hexesArray,
+      detailHexes: detailHexesArray,
+      detailGridDensity: hm.detailGridDensity,
+    }
+  }
+
   function performAggregation() {
     if (!window.TerrainAggregation) return
 
     const hm = window.state && window.state.hexMap
     if (!hm || !isWorkingMap()) return
 
-    // aggregateAllDetailToParent returns { "q,r": Hex, ... } of updated parents
-    const updates = window.TerrainAggregation.aggregateAllDetailToParent(hm)
+    const hexMapData = buildHexMapData()
+    if (!hexMapData) return
+
+    const updates = window.TerrainAggregation.aggregateAllDetailToParent(hexMapData)
 
     for (const key in updates) {
       const hex = updates[key]
       updateParentHex(hex.q, hex.r, hex.terrain)
     }
 
-    // If any updates were made, re-render
-    if (Object.keys(updates).length > 0) {
+    const count = Object.keys(updates).length
+    if (count > 0) {
       if (typeof window.renderHex === 'function') {
         window.renderHex()
       }
-      console.log(`${TAG} Aggregated ${Object.keys(updates).length} parent hex(es)`)
+      console.log(TAG + ' Updated ' + count + ' parent hex(es) from detail majority')
     }
   }
 
-  /**
-   * Debounced aggregation trigger. Call this whenever hexes might have changed.
-   */
   function scheduleAggregation() {
     if (debounceTimer !== null) clearTimeout(debounceTimer)
-
-    debounceTimer = setTimeout(() => {
+    debounceTimer = setTimeout(function () {
       debounceTimer = null
       performAggregation()
-      lastHexesSnapshot = snapshotHexes()
     }, DEBOUNCE_MS)
   }
 
-  /**
-   * Start monitoring for hex changes.
-   * Periodically snapshot hex terrain and trigger aggregation if any changed.
-   */
   function startChangeMonitor() {
-    // Initialize the snapshot
-    lastHexesSnapshot = snapshotHexes()
+    lastDetailSnapshot = snapshotDetailHexes()
 
-    setInterval(() => {
+    setInterval(function () {
       if (!isWorkingMap()) return
 
-      const newSnapshot = snapshotHexes()
-      const changed = detectChangedHexes(newSnapshot)
-
-      if (changed.length > 0) {
+      const newSnapshot = snapshotDetailHexes()
+      if (hasDetailChanged(newSnapshot)) {
+        lastDetailSnapshot = newSnapshot
         scheduleAggregation()
       }
     }, 100)
   }
 
-  /**
-   * Wait for game.js + aggregation module, then start monitoring.
-   */
   function init() {
     let tries = 0
-    const timer = setInterval(() => {
+    const timer = setInterval(function () {
       if (
         typeof window.state === 'object' &&
         window.state.hexMap &&
         typeof window.renderHex === 'function'
       ) {
         clearInterval(timer)
-
-        whenAggregationReady(() => {
+        whenAggregationReady(function () {
           startChangeMonitor()
-          console.log(`${TAG} Initialized for workingMap.json terrain aggregation`)
+          console.log(TAG + ' Initialized — watching detailHexes for terrain changes')
         })
       } else if (++tries > 300) {
         clearInterval(timer)
-        console.warn(`${TAG} Timed out waiting for game.js`)
+        console.warn(TAG + ' Timed out waiting for game.js')
       }
     }, 50)
   }

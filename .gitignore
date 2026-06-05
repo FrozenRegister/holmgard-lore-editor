@@ -27,4 +27,5 @@ playwright-report/
 test-results/
 src/lib/data/workingMap.json
 src/lib/data/extracted_images/*
+src/lib/data/img/*
 holmgard-feature-specs.md
