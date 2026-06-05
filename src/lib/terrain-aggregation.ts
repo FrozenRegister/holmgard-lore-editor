@@ -1,159 +1,139 @@
-/**
- * Parent-child hex terrain synchronization for workingMap.json
- *
- * This module aggregates detail hex terrain back to parent hexes when child
- * hexes are painted. It works with game.js's flat hex array + landmarks system.
- */
+// Maps detailGridDensity → edge factor (detail grid scale multiplier relative to parent grid)
+const DETAIL_GRID_EDGE_FACTORS: Record<number, number> = {
+  7: 2,
+  19: 3,
+  37: 4,
+}
 
-interface Hex {
+const DEFAULT_DENSITY = 7
+
+export interface Hex {
   q: number
   r: number
   terrain: string
 }
 
-interface Landmark {
-  gridLevel: 'parent' | 'detail'
-  q: number
-  r: number
-  detailAnchorDQ?: number
-  detailAnchorDR?: number
-  [key: string]: unknown
-}
-
-interface HexMap {
+export interface HexMapData {
   hexes: Hex[]
-  landmarks?: Landmark[]
+  detailHexes?: Hex[]
+  detailGridDensity?: number
 }
 
-/**
- * Count terrain type occurrences in a list of hexes, return the most common.
- * Ties go to the first (by count order) terrain type.
- */
-function getMajorityTerrain(hexes: Hex[]): string {
-  if (hexes.length === 0) return 'water'
-
-  const counts: Record<string, number> = {}
-  for (const hex of hexes) {
-    counts[hex.terrain] = (counts[hex.terrain] ?? 0) + 1
-  }
-
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
-  return sorted[0]?.[0] ?? 'water'
+function getEdgeFactor(density: number | undefined): number {
+  return DETAIL_GRID_EDGE_FACTORS[density ?? DEFAULT_DENSITY] ?? 2
 }
 
-/**
- * Find all detail hexes in a parent landmark's anchor region.
- * The anchor region is a square grid of hexes centered at (parent.q + dQ, parent.r + dR).
- * For now, assume a fixed radius of ~4 hexes in each direction (adjustable).
- */
-function findDetailHexesInRegion(
-  hexes: Hex[],
-  parentLandmark: Landmark,
-  regionRadius = 4,
-): Hex[] {
-  const dQ = parentLandmark.detailAnchorDQ ?? 0
-  const dR = parentLandmark.detailAnchorDR ?? 0
-  const centerQ = parentLandmark.q + dQ
-  const centerR = parentLandmark.r + dR
-
-  const minQ = centerQ - regionRadius
-  const maxQ = centerQ + regionRadius
-  const minR = centerR - regionRadius
-  const maxR = centerR + regionRadius
-
-  return hexes.filter((h) => h.q >= minQ && h.q <= maxQ && h.r >= minR && h.r <= maxR)
-}
-
-/**
- * Find the parent landmark that owns a given detail hex (by anchor region).
- */
-function findParentForDetailHex(
-  detailHex: Hex,
-  landmarks: Landmark[],
-  regionRadius = 4,
-): Landmark | null {
-  for (const landmark of landmarks) {
-    if (landmark.gridLevel !== 'parent') continue
-
-    const dQ = landmark.detailAnchorDQ ?? 0
-    const dR = landmark.detailAnchorDR ?? 0
-    const centerQ = landmark.q + dQ
-    const centerR = landmark.r + dR
-
-    const minQ = centerQ - regionRadius
-    const maxQ = centerQ + regionRadius
-    const minR = centerR - regionRadius
-    const maxR = centerR + regionRadius
-
-    if (
-      detailHex.q >= minQ && detailHex.q <= maxQ &&
-      detailHex.r >= minR && detailHex.r <= maxR
-    ) {
-      return landmark
+// Returns all hexes within `radius` axial steps of (cq, cr), including center.
+// Matches game.js getHexesInRadius (non-dungeon mode).
+export function getHexesInRadius(
+  cq: number,
+  cr: number,
+  radius: number,
+): Array<{ q: number; r: number }> {
+  const hexes: Array<{ q: number; r: number }> = [{ q: cq, r: cr }]
+  for (let dq = -radius; dq <= radius; dq++) {
+    const drMin = Math.max(-radius, -dq - radius)
+    const drMax = Math.min(radius, -dq + radius)
+    for (let dr = drMin; dr <= drMax; dr++) {
+      if (dq === 0 && dr === 0) continue
+      hexes.push({ q: cq + dq, r: cr + dr })
     }
   }
-
-  return null
+  return hexes
 }
 
-/**
- * Aggregate detail hex terrain to a parent hex.
- * Finds all detail hexes in the parent's anchor region, computes majority terrain,
- * and returns a new hex object with the aggregated terrain.
- *
- * Returns null if the parent landmark can't be found or has no detail hexes.
- */
-export function aggregateDetailToParent(
-  parentLandmark: Landmark,
-  hexes: Hex[],
-): Hex | null {
-  const detailHexes = findDetailHexesInRegion(hexes, parentLandmark)
+// Compute the display terrain for a single parent hex.
+// Mirrors game.js getParentHexDisplayTerrainSummary exactly:
+// - cluster center = (parentQ * ef, parentR * ef)
+// - each cluster cell uses detail terrain if defined, else falls back to baseTerrain
+// - majority wins; on tie prefer baseTerrain, then alphabetical
+export function computeParentDisplayTerrain(
+  parentQ: number,
+  parentR: number,
+  baseTerrain: string,
+  detailHexMap: Map<string, string>,
+  edgeFactor: number,
+): string {
+  const clusterCenterQ = parentQ * edgeFactor
+  const clusterCenterR = parentR * edgeFactor
+  const clusterRadius = edgeFactor - 1
+  const clusterCells = getHexesInRadius(clusterCenterQ, clusterCenterR, clusterRadius)
 
-  if (detailHexes.length === 0) {
-    return null
+  const terrainCounts = new Map<string, number>()
+  for (const cell of clusterCells) {
+    const terrain = detailHexMap.get(`${cell.q},${cell.r}`) ?? baseTerrain
+    terrainCounts.set(terrain, (terrainCounts.get(terrain) ?? 0) + 1)
   }
 
-  const majorityTerrain = getMajorityTerrain(detailHexes)
+  let maxCount = 0
+  let tiedTerrains: string[] = []
+  terrainCounts.forEach((count, terrain) => {
+    if (count > maxCount) {
+      maxCount = count
+      tiedTerrains = [terrain]
+    } else if (count === maxCount) {
+      tiedTerrains.push(terrain)
+    }
+  })
 
-  return {
-    q: parentLandmark.q,
-    r: parentLandmark.r,
-    terrain: majorityTerrain,
-  }
+  if (tiedTerrains.length === 0) return baseTerrain
+  if (tiedTerrains.length === 1) return tiedTerrains[0]
+  if (tiedTerrains.includes(baseTerrain)) return baseTerrain
+  tiedTerrains.sort()
+  return tiedTerrains[0]
 }
 
-/**
- * Aggregate all detail-region changes up to their parent hexes.
- * Returns a map of parent hex coordinate keys to updated hex objects.
- *
- * Call this after detail hexes are painted to sync the parent layer.
- */
-export function aggregateAllDetailToParent(hexMap: HexMap): Record<string, Hex> {
-  if (!hexMap.hexes || !Array.isArray(hexMap.hexes)) return {}
-  if (!hexMap.landmarks || !Array.isArray(hexMap.landmarks)) return {}
+// Aggregate one parent hex given a map. Returns null if terrain would not change.
+export function aggregateDetailToParent(parentHex: Hex, hexMap: HexMapData): Hex | null {
+  if (!hexMap.detailHexes?.length) return null
 
-  const parentLandmarks = hexMap.landmarks.filter((l) => l.gridLevel === 'parent')
+  const edgeFactor = getEdgeFactor(hexMap.detailGridDensity)
+  const detailHexMap = new Map<string, string>(
+    hexMap.detailHexes.map((h) => [`${h.q},${h.r}`, h.terrain]),
+  )
+
+  const displayTerrain = computeParentDisplayTerrain(
+    parentHex.q,
+    parentHex.r,
+    parentHex.terrain,
+    detailHexMap,
+    edgeFactor,
+  )
+  if (displayTerrain === parentHex.terrain) return null
+  return { q: parentHex.q, r: parentHex.r, terrain: displayTerrain }
+}
+
+// Aggregate all parent hexes. Returns "q,r" → updated Hex for only changed parents.
+export function aggregateAllDetailToParent(hexMap: HexMapData): Record<string, Hex> {
+  if (!hexMap.hexes?.length || !hexMap.detailHexes?.length) return {}
+
+  const edgeFactor = getEdgeFactor(hexMap.detailGridDensity)
+  const detailHexMap = new Map<string, string>(
+    hexMap.detailHexes.map((h) => [`${h.q},${h.r}`, h.terrain]),
+  )
+
   const updates: Record<string, Hex> = {}
-
-  for (const parentLandmark of parentLandmarks) {
-    const aggregated = aggregateDetailToParent(parentLandmark, hexMap.hexes)
-    if (aggregated) {
-      const key = `${aggregated.q},${aggregated.r}`
-      updates[key] = aggregated
+  for (const hex of hexMap.hexes) {
+    if (!hex.terrain) continue
+    const displayTerrain = computeParentDisplayTerrain(
+      hex.q,
+      hex.r,
+      hex.terrain,
+      detailHexMap,
+      edgeFactor,
+    )
+    if (displayTerrain !== hex.terrain) {
+      updates[`${hex.q},${hex.r}`] = { q: hex.q, r: hex.r, terrain: displayTerrain }
     }
   }
-
   return updates
 }
 
-/**
- * Expose aggregation API to window for the JS patch to call.
- */
+// Expose API to window for the JS patch to call.
 export function exposeAggregationAPI(): void {
   if (typeof window !== 'undefined') {
-    (window as any).TerrainAggregation = {
-      getMajorityTerrain,
-      findParentForDetailHex,
+    ;(window as any).TerrainAggregation = {
+      computeParentDisplayTerrain,
       aggregateDetailToParent,
       aggregateAllDetailToParent,
     }

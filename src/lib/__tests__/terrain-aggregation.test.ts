@@ -1,300 +1,241 @@
 import { describe, it, expect } from 'vitest'
 import {
+  getHexesInRadius,
+  computeParentDisplayTerrain,
   aggregateDetailToParent,
   aggregateAllDetailToParent,
 } from '$lib/terrain-aggregation'
 
-describe('terrain-aggregation', () => {
-  describe('aggregateDetailToParent', () => {
-    it('returns null if no detail hexes in anchor region', () => {
-      const hexes = [{ q: 0, r: 0, terrain: 'water' }]
-      const parent = {
-        gridLevel: 'parent' as const,
-        q: 0,
-        r: 0,
-        detailAnchorDQ: 10,
-        detailAnchorDR: 10,
-      }
+// ── getHexesInRadius ──────────────────────────────────────────────────────────
 
-      const result = aggregateDetailToParent(parent, hexes)
-
-      expect(result).toBeNull()
-    })
-
-    it('computes majority terrain from detail hexes', () => {
-      const hexes = [
-        { q: 11, r: 9, terrain: 'plains' },
-        { q: 11, r: 10, terrain: 'plains' },
-        { q: 12, r: 10, terrain: 'plains' },
-        { q: 11, r: 11, terrain: 'mountain' },
-        { q: 12, r: 11, terrain: 'mountain' },
-      ]
-      const parent = {
-        gridLevel: 'parent' as const,
-        q: 0,
-        r: 0,
-        detailAnchorDQ: 11,
-        detailAnchorDR: 10,
-      }
-
-      const result = aggregateDetailToParent(parent, hexes)
-
-      expect(result).not.toBeNull()
-      expect(result?.terrain).toBe('plains') // 3 plains vs 2 mountains
-      expect(result?.q).toBe(0)
-      expect(result?.r).toBe(0)
-    })
-
-    it('handles all hexes being the same terrain', () => {
-      const hexes = [
-        { q: 11, r: 9, terrain: 'water' },
-        { q: 11, r: 10, terrain: 'water' },
-        { q: 12, r: 10, terrain: 'water' },
-      ]
-      const parent = {
-        gridLevel: 'parent' as const,
-        q: 0,
-        r: 0,
-        detailAnchorDQ: 11,
-        detailAnchorDR: 10,
-      }
-
-      const result = aggregateDetailToParent(parent, hexes)
-
-      expect(result?.terrain).toBe('water')
-    })
-
-    it('handles single detail hex', () => {
-      const hexes = [{ q: 11, r: 10, terrain: 'forest' }]
-      const parent = {
-        gridLevel: 'parent' as const,
-        q: 0,
-        r: 0,
-        detailAnchorDQ: 11,
-        detailAnchorDR: 10,
-      }
-
-      const result = aggregateDetailToParent(parent, hexes)
-
-      expect(result?.terrain).toBe('forest')
-    })
-
-    it('uses default anchor values when detailAnchorDQ/DR not set', () => {
-      const hexes = [{ q: 0, r: 0, terrain: 'mountain' }]
-      const parent = {
-        gridLevel: 'parent' as const,
-        q: 0,
-        r: 0,
-      }
-
-      const result = aggregateDetailToParent(parent, hexes)
-
-      expect(result?.terrain).toBe('mountain')
-    })
-
-    it('filters hexes outside anchor region radius', () => {
-      const hexes = [
-        { q: 11, r: 10, terrain: 'plains' }, // in region
-        { q: 12, r: 10, terrain: 'plains' }, // in region
-        { q: 100, r: 100, terrain: 'water' }, // outside region
-      ]
-      const parent = {
-        gridLevel: 'parent' as const,
-        q: 0,
-        r: 0,
-        detailAnchorDQ: 11,
-        detailAnchorDR: 10,
-      }
-
-      const result = aggregateDetailToParent(parent, hexes)
-
-      // Should only count the 2 in-region plains hexes, ignore the water hex
-      expect(result?.terrain).toBe('plains')
-    })
+describe('getHexesInRadius', () => {
+  it('radius 0 returns only center', () => {
+    const cells = getHexesInRadius(3, -2, 0)
+    expect(cells).toHaveLength(1)
+    expect(cells[0]).toEqual({ q: 3, r: -2 })
   })
 
-  describe('aggregateAllDetailToParent', () => {
-    it('returns empty object if no hexes', () => {
-      const hexMap = {
+  it('radius 1 returns 7 cells (density-7 cluster)', () => {
+    const cells = getHexesInRadius(0, 0, 1)
+    expect(cells).toHaveLength(7)
+    expect(cells).toContainEqual({ q: 0, r: 0 })
+    expect(cells).toContainEqual({ q: 1, r: 0 })
+    expect(cells).toContainEqual({ q: -1, r: 0 })
+    expect(cells).toContainEqual({ q: 0, r: 1 })
+    expect(cells).toContainEqual({ q: 0, r: -1 })
+    expect(cells).toContainEqual({ q: 1, r: -1 })
+    expect(cells).toContainEqual({ q: -1, r: 1 })
+  })
+
+  it('radius 2 returns 19 cells (density-19 cluster)', () => {
+    expect(getHexesInRadius(0, 0, 2)).toHaveLength(19)
+  })
+
+  it('radius 3 returns 37 cells (density-37 cluster)', () => {
+    expect(getHexesInRadius(0, 0, 3)).toHaveLength(37)
+  })
+
+  it('works with negative center coordinates', () => {
+    const cells = getHexesInRadius(-4, 6, 1)
+    expect(cells).toHaveLength(7)
+    expect(cells).toContainEqual({ q: -4, r: 6 })
+  })
+})
+
+// ── computeParentDisplayTerrain ───────────────────────────────────────────────
+
+describe('computeParentDisplayTerrain', () => {
+  it('returns baseTerrain when no detail hexes exist', () => {
+    const result = computeParentDisplayTerrain(0, 0, 'plains', new Map(), 2)
+    expect(result).toBe('plains')
+  })
+
+  it('majority custom terrain wins (5 forest + 2 empty → forest)', () => {
+    // Parent (0,0) ef=2 → cluster center (0,0) radius 1 → 7 cells
+    // 5 painted forest, 2 empty → default to baseTerrain "plains"
+    const cells = getHexesInRadius(0, 0, 1)
+    const detailHexMap = new Map<string, string>()
+    cells.slice(0, 5).forEach((c) => detailHexMap.set(`${c.q},${c.r}`, 'forest'))
+
+    expect(computeParentDisplayTerrain(0, 0, 'plains', detailHexMap, 2)).toBe('forest')
+  })
+
+  it('base terrain wins when painted cells are minority (3 forest + 4 empty → plains)', () => {
+    const cells = getHexesInRadius(0, 0, 1)
+    const detailHexMap = new Map<string, string>()
+    cells.slice(0, 3).forEach((c) => detailHexMap.set(`${c.q},${c.r}`, 'forest'))
+
+    expect(computeParentDisplayTerrain(0, 0, 'plains', detailHexMap, 2)).toBe('plains')
+  })
+
+  it('tie: baseTerrain wins when included in tied group', () => {
+    // mountain=3, water=1, plains=3 (empty cells default to base) → tie [mountain, plains]
+    // base "plains" is in tie → plains wins
+    const cells = getHexesInRadius(5, 5, 1)
+    const detailHexMap = new Map<string, string>()
+    cells.slice(0, 3).forEach((c) => detailHexMap.set(`${c.q},${c.r}`, 'mountain'))
+    detailHexMap.set(`${cells[6].q},${cells[6].r}`, 'water')
+    // cells[3..5] empty → default to "plains"
+
+    expect(computeParentDisplayTerrain(5, 5, 'plains', detailHexMap, 2)).toBe('plains')
+  })
+
+  it('tie: alphabetical order wins when baseTerrain not in tied group', () => {
+    // 3 forest + 3 mountain + 1 empty(=plains base) → forest=3, mountain=3, plains=1
+    // tie [forest, mountain], base "plains" not in tie → alphabetical → "forest"
+    const cells = getHexesInRadius(0, 0, 1)
+    const detailHexMap = new Map<string, string>()
+    cells.slice(0, 3).forEach((c) => detailHexMap.set(`${c.q},${c.r}`, 'forest'))
+    cells.slice(3, 6).forEach((c) => detailHexMap.set(`${c.q},${c.r}`, 'mountain'))
+    // cells[6] empty → plains
+
+    expect(computeParentDisplayTerrain(0, 0, 'plains', detailHexMap, 2)).toBe('forest')
+  })
+
+  it('density-19: edgeFactor 3, cluster center = 3× parent coords', () => {
+    // Parent (4,-3) ef=3 → cluster center (12,-9), radius=2, 19 cells
+    const cells = getHexesInRadius(12, -9, 2)
+    const detailHexMap = new Map<string, string>()
+    cells.slice(0, 15).forEach((c) => detailHexMap.set(`${c.q},${c.r}`, 'water'))
+
+    expect(computeParentDisplayTerrain(4, -3, 'desert', detailHexMap, 3)).toBe('water')
+  })
+
+  it('density-37: edgeFactor 4, cluster center = 4× parent coords', () => {
+    // Parent (1,1) ef=4 → cluster center (4,4), radius=3, 37 cells
+    const cells = getHexesInRadius(4, 4, 3)
+    const detailHexMap = new Map<string, string>()
+    cells.slice(0, 20).forEach((c) => detailHexMap.set(`${c.q},${c.r}`, 'tundra'))
+
+    expect(computeParentDisplayTerrain(1, 1, 'grassland', detailHexMap, 4)).toBe('tundra')
+  })
+
+  it('works with negative parent coordinates', () => {
+    // Parent (-382,219) ef=2 → cluster center (-764,438), radius=1
+    const cells = getHexesInRadius(-764, 438, 1)
+    const detailHexMap = new Map<string, string>()
+    cells.slice(0, 5).forEach((c) => detailHexMap.set(`${c.q},${c.r}`, 'plains'))
+
+    expect(computeParentDisplayTerrain(-382, 219, 'forest', detailHexMap, 2)).toBe('plains')
+  })
+})
+
+// ── aggregateDetailToParent ───────────────────────────────────────────────────
+
+describe('aggregateDetailToParent', () => {
+  it('returns null when detailHexes is empty', () => {
+    expect(
+      aggregateDetailToParent({ q: 0, r: 0, terrain: 'plains' }, { hexes: [], detailHexes: [] }),
+    ).toBeNull()
+  })
+
+  it('returns null when terrain would not change', () => {
+    // testMap-style: 4 different terrains + 3 empty(=plains) → plains majority → no change
+    // Parent (3,-2) ef=2 → cluster center (6,-4), 7 cells
+    // detailHexes at (5,-4), (6,-5), (5,-3), (6,-3) are 4 of the 7
+    // counts: forest=1, mountain=1, water=1, tundra=1, plains=3 → plains wins
+    expect(
+      aggregateDetailToParent(
+        { q: 3, r: -2, terrain: 'plains' },
+        {
+          hexes: [{ q: 3, r: -2, terrain: 'plains' }],
+          detailHexes: [
+            { q: 5, r: -4, terrain: 'forest' },
+            { q: 6, r: -5, terrain: 'mountain' },
+            { q: 5, r: -3, terrain: 'water' },
+            { q: 6, r: -3, terrain: 'tundra' },
+          ],
+          detailGridDensity: 7,
+        },
+      ),
+    ).toBeNull()
+  })
+
+  it('returns updated hex when majority terrain differs', () => {
+    // 5 of 7 cluster cells painted forest → forest > plains (2 empty)
+    const clusterCells = getHexesInRadius(0, 0, 1)
+    const result = aggregateDetailToParent(
+      { q: 0, r: 0, terrain: 'plains' },
+      {
+        hexes: [{ q: 0, r: 0, terrain: 'plains' }],
+        detailHexes: clusterCells.slice(0, 5).map((c) => ({ ...c, terrain: 'forest' })),
+        detailGridDensity: 7,
+      },
+    )
+    expect(result?.terrain).toBe('forest')
+    expect(result?.q).toBe(0)
+    expect(result?.r).toBe(0)
+  })
+
+  it('defaults to density-7 when detailGridDensity is absent', () => {
+    const clusterCells = getHexesInRadius(0, 0, 1)
+    const result = aggregateDetailToParent(
+      { q: 0, r: 0, terrain: 'plains' },
+      {
+        hexes: [{ q: 0, r: 0, terrain: 'plains' }],
+        detailHexes: clusterCells.slice(0, 5).map((c) => ({ ...c, terrain: 'water' })),
+      },
+    )
+    expect(result?.terrain).toBe('water')
+  })
+})
+
+// ── aggregateAllDetailToParent ────────────────────────────────────────────────
+
+describe('aggregateAllDetailToParent', () => {
+  it('returns {} when detailHexes is empty', () => {
+    expect(
+      aggregateAllDetailToParent({
+        hexes: [{ q: 0, r: 0, terrain: 'plains' }],
+        detailHexes: [],
+      }),
+    ).toEqual({})
+  })
+
+  it('returns {} when hexes is empty', () => {
+    expect(
+      aggregateAllDetailToParent({
         hexes: [],
-        landmarks: [],
-      }
+        detailHexes: [{ q: 0, r: 0, terrain: 'forest' }],
+      }),
+    ).toEqual({})
+  })
 
-      const result = aggregateAllDetailToParent(hexMap)
-
-      expect(result).toEqual({})
+  it('only returns parents whose terrain actually changes', () => {
+    // Parent A (0,0) plains: 5/7 cells painted forest → updates
+    // Parent B (10,10) desert: no detail hexes in its cluster (center 20,20) → no change
+    const clusterA = getHexesInRadius(0, 0, 1)
+    const result = aggregateAllDetailToParent({
+      hexes: [
+        { q: 0, r: 0, terrain: 'plains' },
+        { q: 10, r: 10, terrain: 'desert' },
+      ],
+      detailHexes: clusterA.slice(0, 5).map((c) => ({ ...c, terrain: 'forest' })),
+      detailGridDensity: 7,
     })
 
-    it('returns empty object if no landmarks', () => {
-      const hexMap = {
-        hexes: [{ q: 0, r: 0, terrain: 'water' }],
-        landmarks: [],
-      }
+    expect(result['0,0']?.terrain).toBe('forest')
+    expect(result['10,10']).toBeUndefined()
+  })
 
-      const result = aggregateAllDetailToParent(hexMap)
-
-      expect(result).toEqual({})
+  it('handles multiple parents in one pass', () => {
+    // Parent A (0,0) plains → 5 forest → updates to forest
+    // Parent B (5,0) grassland → 5 water → updates to water
+    const clusterA = getHexesInRadius(0, 0, 1)
+    const clusterB = getHexesInRadius(10, 0, 1) // ef=2 → center (10,0)
+    const result = aggregateAllDetailToParent({
+      hexes: [
+        { q: 0, r: 0, terrain: 'plains' },
+        { q: 5, r: 0, terrain: 'grassland' },
+      ],
+      detailHexes: [
+        ...clusterA.slice(0, 5).map((c) => ({ ...c, terrain: 'forest' })),
+        ...clusterB.slice(0, 5).map((c) => ({ ...c, terrain: 'water' })),
+      ],
+      detailGridDensity: 7,
     })
 
-    it('returns empty object if no parent landmarks', () => {
-      const hexMap = {
-        hexes: [{ q: 0, r: 0, terrain: 'water' }],
-        landmarks: [
-          {
-            gridLevel: 'detail' as const,
-            q: 0,
-            r: 0,
-          },
-        ],
-      }
-
-      const result = aggregateAllDetailToParent(hexMap)
-
-      expect(result).toEqual({})
-    })
-
-    it('aggregates multiple parents independently', () => {
-      const hexMap = {
-        hexes: [
-          // Parent 1's detail region (anchor 11, 10, center at 0+11, 0+10)
-          { q: 11, r: 9, terrain: 'plains' },
-          { q: 11, r: 10, terrain: 'plains' },
-          { q: 12, r: 10, terrain: 'plains' },
-          // Parent 2's detail region (anchor 100, 100, center at 100+100, 100+100)
-          { q: 200, r: 198, terrain: 'mountain' },
-          { q: 200, r: 199, terrain: 'mountain' },
-          { q: 201, r: 199, terrain: 'forest' }, // minority
-        ],
-        landmarks: [
-          {
-            gridLevel: 'parent' as const,
-            q: 0,
-            r: 0,
-            detailAnchorDQ: 11,
-            detailAnchorDR: 10,
-          },
-          {
-            gridLevel: 'parent' as const,
-            q: 100,
-            r: 100,
-            detailAnchorDQ: 100,
-            detailAnchorDR: 99,
-          },
-        ],
-      }
-
-      const result = aggregateAllDetailToParent(hexMap)
-
-      expect(result['0,0']?.terrain).toBe('plains')
-      expect(result['100,100']?.terrain).toBe('mountain')
-      expect(Object.keys(result).length).toBe(2)
-    })
-
-    it('skips parents with no detail hexes in region', () => {
-      const hexMap = {
-        hexes: [
-          // Only detail hexes for parent 1, none for parent 2
-          { q: 11, r: 10, terrain: 'plains' },
-        ],
-        landmarks: [
-          {
-            gridLevel: 'parent' as const,
-            q: 0,
-            r: 0,
-            detailAnchorDQ: 11,
-            detailAnchorDR: 10,
-          },
-          {
-            gridLevel: 'parent' as const,
-            q: 100,
-            r: 100,
-            detailAnchorDQ: 200,
-            detailAnchorDR: 200,
-          },
-        ],
-      }
-
-      const result = aggregateAllDetailToParent(hexMap)
-
-      expect(result['0,0']?.terrain).toBe('plains')
-      expect(result['100,100']).toBeUndefined()
-      expect(Object.keys(result).length).toBe(1)
-    })
-
-    it('handles large hexmap with mixed terrain types', () => {
-      const hexMap = {
-        hexes: Array.from({ length: 20 }, (_, i) => ({
-          q: 11 + Math.floor(i / 5),
-          r: 10 + (i % 5),
-          terrain: i < 12 ? 'grassland' : 'water',
-        })),
-        landmarks: [
-          {
-            gridLevel: 'parent' as const,
-            q: 0,
-            r: 0,
-            detailAnchorDQ: 11,
-            detailAnchorDR: 10,
-          },
-        ],
-      }
-
-      const result = aggregateAllDetailToParent(hexMap)
-
-      expect(result['0,0']).toBeDefined()
-      expect(result['0,0']?.terrain).toBe('grassland') // 12 grassland vs 8 water
-    })
-
-    it('filters out non-parent landmarks', () => {
-      const hexMap = {
-        hexes: [{ q: 11, r: 10, terrain: 'mountain' }],
-        landmarks: [
-          {
-            gridLevel: 'detail' as const,
-            q: 11,
-            r: 10,
-          },
-          {
-            gridLevel: 'parent' as const,
-            q: 0,
-            r: 0,
-            detailAnchorDQ: 11,
-            detailAnchorDR: 10,
-          },
-          {
-            gridLevel: 'detail' as const,
-            q: 50,
-            r: 50,
-          },
-        ],
-      }
-
-      const result = aggregateAllDetailToParent(hexMap)
-
-      // Should only process the parent landmark, ignore detail landmarks
-      expect(Object.keys(result).length).toBe(1)
-      expect(result['0,0']?.terrain).toBe('mountain')
-    })
-
-    it('matches coordinate key format "q,r"', () => {
-      const hexMap = {
-        hexes: [{ q: -382, r: 219, terrain: 'plains' }],
-        landmarks: [
-          {
-            gridLevel: 'parent' as const,
-            q: -382,
-            r: 219,
-            detailAnchorDQ: 1,
-            detailAnchorDR: -1,
-          },
-        ],
-      }
-
-      const result = aggregateAllDetailToParent(hexMap)
-
-      expect(result['-382,219']).toBeDefined()
-      expect(result['-382,219']?.q).toBe(-382)
-      expect(result['-382,219']?.r).toBe(219)
-    })
+    expect(result['0,0']?.terrain).toBe('forest')
+    expect(result['5,0']?.terrain).toBe('water')
   })
 })
