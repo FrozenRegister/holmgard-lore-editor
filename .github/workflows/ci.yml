@@ -135,6 +135,7 @@ jobs:
           cache: pnpm
 
       - name: Debug workspace
+        shell: bash
         run: |
           echo "PWD: $(pwd)"
           echo "Files at root:"; ls -la
