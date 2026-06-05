@@ -71,14 +71,18 @@
 
   // Screen-space circumradius for the given grid level.
   // hexSize * vp.scale = CSS-pixel circumradius (confirmed by hexmap-render-patch formula).
+  function getEdgeFactor() {
+    const m = hm()
+    const density = (m && m.detailGridDensity) || 19
+    return { 7: 2, 19: 3, 37: 4 }[density] || 3
+  }
+
   function screenRadius(gridLevel) {
     const m = hm()
     if (!m || !m.viewport) return 50
     const parentR = m.hexSize * m.viewport.scale
     if (gridLevel === 'parent') return parentR
-    const density = m.detailGridDensity || 19
-    const edgeFactor = { 7: 2, 19: 3, 37: 4 }[density] || 3
-    return parentR / edgeFactor
+    return parentR / getEdgeFactor()
   }
 
   // Auto-detect the right grid level based on current zoom.
@@ -172,6 +176,64 @@
     return { q, r }
   }
 
+  // ── Water detection ─────────────────────────────────────────────────────────
+
+  const WATER_TERRAINS = new Set([
+    'ocean', 'deep_ocean', 'sea', 'lake', 'water', 'deep_water', 'shallow_water',
+    'coast', 'marsh', 'wetland', 'swamp',
+  ])
+
+  function getHexTerrain(q, r) {
+    const m = hm()
+    if (!m || !m.hexes) return null
+    const key = q + ',' + r
+    if (m.hexes instanceof Map) return (m.hexes.get(key) || {}).terrain || null
+    if (Array.isArray(m.hexes)) {
+      for (const hex of m.hexes) { if (hex.q === q && hex.r === r) return hex.terrain }
+    }
+    return null
+  }
+
+  function isWater(q, r) {
+    const t = getHexTerrain(q, r)
+    return !!t && WATER_TERRAINS.has(t)
+  }
+
+  // Both parent hexes on either side of a canonical edge.
+  function edgeNeighbors(q, r, dir) {
+    const c = canonicalize(q, r, dir, 'parent')
+    const [dq, dr] = DIR_VECTORS[c.dir]
+    return [{ q: c.q, r: c.r }, { q: c.q + dq, r: c.r + dr }]
+  }
+
+  // ── Meander ─────────────────────────────────────────────────────────────────
+
+  // ── Detail → Parent projection ───────────────────────────────────────────────
+  // Returns the canonical parent-level edge that a detail edge lies on,
+  // or null if the detail edge is interior to one parent hex.
+  // Formula: pq = floor(dq / ef), pr = floor(dr / ef) (confirmed by terrain-aggregation.ts)
+  function detailEdgeToParent(dq, dr, dir) {
+    const ef = getEdgeFactor()
+    const pq = Math.floor(dq / ef)
+    const pr = Math.floor(dr / ef)
+    const [ddq, ddr] = DIR_VECTORS[dir]
+    const npq = Math.floor((dq + ddq) / ef)
+    const npr = Math.floor((dr + ddr) / ef)
+    if (pq === npq && pr === npr) return null
+    const dpq = npq - pq, dpr = npr - pr
+    for (let d = 0; d < 6; d++) {
+      if (DIR_VECTORS[d][0] === dpq && DIR_VECTORS[d][1] === dpr) {
+        return canonicalize(pq, pr, d, 'parent')
+      }
+    }
+    return null
+  }
+
+  function drawStraightEdge(ctx, pts) {
+    ctx.moveTo(pts[0].x, pts[0].y)
+    ctx.lineTo(pts[1].x, pts[1].y)
+  }
+
   // ── Tool state ──────────────────────────────────────────────────────────────
 
   let toolActive = false
@@ -263,29 +325,50 @@
 
     const edges = m.riverEdges
     const rivers = m.rivers || {}
+    const currentLevel = autoGridLevel()
 
-    // Group edges by river so we batch strokes per style
+    // Pass 1: collect edges at the current zoom level (explicit storage).
+    const effectiveEdges = {}
+    for (const [key, data] of Object.entries(edges)) {
+      if (parseEdgeKey(key).gridLevel === currentLevel) effectiveEdges[key] = data
+    }
+
+    // Pass 2 (parent view only): project detail edges onto their parent borders so
+    // rivers painted while zoomed in remain visible when zoomed out.
+    if (currentLevel === 'parent') {
+      for (const [key, data] of Object.entries(edges)) {
+        const { q, r, dir, gridLevel } = parseEdgeKey(key)
+        if (gridLevel !== 'detail') continue
+        const pe = detailEdgeToParent(q, r, dir)
+        if (!pe) continue
+        const pKey = `${pe.q},${pe.r},${pe.dir},parent`
+        if (!effectiveEdges[pKey]) effectiveEdges[pKey] = data
+      }
+    }
+
     const groups = {}
-    for (const key of Object.keys(edges)) {
-      const rid = edges[key].riverId
+    for (const [key, data] of Object.entries(effectiveEdges)) {
+      const rid = data.riverId
       if (!groups[rid]) groups[rid] = []
       groups[rid].push(key)
     }
 
     for (const [rid, keys] of Object.entries(groups)) {
       const river = rivers[rid] || { color: DEFAULT_COLOR, width: DEFAULT_WIDTH }
+      const color = river.color || DEFAULT_COLOR
       ctx.save()
-      ctx.strokeStyle = river.color || DEFAULT_COLOR
+      ctx.strokeStyle = color
+      ctx.fillStyle = color
       ctx.lineWidth = Math.max(1.5, (river.width || DEFAULT_WIDTH) * scale)
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
       ctx.setLineDash([])
       for (const key of keys) {
-        const { q, r, dir, gridLevel } = parseEdgeKey(key)
-        const pts = edgeEndpoints(q, r, dir, gridLevel)
+        const { q, r, dir } = parseEdgeKey(key)
+        // All keys in effectiveEdges are already at currentLevel, so use that for geometry.
+        const pts = edgeEndpoints(q, r, dir, currentLevel)
         ctx.beginPath()
-        ctx.moveTo(pts[0].x, pts[0].y)
-        ctx.lineTo(pts[1].x, pts[1].y)
+        drawStraightEdge(ctx, pts)
         ctx.stroke()
       }
       ctx.restore()
@@ -303,8 +386,7 @@
       ctx.setLineDash([5, 5])
       ctx.globalAlpha = 0.75
       ctx.beginPath()
-      ctx.moveTo(pts[0].x, pts[0].y)
-      ctx.lineTo(pts[1].x, pts[1].y)
+      drawStraightEdge(ctx, pts)
       ctx.stroke()
       ctx.restore()
     }
