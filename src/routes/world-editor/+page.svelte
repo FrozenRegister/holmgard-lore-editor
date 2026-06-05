@@ -1,9 +1,4 @@
 <script lang="ts">
-  // svelte-ignore a11y-click-events-have-key-events
-  // svelte-ignore a11y-no-static-element-interactions
-  // svelte-ignore a11y-label-has-associated-control
-  // TODO: Refactor interactive divs and labels to use proper button elements and form associations for accessibility compliance
-
   import { onMount, onDestroy } from 'svelte';
   import { showToast } from '$lib/stores';
 
@@ -270,8 +265,6 @@
 </svelte:head>
 
 <style>
-  /* svelte-ignore css-unused-selector */
-  /* TODO: Fix embed-mode and marketing-demo styles — these are applied dynamically at runtime when mode classes are added to html element */
   html.embed-mode body { overflow: hidden; }
   html.embed-mode .topbar,
   html.embed-mode .sidebar-left,
