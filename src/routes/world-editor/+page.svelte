@@ -997,7 +997,7 @@
               </div>
             </div>
 
-            <div class="setting-group">
+            <div class="setting-group" id="hexEarthDrilldownGroup">
               <h3>Region Drill-down</h3>
               <div class="setting-item">
                 <div>

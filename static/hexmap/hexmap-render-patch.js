@@ -71,15 +71,9 @@
         if (ok !== false) {
           activeId = id;
           highlightActive();
-          // Capture the fitted scale as "home" and start a cooldown so the
-          // zoom-watcher doesn't immediately re-trigger off the fit animation.
-          cooldownUntil = Date.now() + 1500;
-          setTimeout(() => {
-            if (window.state && window.state.hexMap) {
-              homeScale = window.state.hexMap.viewport.scale;
-            }
-          }, 120);
           console.log(`${TAG} Loaded region '${id}' (${region.hexes} hexes)`);
+          // homeScale + cooldown are (re)captured by onMapChanged, which fires
+          // via the wrapped loadMapDataIntoState for every map load.
         }
         return ok;
       })
@@ -175,6 +169,7 @@
 
   function startZoomWatcher() {
     setInterval(() => {
+      if (!isEarthMap()) return; // never act on other worlds (e.g. workingMap)
       const cfg = readZoomCfg();
       if (!cfg.autoZoom) return;
       if (!window.state || !window.state.hexMap || homeScale == null) return;
@@ -190,6 +185,52 @@
         loadRegion('world');
       }
     }, 250);
+  }
+
+  // ---- Earth-instance gating ------------------------------------------------
+  // The region switcher, zoom-to-load, and drill-down settings only apply to
+  // the Earth 996 world. Any other world (e.g. workingMap.json) is left alone.
+  function isEarthMap() {
+    const hm = window.state && window.state.hexMap;
+    return !!hm && String(hm.mapInstanceId || '').indexOf('earth-996') === 0;
+  }
+
+  // Show/hide the Earth-only UI and (re)sync state whenever the active map
+  // changes. Called after every loadMapDataIntoState via the wrapper below.
+  function onMapChanged() {
+    const earth = isEarthMap();
+
+    // Drill-down settings section lives in the Svelte settings modal.
+    const grp = document.getElementById('hexEarthDrilldownGroup');
+    if (grp) grp.style.display = earth ? '' : 'none';
+
+    let bar = document.getElementById('hexEarthSwitcher');
+    if (earth) {
+      if (!bar) { buildSwitcher(); bar = document.getElementById('hexEarthSwitcher'); }
+      if (bar) bar.style.display = 'flex';
+      // Sync active region from the loaded map + recapture the fitted scale.
+      const id = String(window.state.hexMap.mapInstanceId || '');
+      const match = manifest.find((r) => r.mapInstanceId === id);
+      if (match) { activeId = match.id; highlightActive(); }
+      cooldownUntil = Date.now() + 1500;
+      setTimeout(() => {
+        if (window.state && window.state.hexMap) homeScale = window.state.hexMap.viewport.scale;
+      }, 120);
+    } else if (bar) {
+      bar.style.display = 'none';
+    }
+  }
+
+  // Decorate game.js's loader so we react to every map load (ours + Open Map).
+  function wrapLoader() {
+    if (window.__hexEarthLoaderWrapped) return;
+    const orig = window.loadMapDataIntoState;
+    window.loadMapDataIntoState = function () {
+      const res = orig.apply(this, arguments);
+      setTimeout(onMapChanged, 50);
+      return res;
+    };
+    window.__hexEarthLoaderWrapped = true;
   }
 
   // ---- Wait for game.js, then init ------------------------------------------
@@ -212,10 +253,19 @@
         manifest = data.regions || [];
         console.log(`${TAG} ${manifest.length} regions available:`, manifest.map((r) => r.id).join(', '));
         whenReady(() => {
-          buildSwitcher();
-          const def = manifest.find((r) => r.isDefault) || manifest[0];
-          if (def) loadRegion(def.id);
+          wrapLoader();
           startZoomWatcher();
+          const hm = window.state.hexMap;
+          const count = hm && Array.isArray(hm.hexes) ? hm.hexes.length
+                      : (hm && hm.hexes ? Object.keys(hm.hexes).length : 0);
+          if (isEarthMap()) {
+            onMapChanged();              // already on an Earth map -> sync UI
+          } else if (count > 0) {
+            onMapChanged();              // another world is loaded -> leave it alone
+          } else {
+            const def = manifest.find((r) => r.isDefault) || manifest[0];
+            if (def) loadRegion(def.id); // blank -> default to the Earth world
+          }
         });
       })
       .catch((err) => console.error(`${TAG} Could not load region manifest:`, err));
