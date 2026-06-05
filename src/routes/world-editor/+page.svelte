@@ -174,6 +174,7 @@
       '/hexmap/mcp-auth.js',
       '/hexmap/mcp-storage.js',
       '/hexmap/game.js',
+      '/hexmap/hexmap-render-patch.js',  // Boundary-based sparse hex rendering
       '/hexmap/compendium.js',
       '/hexmap/mobile-companion.js',
       '/hexmap/game-ui-bindings.js'  // Exposes game.js functions to window
