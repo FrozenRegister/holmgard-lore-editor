@@ -51,6 +51,15 @@ export const activeTopicKey = writable<string | null>(null);
 /** True when the viewport is mobile-width (≤768px). Set by the root layout. */
 export const isMobile = writable(false);
 
+/** Editor mode in the world map ('edit' or 'explorer'). Updated when switching view modes. */
+export const editorMode = writable<'edit' | 'explorer'>('edit');
+
+/** Auto-collapse sidebar when on world map in edit mode */
+export const collapseSidebar = derived(
+  [editorMode],
+  ([$editorMode]) => $editorMode === 'edit'
+);
+
 // ── Topic list filters (persisted to localStorage) ────────────────────────────
 
 function createFilterStore<T>(key: string, defaultValue: T) {
