@@ -1,4 +1,7 @@
 declare global {
+  // eslint-disable-next-line no-var
+  var __TAURI__: unknown;
+
   interface Window {
     state?: any;
     zoomIn?: () => void;
