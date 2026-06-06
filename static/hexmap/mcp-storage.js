@@ -1,7 +1,7 @@
 
 
 // ============================================================================
-// HEXATLAS MCP STORAGE ADAPTER (Local-first, no API key required)
+// HEXMAP MCP STORAGE ADAPTER (Local-first, no API key required)
 // Replaces cloud-storage.js
 // ============================================================================
 
@@ -32,6 +32,22 @@ function makeHeaders() {
 
 // ---- LOCAL STORAGE HELPERS --------------------------------------------------
 
+var LAST_MAP_KEY = 'mcp_last_map_id';
+
+function isEarthMap(mapId) {
+  return !mapId || String(mapId).indexOf('earth-') === 0;
+}
+
+function setLastMapId(mapId) {
+  if (!isEarthMap(mapId)) {
+    localStorage.setItem(LAST_MAP_KEY, String(mapId));
+  }
+}
+
+window.getLastOpenedMapId = function() {
+  return localStorage.getItem(LAST_MAP_KEY) || null;
+};
+
 function localSave(mapId, state) {
   var key = MCP_STORAGE_CONFIG.localPrefix + (mapId || 'local_' + Date.now().toString(36));
   localStorage.setItem(key, JSON.stringify({
@@ -39,6 +55,7 @@ function localSave(mapId, state) {
     state: state,
     savedAt: Date.now()
   }));
+  setLastMapId(mapId);
   return { mapId: mapId, saved: true, source: 'local' };
 }
 
@@ -47,7 +64,9 @@ function localLoad(mapId) {
   var raw = localStorage.getItem(key);
   if (!raw) return null;
   try {
-    return JSON.parse(raw).state;
+    var parsed = JSON.parse(raw).state;
+    if (parsed) setLastMapId(mapId);
+    return parsed;
   } catch (_) {
     return null;
   }

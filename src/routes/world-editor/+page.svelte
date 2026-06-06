@@ -333,7 +333,7 @@
   <div style="display:flex;flex-direction:column;align-items:center;gap:16px;width:280px;">
     <img src="/hexmap/small_logo.svg" alt="TbdHEX" style="width:72px;height:72px;animation:ldPulse 2s ease-in-out infinite;" />
     <div style="font-size:28px;font-weight:700;letter-spacing:-0.02em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;">
-      <span style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Hex</span><span style="color:#f0f4f8;">Atlas</span>
+      <span style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Hex</span><span style="color:#f0f4f8;">Map</span>
     </div>
     <div style="width:100%;height:4px;background:#1e2530;border-radius:2px;overflow:hidden;margin-top:4px;">
       <div id="loadingBar" style="height:100%;width:5%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:2px;transition:width 0.3s ease;"></div>
@@ -347,10 +347,10 @@
   <!-- Topbar with file menu, save, etc. - this is populated by game.js -->
   <div class="topbar" style="display: flex !important; align-items: center !important;">
     <div class="topbar-left" style="display: flex !important; align-items: center !important; flex: 1 !important;">
-      <a href="/world-editor" class="logo" aria-label="HexAtlas home" style="display: flex !important; align-items: center !important; gap: 12px !important; text-decoration: none !important; color: inherit !important;">
+      <a href="/world-editor" class="logo" aria-label="HexMap home" style="display: flex !important; align-items: center !important; gap: 12px !important; text-decoration: none !important; color: inherit !important;">
         <img src="/hexmap/small_logo.svg" alt="TbdHEX" class="logo-icon" style="width: 40px; height: 40px;" />
-        <span class="logo-text" style="display: flex !important; gap: 2px !important;"><span class="logo-hex-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Hex</span><span class="logo-atlas-text" style="color: #f0f4f8;">Atlas</span></span>
-        <span class="mobile-logo-wordmark" aria-hidden="true" style="display: flex !important; gap: 2px !important;"><span class="logo-hex-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Hex</span><span class="logo-atlas-text" style="color: #f0f4f8;">Atlas</span></span>
+        <span class="logo-text" style="display: flex !important; gap: 2px !important;"><span class="logo-hex-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Hex</span><span class="logo-atlas-text" style="color: #f0f4f8;">Map</span></span>
+        <span class="mobile-logo-wordmark" aria-hidden="true" style="display: flex !important; gap: 2px !important;"><span class="logo-hex-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Hex</span><span class="logo-atlas-text" style="color: #f0f4f8;">Map</span></span>
         <span class="early-access-badge" style="font-size: 10px; padding: 2px 6px; background: rgba(102, 126, 234, 0.2); border-radius: 3px; color: #667eea;">Early Access</span>
       </a>
       <div class="breadcrumb" style="display: flex !important; align-items: center !important; margin-left: 24px !important; color: #cbd5e1; font-size: 14px !important;">
