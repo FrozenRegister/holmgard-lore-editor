@@ -1,6 +1,31 @@
 /**
  * Pure logic for the hierarchical hex world-map editor.
  * No DOM, no Svelte stores — safe to unit-test in Vitest.
+ *
+ * ── Status: dead code ──────────────────────────────────────────────────────────
+ * This module is NOT imported by any production code (no Svelte route or
+ * component references it). The app currently uses a different architecture:
+ * importing pre-made maps from external tools (Wonderdraft JSON exports) via
+ * mapIngest.ts → IndexedDB storage in mapDb.ts → Cloudflare Worker sync via
+ * mapSync.ts.
+ *
+ * ── Future leverage potential ──────────────────────────────────────────────────
+ * Keep this module around — it can be wired in later for:
+ *
+ *   • In-app map creation   – PerlinNoise + generateTiles() to seed a blank map
+ *   • Hex map rendering     – hexToPixel() / hexPoints() give pixel coords for
+ *                             any hex grid (pointy-top, wrapping support)
+ *   • Zoom-out / overview   – aggregateChildToParent() rolls child-region data
+ *                             up to a parent tile (majorityTerrain, averageElevation,
+ *                             unionOverlays)
+ *   • Region editing        – expandRegion() / mergeRegions() / boundsOverlap()
+ *                             for resizing/merging hierarchical regions
+ *   • Export / backup       – wrapMarkdown() / unwrapMarkdown() for markdown+JSON
+ *                             serialization
+ *
+ * Note (June 2026): This was the original procedural-generation approach. The
+ * project pivoted to importing external maps, but none of this logic was removed
+ * — it was simply never wired into the route tree.
  */
 
 // ── Types ──────────────────────────────────────────────────────────────────────
