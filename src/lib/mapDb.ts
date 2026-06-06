@@ -37,6 +37,8 @@ export interface LandmarkRecord {
 	attributes: string; // JSON.stringify of the original attributes object
 	linkedMapId: string | null;
 	visible: boolean;
+	/** Lore topic key (e.g. "location:crowkeep") this landmark is associated with. Null if unlinked. */
+	linkedLoreKey: string | null;
 }
 
 // ── Database schema ────────────────────────────────────────────────────────────
@@ -60,12 +62,13 @@ interface MapDBSchema extends DBSchema {
 		indexes: {
 			'by-map-q': [string, number]; // [mapId, q]
 			'by-map-type': [string, string]; // [mapId, type]
+			'by-map-linked-lore': [string, string]; // [mapId, linkedLoreKey] — null links are not indexed
 		};
 	};
 }
 
 const DB_NAME = 'holmgard-maps';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBPDatabase<MapDBSchema> | null = null;
 
@@ -79,7 +82,12 @@ export async function getMapDb(): Promise<IDBPDatabase<MapDBSchema>> {
 	}
 
 	dbInstance = await openDB<MapDBSchema>(DB_NAME, DB_VERSION, {
-		upgrade(db: IDBPDatabase<MapDBSchema>) {
+		async upgrade(
+			db: IDBPDatabase<MapDBSchema>,
+			oldVersion: number,
+			_newVersion: number | null,
+			tx: any
+		) {
 			// Maps store
 			if (!db.objectStoreNames.contains('maps')) {
 				db.createObjectStore('maps', { keyPath: 'instanceId' });
@@ -101,6 +109,26 @@ export async function getMapDb(): Promise<IDBPDatabase<MapDBSchema>> {
 				});
 				landmarkStore.createIndex('by-map-q', ['mapId', 'q']);
 				landmarkStore.createIndex('by-map-type', ['mapId', 'type']);
+				landmarkStore.createIndex('by-map-linked-lore', ['mapId', 'linkedLoreKey']);
+			}
+
+			// v2 migration: backfill linkedLoreKey on existing landmarks, then create index.
+			// Must use the upgrade's versionchange transaction (passed as 4th arg) — starting
+			// a new transaction inside upgrade throws InvalidStateError.
+			if (oldVersion < 2 && db.objectStoreNames.contains('landmarks')) {
+				const store = tx.objectStore('landmarks');
+				let cursor = await store.openCursor();
+				while (cursor) {
+					const v: any = cursor.value;
+					if (v.linkedLoreKey === undefined) {
+						v.linkedLoreKey = null;
+						await cursor.update(v);
+					}
+					cursor = await cursor.continue();
+				}
+				if (!store.indexNames.contains('by-map-linked-lore')) {
+					store.createIndex('by-map-linked-lore', ['mapId', 'linkedLoreKey']);
+				}
 			}
 		}
 	});
@@ -313,4 +341,86 @@ export async function updateMapPushedAt(
 export async function getMap(mapId: string): Promise<MapMeta | null> {
 	const db = await getMapDb();
 	return (await db.get('maps', mapId)) ?? null;
+}
+
+// ── Landmark linking (lore) ────────────────────────────────────────────────────
+
+/**
+ * Get a single landmark by map and landmark ID.
+ */
+export async function getLandmark(
+	mapId: string,
+	landmarkId: string
+): Promise<LandmarkRecord | null> {
+	const db = await getMapDb();
+	const r = (await db.get('landmarks', [mapId, landmarkId])) as LandmarkRecord | undefined;
+	if (!r) return null;
+	// Defensive: tolerate pre-v2 records that still lack the field.
+	return { ...r, linkedLoreKey: r.linkedLoreKey ?? null };
+}
+
+/**
+ * Upsert a landmark record. Preserves `linkedLoreKey` if not provided.
+ */
+export async function putLandmark(record: LandmarkRecord): Promise<void> {
+	const db = await getMapDb();
+	const existing = (await db.get('landmarks', [record.mapId, record.id])) as
+		| LandmarkRecord
+		| undefined;
+	const merged: LandmarkRecord = {
+		...record,
+		linkedLoreKey: record.linkedLoreKey ?? existing?.linkedLoreKey ?? null
+	};
+	await db.put('landmarks', merged);
+}
+
+/**
+ * Link a landmark to a lore topic key, or null to unlink.
+ * No-op if the landmark does not exist.
+ */
+export async function setLandmarkLinkedLore(
+	mapId: string,
+	landmarkId: string,
+	loreKey: string | null
+): Promise<LandmarkRecord | null> {
+	const db = await getMapDb();
+	const existing = (await db.get('landmarks', [mapId, landmarkId])) as
+		| LandmarkRecord
+		| undefined;
+	if (!existing) return null;
+	const updated: LandmarkRecord = { ...existing, linkedLoreKey: loreKey };
+	await db.put('landmarks', updated);
+	return updated;
+}
+
+/**
+ * Find all landmarks (across all maps) linked to a given lore key.
+ * Uses a full scan of the landmarks store, then filters by linkedLoreKey.
+ * Returns entries with `dist` field removed (not applicable across maps).
+ */
+export async function getLandmarksForLoreKey(
+	loreKey: string
+): Promise<LandmarkRecord[]> {
+	const db = await getMapDb();
+	const all = (await db.getAll('landmarks')) as LandmarkRecord[];
+	return all
+		.filter((l) => (l.linkedLoreKey ?? null) === loreKey)
+		.map((l) => ({ ...l, linkedLoreKey: l.linkedLoreKey ?? null }));
+}
+
+/**
+ * Find all landmarks on a specific map linked to a given lore key.
+ * Uses the `by-map-linked-lore` index for efficient lookup.
+ */
+export async function getLandmarksForLoreKeyOnMap(
+	mapId: string,
+	loreKey: string
+): Promise<LandmarkRecord[]> {
+	const db = await getMapDb();
+	const index = (db as any)
+		.transaction('landmarks')
+		.store.index('by-map-linked-lore');
+	const range = IDBKeyRange.bound([mapId, loreKey], [mapId, loreKey]);
+	const rows = (await index.getAll(range)) as LandmarkRecord[];
+	return rows.map((l: LandmarkRecord) => ({ ...l, linkedLoreKey: l.linkedLoreKey ?? null }));
 }

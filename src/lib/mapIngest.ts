@@ -81,7 +81,9 @@ export async function ingestMap(
 		await tx.done;
 	}
 
-	// Insert landmarks in chunks
+	// Insert landmarks in chunks.
+	// linkedLoreKey is null on fresh ingest; users attach lore entries via
+	// the /maps UI or setLandmarkLinkedLore() after ingest.
 	const landmarks = (data.landmarks || []).map(
 		(l): LandmarkRecord => ({
 			mapId,
@@ -93,7 +95,8 @@ export async function ingestMap(
 			notes: l.notes || '',
 			attributes: JSON.stringify(l.attributes || {}),
 			linkedMapId: l.linkedMapId ?? null,
-			visible: l.visible ?? true
+			visible: l.visible ?? true,
+			linkedLoreKey: null
 		})
 	);
 
