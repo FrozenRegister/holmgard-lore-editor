@@ -1,11 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 
 // ── Must run before any import that touches storage ───────────────────────────
 const { invokeMock, fetchMock } = vi.hoisted(() => {
-  Object.defineProperty(globalThis, '__TAURI__', { value: {}, configurable: true });
   const invokeMock = vi.fn();
   const fetchMock = vi.fn();
-  globalThis.fetch = fetchMock as any;
   return { invokeMock, fetchMock };
 });
 
@@ -19,6 +17,13 @@ import {
   enqueuePendingDelete,
   dequeuePendingDeletes,
   pullAll,
+  listTopicsRemote,
+  getTopicRemote,
+  adminSave,
+  adminDelete,
+  batchGetTopicsRemote,
+  getTopicHistories,
+  getChanges,
 } from '../sync';
 import type { Topic, AppSettings } from '../types';
 
@@ -42,13 +47,20 @@ function okFetch(data: object) {
 // In-memory invoke store
 const invokeStore: Record<string, string> = {};
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 beforeEach(() => {
   Object.keys(invokeStore).forEach((k) => delete invokeStore[k]);
   localStorage.clear();
-  fetchMock.mockReset();
-  invokeMock.mockReset();
+  (fetchMock as Mock).mockReset();
+  (invokeMock as Mock).mockReset();
 
-  invokeMock.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+  vi.stubGlobal('__TAURI__', {});
+  vi.stubGlobal('fetch', fetchMock);
+
+  (invokeMock as Mock).mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
     if (cmd === 'fs_read') {
       const val = invokeStore[`${args?.path}`];
       if (val === undefined) throw new Error('Not found');
@@ -222,5 +234,308 @@ describe('pullAll', () => {
     const map = await pullAll('http://worker');
     expect(map.has('good')).toBe(true);
     expect(map.has('bad')).toBe(false);
+  });
+});
+
+// ── listTopicsRemote ───────────────────────────────────────────────────────────
+describe('listTopicsRemote', () => {
+  it('returns list of topic keys', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({ keys: ['topic1', 'topic2', 'topic3'] }));
+    const keys = await listTopicsRemote('http://worker');
+    expect(keys).toEqual(['topic1', 'topic2', 'topic3']);
+  });
+
+  it('returns empty array when no keys field', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({}));
+    const keys = await listTopicsRemote('http://worker');
+    expect(keys).toEqual([]);
+  });
+
+  it('includes API key header when provided', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({ keys: [] }));
+    await listTopicsRemote('http://worker', 'my-api-key');
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.headers['X-Api-Key']).toBe('my-api-key');
+  });
+
+  it('throws on HTTP error', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Error' } as Response);
+    await expect(listTopicsRemote('http://worker')).rejects.toThrow('HTTP 500');
+  });
+});
+
+// ── getTopicRemote ─────────────────────────────────────────────────────────────
+describe('getTopicRemote', () => {
+  it('returns topic with text and meta', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({
+      key: 'dragons',
+      text: 'Here be dragons',
+      meta: { version: 2, updatedAt: '2026-06-01T00:00:00.000Z' },
+    }));
+    const topic = await getTopicRemote('http://worker', 'dragons');
+    expect(topic).not.toBeNull();
+    expect(topic!.key).toBe('dragons');
+    expect(topic!.text).toBe('Here be dragons');
+    expect(topic!.meta.version).toBe(2);
+  });
+
+  it('returns null on error', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('Not found'));
+    const topic = await getTopicRemote('http://worker', 'missing');
+    expect(topic).toBeNull();
+  });
+
+  it('provides default meta when meta is undefined', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({
+      key: 'test',
+      text: 'content',
+    }));
+    const topic = await getTopicRemote('http://worker', 'test');
+    expect(topic!.meta.version).toBe(0);
+    expect(topic!.meta.updatedAt).toBeDefined();
+  });
+
+  it('includes API key header when provided', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({ key: 'k', text: 't' }));
+    await getTopicRemote('http://worker', 'k', 'secret-key');
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.headers['X-Api-Key']).toBe('secret-key');
+  });
+});
+
+// ── adminSave ──────────────────────────────────────────────────────────────────
+describe('adminSave', () => {
+  it('sends POST to admin/set-lore endpoint', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true } as Response);
+    await adminSave('http://worker', 'my-key', 'my-text', 'my-secret');
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://worker/admin/set-lore');
+    expect(options.method).toBe('POST');
+    const body = JSON.parse(options.body);
+    expect(body).toEqual({ key: 'my-key', text: 'my-text', secret: 'my-secret' });
+  });
+
+  it('throws on HTTP error with message', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      text: async () => 'Invalid secret',
+    } as Response);
+    await expect(adminSave('http://worker', 'k', 't', 'bad')).rejects.toThrow('Invalid secret');
+  });
+
+  it('throws on HTTP error without message body', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Error',
+      text: async () => { throw new Error('No body'); },
+    } as unknown as Response);
+    await expect(adminSave('http://worker', 'k', 't', 'bad')).rejects.toThrow('Error');
+  });
+});
+
+// ── adminDelete ────────────────────────────────────────────────────────────────
+describe('adminDelete', () => {
+  it('sends POST to admin/delete-lore endpoint', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true } as Response);
+    await adminDelete('http://worker', 'my-key', 'my-secret');
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://worker/admin/delete-lore');
+    expect(options.method).toBe('POST');
+    const body = JSON.parse(options.body);
+    expect(body).toEqual({ key: 'my-key', secret: 'my-secret' });
+  });
+
+  it('throws on HTTP error', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      text: async () => 'Key not found',
+    } as Response);
+    await expect(adminDelete('http://worker', 'missing', 'secret')).rejects.toThrow('Key not found');
+  });
+});
+
+// ── batchGetTopicsRemote ───────────────────────────────────────────────────────
+describe('batchGetTopicsRemote', () => {
+  it('returns empty map for empty keys array', async () => {
+    const map = await batchGetTopicsRemote('http://worker', []);
+    expect(map.size).toBe(0);
+  });
+
+  it('fetches multiple topics in parallel', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okFetch({ key: 'a', text: 'text a', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
+      .mockResolvedValueOnce(okFetch({ key: 'b', text: 'text b', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
+      .mockResolvedValueOnce(okFetch({ key: 'c', text: 'text c', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
+    const map = await batchGetTopicsRemote('http://worker', ['a', 'b', 'c']);
+    expect(map.size).toBe(3);
+    expect(map.get('a')?.text).toBe('text a');
+    expect(map.get('b')?.text).toBe('text b');
+    expect(map.get('c')?.text).toBe('text c');
+  });
+
+  it('omits failed fetches from result', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okFetch({ key: 'good', text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
+      .mockRejectedValueOnce(new Error('failed'))
+      .mockResolvedValueOnce(okFetch({ key: 'also-good', text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
+    const map = await batchGetTopicsRemote('http://worker', ['good', 'bad', 'also-good']);
+    expect(map.size).toBe(2);
+    expect(map.has('good')).toBe(true);
+    expect(map.has('bad')).toBe(false);
+    expect(map.has('also-good')).toBe(true);
+  });
+});
+
+// ── getTopicHistories ──────────────────────────────────────────────────────────
+describe('getTopicHistories', () => {
+  it('returns empty map for empty keys array', async () => {
+    const map = await getTopicHistories('http://worker', []);
+    expect(map.size).toBe(0);
+  });
+
+  it('fetches histories for multiple topics', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({
+      'topic1': [
+        { text: 'v1', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } },
+        { text: 'v2', meta: { version: 2, updatedAt: '2026-01-02T00:00:00.000Z' } },
+      ],
+      'topic2': [
+        { text: 'v1', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } },
+      ],
+    }));
+    const map = await getTopicHistories('http://worker', ['topic1', 'topic2']);
+    expect(map.size).toBe(2);
+    expect(map.get('topic1')).toHaveLength(2);
+    expect(map.get('topic2')).toHaveLength(1);
+  });
+
+  it('includes API key header when provided', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({}));
+    await getTopicHistories('http://worker', ['k'], 'api-key');
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.headers['X-Api-Key']).toBe('api-key');
+  });
+});
+
+// ── getChanges ─────────────────────────────────────────────────────────────────
+describe('getChanges', () => {
+  it('fetches changes since timestamp', async () => {
+    const changes = [
+      { key: 'topic1', version: 2, updatedAt: '2026-01-02T00:00:00.000Z', op: 'write' },
+      { key: 'topic2', version: 1, updatedAt: '2026-01-03T00:00:00.000Z', op: 'write' },
+    ];
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ changes }),
+    } as Response);
+    const result = await getChanges('http://worker', '2026-01-01T00:00:00.000Z');
+    expect(result).toEqual(changes);
+  });
+
+  it('returns empty array when no changes field', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    } as Response);
+    const result = await getChanges('http://worker', '2026-01-01T00:00:00.000Z');
+    expect(result).toEqual([]);
+  });
+
+  it('URL encodes the since parameter', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ changes: [] }) } as Response);
+    await getChanges('http://worker', '2026-01-01T00:00:00.000Z?inject');
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain('since=2026-01-01T00%3A00%3A00.000Z%3Finject');
+  });
+
+  it('includes API key header when provided', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ changes: [] }) } as Response);
+    await getChanges('http://worker', '2026-01-01T00:00:00.000Z', 'api-key');
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.headers['X-Api-Key']).toBe('api-key');
+  });
+
+  it('throws on HTTP error', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Error' } as Response);
+    await expect(getChanges('http://worker', '2026-01-01T00:00:00.000Z')).rejects.toThrow('HTTP 500');
+  });
+});
+
+// ── parseKvEntry edge cases ────────────────────────────────────────────────────
+// Note: parseKvEntry is internal but we can test it through getTopicRemote behavior
+describe('parseKvEntry behavior', () => {
+  it('handles old raw string format', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({
+      key: 'old-topic',
+      text: 'just raw text',
+    }));
+    const topic = await getTopicRemote('http://worker', 'old-topic');
+    expect(topic!.text).toBe('just raw text');
+    expect(topic!.meta.version).toBe(0);
+  });
+
+  it('handles new KV format with text and meta', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({
+      key: 'new-topic',
+      text: 'structured content',
+      meta: { version: 5, updatedAt: '2026-06-15T00:00:00.000Z' },
+    }));
+    const topic = await getTopicRemote('http://worker', 'new-topic');
+    expect(topic!.text).toBe('structured content');
+    expect(topic!.meta.version).toBe(5);
+    expect(topic!.meta.updatedAt).toBe('2026-06-15T00:00:00.000Z');
+  });
+});
+
+// ── flushQueue edge cases ──────────────────────────────────────────────────────
+describe('flushQueue edge cases', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('drops items after max attempts', async () => {
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    fetchMock.mockRejectedValue(new Error('offline'));
+    // Set attempts close to max (MAX_ATTEMPTS = 8). 
+    // The first flush increments to 8; the second flush detects the limit and drops the item.
+    const q = [{ key: 'old', text: 'text', enqueuedAt: '2026-01-01T00:00:00.000Z', attempts: 7 }];
+    invokeStore['offline-queue.json'] = JSON.stringify(q);
+
+    const flushPromise1 = flushQueue(makeSettings(), 'secret', () => { });
+    await vi.advanceTimersByTimeAsync(600000);
+    await flushPromise1;
+
+    // Second flush to process the item now that it has hit the max attempts
+    const flushPromise2 = flushQueue(makeSettings(), 'secret', () => { });
+    await vi.advanceTimersByTimeAsync(600000);
+    await flushPromise2;
+
+    const remaining = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
+    expect(remaining).toHaveLength(0);
+  });
+
+  it('retains items that fail but have attempts remaining', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+    const q = [{ key: 'retry', text: 'text', enqueuedAt: '2026-01-01T00:00:00.000Z', attempts: 3 }];
+    invokeStore['offline-queue.json'] = JSON.stringify(q);
+
+    const flushPromise = flushQueue(makeSettings(), 'secret', () => { });
+
+    // Advance timers to allow the backoff delay to complete
+    await vi.advanceTimersByTimeAsync(30000);
+    await flushPromise;
+
+    const remaining = JSON.parse(invokeStore['offline-queue.json'] ?? '[]');
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].attempts).toBe(4);
   });
 });

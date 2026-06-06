@@ -26,8 +26,6 @@ function parseKvEntry(raw: string): { text: string; meta: TopicMeta } {
   return { text: raw, meta: { version: 1, updatedAt: new Date().toISOString() } };
 }
 
-
-
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
 
 async function rpc<T>(
