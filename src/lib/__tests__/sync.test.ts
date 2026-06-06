@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vite
 
 // ── Must run before any import that touches storage ───────────────────────────
 const { invokeMock, fetchMock } = vi.hoisted(() => {
+  // Set up __TAURI__ on window before any module that checks IS_TAURI
+  // This ensures storage.ts uses the Tauri code path (file-based) instead of IndexedDB
+  if (typeof window !== 'undefined') {
+    (window as any).__TAURI__ = {};
+  }
   const invokeMock = vi.fn();
   const fetchMock = vi.fn();
   return { invokeMock, fetchMock };
