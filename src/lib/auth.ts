@@ -1,5 +1,5 @@
 export async function getAdminSecret(): Promise<string | null> {
-  if ('__TAURI__' in window) {
+  if (typeof __TAURI__ !== 'undefined' && __TAURI__) {
     const { invoke } = await import('@tauri-apps/api/tauri');
     return await invoke<string | null>('keyring_get', { account: 'admin_secret' });
   }
@@ -7,7 +7,7 @@ export async function getAdminSecret(): Promise<string | null> {
 }
 
 export async function getClaudeApiKey(): Promise<string | null> {
-  if ('__TAURI__' in window) {
+  if (typeof __TAURI__ !== 'undefined' && __TAURI__) {
     const { invoke } = await import('@tauri-apps/api/tauri');
     return await invoke<string | null>('keyring_get', { account: 'claude_api_key' });
   }
@@ -15,7 +15,7 @@ export async function getClaudeApiKey(): Promise<string | null> {
 }
 
 export async function setClaudeApiKey(key: string): Promise<void> {
-  if ('__TAURI__' in window) {
+  if (typeof __TAURI__ !== 'undefined' && __TAURI__) {
     const { invoke } = await import('@tauri-apps/api/tauri');
     await invoke('keyring_set', { account: 'claude_api_key', value: key });
   } else {
@@ -24,7 +24,7 @@ export async function setClaudeApiKey(key: string): Promise<void> {
 }
 
 export async function clearClaudeApiKey(): Promise<void> {
-  if ('__TAURI__' in window) {
+  if (typeof __TAURI__ !== 'undefined' && __TAURI__) {
     const { invoke } = await import('@tauri-apps/api/tauri');
     await invoke('keyring_delete', { account: 'claude_api_key' });
   } else {
@@ -33,7 +33,7 @@ export async function clearClaudeApiKey(): Promise<void> {
 }
 
 export async function getMcpApiKey(): Promise<string | null> {
-  if ('__TAURI__' in window) {
+  if (typeof __TAURI__ !== 'undefined' && __TAURI__) {
     const { invoke } = await import('@tauri-apps/api/tauri');
     return await invoke<string | null>('keyring_get', { account: 'mcp_api_key' });
   }
@@ -41,7 +41,7 @@ export async function getMcpApiKey(): Promise<string | null> {
 }
 
 export async function setMcpApiKey(key: string): Promise<void> {
-  if ('__TAURI__' in window) {
+  if (typeof __TAURI__ !== 'undefined' && __TAURI__) {
     const { invoke } = await import('@tauri-apps/api/tauri');
     await invoke('keyring_set', { account: 'mcp_api_key', value: key });
   } else {
@@ -50,7 +50,7 @@ export async function setMcpApiKey(key: string): Promise<void> {
 }
 
 export async function clearMcpApiKey(): Promise<void> {
-  if ('__TAURI__' in window) {
+  if (typeof __TAURI__ !== 'undefined' && __TAURI__) {
     const { invoke } = await import('@tauri-apps/api/tauri');
     await invoke('keyring_delete', { account: 'mcp_api_key' });
   } else {
