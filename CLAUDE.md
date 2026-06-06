@@ -13,6 +13,17 @@ pnpm test:watch       # Vitest in watch mode
 pnpm check            # svelte-kit sync + type check (run svelte-kit sync first)
 ```
 
+## Git workflow
+
+When asked to review changes and push, always split changes into multiple logical commits grouped by concern instead of one large commit. Each group should be self-contained with a descriptive conventional-commit message (feat:, fix:, chore:, test:, etc.). Example groupings:
+
+- **dependencies** — package.json + lockfile changes only
+- **library/core module** — a new .ts file + its tests
+- **UI page** — a route page + related component changes (e.g. sidebar nav link)
+- **independent features** — separate commits for unrelated additions
+
+After all commits are made, push once. This is the default behavior — no need for the user to ask explicitly.
+
 Run a single test file:
 ```bash
 pnpm vitest run src/lib/__tests__/sync.test.ts
