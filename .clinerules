@@ -8,3 +8,100 @@ When asked to review changes and push, always split changes into multiple logica
 - **independent features** — separate commits for unrelated additions
 
 After all commits are made, push once. This is the default behavior — no need for the user to ask explicitly.
+
+# GitHub Project workflow
+
+We track planned work in a GitHub Project (V2). All planning goes through `gh`, not custom scripts.
+
+## Project identity
+
+- **Project:** holmgard-lore-editor development
+- **Project number:** 3
+- **Owner:** FrozenRegister
+- **Project node ID:** `PVT_kwHOEMCAyM4BZ3n-`
+- **URL:** https://github.com/users/FrozenRegister/projects/3
+- **Status field options:** `Todo`, `In Progress`, `Done`
+
+## Auth (one-time per machine)
+
+Classic PATs in the OS keyring need the `project` scope:
+
+```bash
+gh auth refresh -s project
+gh auth status   # verify "Token scopes" includes "project"
+```
+
+Fine-grained PATs need Organization → Projects → Read and Write.
+
+## Common commands
+
+```bash
+# List projects for the owner
+gh project list --owner FrozenRegister
+
+# List items (returns JSON with id, content.title, content.number, status)
+gh project item-list 3 --owner FrozenRegister --format json --limit 50
+
+# Open the project board in the browser
+gh project view 3 --owner FrozenRegister --web
+
+# List status field options (one-time, to capture option IDs)
+gh project field-list 3 --owner FrozenRegister
+```
+
+### Create a new draft item (back-burner work)
+
+```bash
+gh project item-create 3 --owner FrozenRegister \
+  --title "Phase 1c: wire map tools into the Claude agentic loop" \
+  --body "<body markdown>"
+```
+
+### Update a draft item body
+
+Get the draft issue content ID first (`gh project item-list` returns the project-item ID `PVTI_*`, but body edits need the draft ID `DI_*` — query via `gh api graphql`):
+
+```bash
+gh api graphql -f query='query($iid:ID!){node(id:$iid){... on ProjectV2Item{content{... on DraftIssue{id} ... on Issue{id}}}}}'
+# → returns e.g. "DI_xxx" for drafts, or "I_xxx" for real issues
+
+gh project item-edit --id DI_xxx --body "<new body>"
+```
+
+### Update a real issue body (preferred for items already promoted to issues)
+
+```bash
+gh issue edit <N> --repo FrozenRegister/holmgard-lore-editor --body "<body>"
+```
+
+### Update item status
+
+```bash
+gh project item-edit \
+  --id <PVTI_id> \
+  --project-id PVT_kwHOEMCAyM4BZ3n- \
+  --field-id <status_field_id> \
+  --single-select-option-id <option_id>
+```
+
+Run `gh project field-list 3 --owner FrozenRegister --format json` to get the field ID and option IDs.
+
+### Update a custom text/number/date/iteration field
+
+```bash
+gh project item-edit --id <PVTI_id> --project-id PVT_kwHOEMCAyM4BZ3n- \
+  --field-id <field_id> --text "value"        # or --number / --date / --iteration-id
+```
+
+## New-topic convention
+
+**When a new feature, phase, or topic is discussed and is not being implemented immediately, add it to the project as a draft issue.** The body must include everything needed to resume implementation later:
+
+1. **Title** — concise, names the feature (e.g. `Phase 2: Worker endpoints + map tools (holmgard-lore-mcp)`)
+2. **Status header** as the first line: `**Status: back-burner. Full spec: <doc-path>**` (or `**Status: active. Implementation prompt:**` if actively in progress)
+3. **Implementation prompt** — a copy-pasteable prompt for a future agent session that contains all context, file paths, constraints, and acceptance criteria. If the work lives in a different repo, name that repo in the header and link to its issues/PRs as needed.
+4. **Open questions** at the end (if any) — anything the user still needs to decide before implementation.
+
+For topics that cross repos, use separate draft items per repo, each scoped to that repo's slice of the work.
+
+Always confirm with the user before creating items, unless they explicitly say to track the topic.
