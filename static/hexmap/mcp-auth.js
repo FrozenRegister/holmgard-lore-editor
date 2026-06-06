@@ -1,5 +1,5 @@
 // ============================================================================
-// HEXATLAS MCP AUTH STUB (Local-only)
+// HEXMAP MCP AUTH STUB (Local-only)
 // Replaces auth.js â€” always authenticated, always pro, zero external deps
 // No API key required. MCP server gated behind MCP_USE_API flag in mcp-storage.js.
 // ============================================================================

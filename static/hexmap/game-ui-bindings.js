@@ -203,11 +203,149 @@
     if (typeof window.state !== 'undefined') {
       clearInterval(waitForGameJs);
       // Give game.js another 200ms to fully initialize
-      setTimeout(exposeGameFunctions, 200);
+      setTimeout(() => {
+        exposeGameFunctions();
+        var mapId = window.state && window.state.hexMap && window.state.hexMap.mapInstanceId;
+        var isEarth = !mapId || String(mapId).indexOf('earth-') === 0;
+        if (isEarth) {
+          restoreLastOpenedMap();
+        } else {
+          saveLastOpenedDraftKey();
+        }
+      }, 200);
     } else if (waitAttempts > 150) {
       clearInterval(waitForGameJs);
       console.warn('[Game UI Bindings] Timeout waiting for game.js - some features may not be available');
       exposeGameFunctions();
     }
   }, 50);
+
+  var HEXMAP_DB = 'HexAtlasDB'; // database name is fixed by game.js; only the variable is ours
+  var IDB_STORES = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings'];
+  var _restoreAttempted = false;
+
+  // When a non-earth map is loaded, find its full IDB key and persist it so
+  // restoreLastOpenedMap() can reload it next session.
+  function saveLastOpenedDraftKey() {
+    var mapId = window.state && window.state.hexMap && window.state.hexMap.mapInstanceId;
+    if (!mapId || String(mapId).indexOf('earth-') === 0) return;
+
+    var draftId = new URLSearchParams(window.location.search).get('draftId');
+    if (!draftId) return;
+
+    localStorage.setItem('hexmap_last_draft_id', draftId);
+
+    // Find the full IDB key (includes the tab ID) by scanning mapMeta.
+    var req = indexedDB.open(HEXMAP_DB);
+    req.onsuccess = function(e) {
+      var db = e.target.result;
+      var tx = db.transaction('mapMeta', 'readonly');
+      var r = tx.objectStore('mapMeta').getAll();
+      r.onsuccess = function() {
+        db.close();
+        var entry = r.result.find(function(m) { return m.draftId === draftId; });
+        if (entry && entry.id) {
+          localStorage.setItem('hexmap_last_draft_key', entry.id);
+          console.log('[Game UI Bindings] Saved last draft key:', entry.id);
+        }
+      };
+    };
+  }
+
+  // When earth-996 loaded (wrong default), check for a saved user map and restore it
+  // by reading all stores from the game's IDB and calling loadMapDataIntoState.
+  function restoreLastOpenedMap() {
+    if (_restoreAttempted) return;
+    _restoreAttempted = true;
+    var fullKey = localStorage.getItem('hexmap_last_draft_key');
+
+    // If we have a draftId but no full key yet, try to find it from IDB mapMeta.
+    if (!fullKey) {
+      var draftId = localStorage.getItem('hexmap_last_draft_id');
+      if (!draftId) return;
+
+      var req0 = indexedDB.open(HEXMAP_DB);
+      req0.onsuccess = function(e) {
+        var db = e.target.result;
+        var tx = db.transaction('mapMeta', 'readonly');
+        var r = tx.objectStore('mapMeta').getAll();
+        r.onsuccess = function() {
+          db.close();
+          var entry = r.result.find(function(m) { return m.draftId === draftId; });
+          if (entry && entry.id) {
+            localStorage.setItem('hexmap_last_draft_key', entry.id);
+            loadFromIdbKey(entry.id);
+          }
+        };
+      };
+      return;
+    }
+
+    loadFromIdbKey(fullKey);
+  }
+
+  function loadFromIdbKey(fullKey) {
+    console.log('[Game UI Bindings] Restoring map from IDB key:', fullKey);
+    var req = indexedDB.open(HEXMAP_DB);
+    req.onsuccess = function(e) {
+      var db = e.target.result;
+      var data = {};
+      var pending = IDB_STORES.length;
+      IDB_STORES.forEach(function(name) {
+        var tx = db.transaction(name, 'readonly');
+        var r = tx.objectStore(name).get(fullKey);
+        r.onsuccess = function() {
+          data[name] = r.result;
+          if (--pending === 0) { db.close(); applyRestoredMap(data, fullKey); }
+        };
+        r.onerror = function() {
+          if (--pending === 0) { db.close(); applyRestoredMap(data, fullKey); }
+        };
+      });
+    };
+  }
+
+  function applyRestoredMap(data, fullKey) {
+    var meta = data.mapMeta;
+    if (!meta) {
+      console.warn('[Game UI Bindings] No mapMeta found for key:', fullKey);
+      localStorage.removeItem('hexmap_last_draft_key');
+      return;
+    }
+    var terrain = data.regionTerrain || {};
+    var detail = data.detailTerrain || {};
+    var items = data.items || {};
+    var fog = data.fog || {};
+    var layers = data.layersSettings || {};
+
+    var state = Object.assign({},
+      { version: meta.version, mapName: meta.mapName, mapType: meta.mapType,
+        mapInstanceId: meta.mapInstanceId, canvasBackground: meta.canvasBackground,
+        orientation: meta.orientation, hexSize: meta.hexSize, viewport: meta.viewport,
+        nextLandmarkId: meta.nextLandmarkId, nextTextLabelId: meta.nextTextLabelId,
+        nextImageOverlayId: meta.nextImageOverlayId, nextTokenId: meta.nextTokenId,
+        nextPathId: meta.nextPathId, dungeonLayout: meta.dungeonLayout, settlementLayout: meta.settlementLayout },
+      { hexes: terrain.hexes || [] },
+      { detailHexes: detail.detailHexes || [], subHexes: detail.subHexes || [],
+        subHexLandmarks: detail.subHexLandmarks || [], subHexTokens: detail.subHexTokens || [] },
+      { landmarks: items.landmarks || [], textLabels: items.textLabels || [],
+        imageOverlays: items.imageOverlays || [], tokens: items.tokens || [], paths: items.paths || [] },
+      { fogOfWar: fog.fogOfWar || [], fogSettings: fog.fogSettings || {} },
+      { detailGridEnabled: layers.detailGridEnabled, detailGridDensity: layers.detailGridDensity,
+        showHexCoordinates: layers.showHexCoordinates, layers: layers.layers || [],
+        customTerrains: layers.customTerrains || {}, customDungeonTiles: layers.customDungeonTiles || {} }
+    );
+
+    if (typeof window.loadMapDataIntoState === 'function') {
+      window.loadMapDataIntoState(state);
+      console.log('[Game UI Bindings] Restored map:', state.mapName, '(' + (state.hexes && state.hexes.length) + ' hexes)');
+    }
+  }
+
+  // Re-save when game.js navigates (pushState/replaceState) to a new draftId.
+  var _origPush = history.pushState.bind(history);
+  var _origReplace = history.replaceState.bind(history);
+  history.pushState = function() { _origPush.apply(history, arguments); saveLastOpenedDraftKey(); };
+  history.replaceState = function() { _origReplace.apply(history, arguments); saveLastOpenedDraftKey(); };
+  window.addEventListener('popstate', saveLastOpenedDraftKey);
 })();

@@ -29,3 +29,5 @@ src/lib/data/workingMap.json
 src/lib/data/extracted_images/*
 src/lib/data/img/*
 holmgard-feature-specs.md
+cline.plan
+docs/river-edges-status.md
