@@ -14,6 +14,11 @@ import {
 	getLandmarkCount,
 	updateMapPushedAt,
 	getMap,
+	getLandmark,
+	putLandmark,
+	setLandmarkLinkedLore,
+	getLandmarksForLoreKey,
+	getLandmarksForLoreKeyOnMap,
 	type MapMeta,
 	type HexRecord,
 	type LandmarkRecord
@@ -75,7 +80,8 @@ async function seedMap(
 			notes: l.notes || '',
 			attributes: JSON.stringify(l.attributes || {}),
 			linkedMapId: l.linkedMapId ?? null,
-			visible: l.visible ?? true
+			visible: l.visible ?? true,
+			linkedLoreKey: l.linkedLoreKey ?? null
 		};
 		await db.put('landmarks', landmark);
 	}
@@ -292,6 +298,109 @@ describe('mapDb', () => {
 
 			const after = await getMap('map1');
 			expect(after?.pushedAt).toBe(now);
+		});
+	});
+
+	describe('landmark linking', () => {
+		it('getLandmark returns null for missing', async () => {
+			const result = await getLandmark('map1', 'missing');
+			expect(result).toBeNull();
+		});
+
+		it('getLandmark returns the record with linkedLoreKey defaulted to null', async () => {
+			await seedMap('map1', [], [
+				{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'Center', notes: '' }
+			]);
+			const result = await getLandmark('map1', 'lm1');
+			expect(result).not.toBeNull();
+			expect(result?.linkedLoreKey).toBeNull();
+		});
+
+		it('setLandmarkLinkedLore updates the link and returns the record', async () => {
+			await seedMap('map1', [], [
+				{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'Center', notes: '' }
+			]);
+			const updated = await setLandmarkLinkedLore('map1', 'lm1', 'location:crowkeep');
+			expect(updated?.linkedLoreKey).toBe('location:crowkeep');
+			const reread = await getLandmark('map1', 'lm1');
+			expect(reread?.linkedLoreKey).toBe('location:crowkeep');
+		});
+
+		it('setLandmarkLinkedLore with null unlinks', async () => {
+			await seedMap('map1', [], [
+				{
+					id: 'lm1',
+					q: 0,
+					r: 0,
+					type: 'city',
+					name: 'Center',
+					notes: '',
+					linkedLoreKey: 'location:crowkeep'
+				}
+			]);
+			const updated = await setLandmarkLinkedLore('map1', 'lm1', null);
+			expect(updated?.linkedLoreKey).toBeNull();
+		});
+
+		it('setLandmarkLinkedLore is a no-op for missing landmark', async () => {
+			const result = await setLandmarkLinkedLore('map1', 'missing', 'location:x');
+			expect(result).toBeNull();
+		});
+
+		it('putLandmark preserves existing linkedLoreKey when not provided', async () => {
+			await seedMap('map1', [], [
+				{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'Center', notes: '' }
+			]);
+			await setLandmarkLinkedLore('map1', 'lm1', 'location:crowkeep');
+			// putLandmark without linkedLoreKey
+			await putLandmark({
+				mapId: 'map1',
+				id: 'lm1',
+				q: 0,
+				r: 0,
+				name: 'Center',
+				type: 'city',
+				notes: '',
+				attributes: '{}',
+				linkedMapId: null,
+				visible: true,
+				linkedLoreKey: null
+			});
+			const reread = await getLandmark('map1', 'lm1');
+			// null in input is treated as "not provided" by the merge — should preserve existing
+			expect(reread?.linkedLoreKey).toBe('location:crowkeep');
+		});
+
+		it('getLandmarksForLoreKey finds across maps', async () => {
+			await seedMap('map1', [], [
+				{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'A', notes: '', linkedLoreKey: 'location:crowkeep' }
+			]);
+			await seedMap('map2', [], [
+				{ id: 'lm2', q: 1, r: 1, type: 'city', name: 'B', notes: '', linkedLoreKey: 'location:crowkeep' },
+				{ id: 'lm3', q: 2, r: 2, type: 'city', name: 'C', notes: '', linkedLoreKey: 'location:other' }
+			]);
+			const result = await getLandmarksForLoreKey('location:crowkeep');
+			expect(result.map((l) => l.id).sort()).toEqual(['lm1', 'lm2']);
+		});
+
+		it('getLandmarksForLoreKeyOnMap uses the index', async () => {
+			await seedMap('map1', [], [
+				{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'A', notes: '', linkedLoreKey: 'location:crowkeep' }
+			]);
+			await seedMap('map2', [], [
+				{ id: 'lm2', q: 1, r: 1, type: 'city', name: 'B', notes: '', linkedLoreKey: 'location:crowkeep' }
+			]);
+			const result = await getLandmarksForLoreKeyOnMap('map2', 'location:crowkeep');
+			expect(result).toHaveLength(1);
+			expect(result[0].id).toBe('lm2');
+		});
+
+		it('getLandmarksForLoreKeyOnMap returns [] when no link matches', async () => {
+			await seedMap('map1', [], [
+				{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'A', notes: '', linkedLoreKey: 'location:crowkeep' }
+			]);
+			const result = await getLandmarksForLoreKeyOnMap('map1', 'location:nope');
+			expect(result).toEqual([]);
 		});
 	});
 });

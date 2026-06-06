@@ -67,6 +67,7 @@ function makeLandmark(id: string, q: number, r: number, mapId = TEST_MAP_ID): La
     mapId, id, q, r,
     name: '', type: '', notes: '',
     attributes: '{}', linkedMapId: null, visible: true,
+    linkedLoreKey: null,
   };
 }
 
