@@ -1,3 +1,5 @@
+import type { Hex } from '$lib/types'
+
 // Maps detailGridDensity → edge factor (detail grid scale multiplier relative to parent grid)
 const DETAIL_GRID_EDGE_FACTORS: Record<number, number> = {
   7: 2,
@@ -7,15 +9,11 @@ const DETAIL_GRID_EDGE_FACTORS: Record<number, number> = {
 
 const DEFAULT_DENSITY = 7
 
-export interface Hex {
-  q: number
-  r: number
-  terrain: string
-}
+export type MinimalHex = Pick<Hex, 'q' | 'r' | 'terrain'>
 
 export interface HexMapData {
-  hexes: Hex[]
-  detailHexes?: Hex[]
+  hexes: MinimalHex[]
+  detailHexes?: MinimalHex[]
   detailGridDensity?: number
 }
 
@@ -84,7 +82,7 @@ export function computeParentDisplayTerrain(
 }
 
 // Aggregate one parent hex given a map. Returns null if terrain would not change.
-export function aggregateDetailToParent(parentHex: Hex, hexMap: HexMapData): Hex | null {
+export function aggregateDetailToParent(parentHex: MinimalHex, hexMap: HexMapData): Pick<Hex, 'q' | 'r' | 'terrain'> | null {
   if (!hexMap.detailHexes?.length) return null
 
   const edgeFactor = getEdgeFactor(hexMap.detailGridDensity)
@@ -104,7 +102,7 @@ export function aggregateDetailToParent(parentHex: Hex, hexMap: HexMapData): Hex
 }
 
 // Aggregate all parent hexes. Returns "q,r" → updated Hex for only changed parents.
-export function aggregateAllDetailToParent(hexMap: HexMapData): Record<string, Hex> {
+export function aggregateAllDetailToParent(hexMap: HexMapData): Record<string, Pick<Hex, 'q' | 'r' | 'terrain'>> {
   if (!hexMap.hexes?.length || !hexMap.detailHexes?.length) return {}
 
   const edgeFactor = getEdgeFactor(hexMap.detailGridDensity)
@@ -112,7 +110,7 @@ export function aggregateAllDetailToParent(hexMap: HexMapData): Record<string, H
     hexMap.detailHexes.map((h) => [`${h.q},${h.r}`, h.terrain]),
   )
 
-  const updates: Record<string, Hex> = {}
+  const updates: Record<string, Pick<Hex, 'q' | 'r' | 'terrain'>> = {}
   for (const hex of hexMap.hexes) {
     if (!hex.terrain) continue
     const displayTerrain = computeParentDisplayTerrain(

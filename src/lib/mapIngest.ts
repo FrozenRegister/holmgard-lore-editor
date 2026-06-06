@@ -7,37 +7,7 @@ import {
 	type HexRecord,
 	type LandmarkRecord
 } from './mapDb';
-
-// ── Import file format interfaces ─────────────────────────────────────────────
-
-interface ImportedHex {
-	q: number;
-	r: number;
-	terrain: string;
-	name: string;
-	description: string;
-}
-
-interface ImportedLandmark {
-	id: string;
-	q: number;
-	r: number;
-	name: string;
-	type: string;
-	notes: string;
-	attributes: Record<string, unknown>;
-	linkedMapId?: string | null;
-	visible?: boolean;
-}
-
-interface ImportedMapFile {
-	version: string;
-	mapName: string;
-	mapType: string;
-	mapInstanceId: string;
-	hexes: ImportedHex[];
-	landmarks: ImportedLandmark[];
-}
+import type { Hex, Landmark, HexMap } from '$lib/types';
 
 const CHUNK_SIZE = 200;
 
@@ -49,7 +19,7 @@ export async function ingestMap(
 	jsonString: string
 ): Promise<{ mapId: string; hexes: number; landmarks: number }> {
 	// Parse and validate the JSON
-	const data = JSON.parse(jsonString) as ImportedMapFile;
+	const data = JSON.parse(jsonString) as HexMap;
 
 	if (!data.mapInstanceId) {
 		throw new Error('Invalid map file: missing mapInstanceId');
