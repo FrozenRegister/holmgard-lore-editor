@@ -82,7 +82,7 @@ export function axialToLatLon(
   scale: number = 1.3
 ): { lat: number; lon: number } {
   const lon = q / scale;
-  const lat = (r - q / 2) / (-scale);
+  const lat = (q / 2 - r) / scale;
   return { lat, lon };
 }
 
@@ -109,9 +109,7 @@ export function getTerrainFromLatitude(lat: number): string {
   if (absLat > 55) return 'taiga';
   if (absLat > 23.5) return 'grassland';
   if (absLat > 0) return 'savanna';
-  if (absLat <= 23.5) return 'tropical';
-
-  return 'grassland';
+  return 'tropical';
 }
 
 /**
