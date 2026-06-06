@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-06-06T09:19:27.861Z",
+  "summary": {
+    "unit": {
+      "lines": 91.52,
+      "functions": 92,
+      "branches": 87.16,
+      "statements": 91.52
+    },
+    "integration": {
+      "lines": 0,
+      "functions": 0,
+      "branches": 0,
+      "statements": 0
+    },
+    "e2e": {
+      "passed": 0,
+      "failed": 0,
+      "total": 0
+    }
+  },
+  "gaps": [
+    {
+      "file": "src\\lib\\storage-idb.ts",
+      "type": "unit",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 58.33,
+      "threshold": 80
+    },
+    {
+      "file": "src\\lib\\storage.ts",
+      "type": "unit",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 73.17,
+      "threshold": 80
+    },
+    {
+      "file": "src\\lib\\syncAll.ts",
+      "type": "unit",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 53.39,
+      "threshold": 80
+    }
+  ],
+  "actionItems": [
+    {
+      "priority": "high",
+      "file": "src\\lib\\storage-idb.ts",
+      "message": "File has 58.33% coverage, 21.67% below unit threshold.",
+      "suggestedTest": "Add tests for uncovered lines: "
+    },
+    {
+      "priority": "high",
+      "file": "src\\lib\\syncAll.ts",
+      "message": "File has 53.39% coverage, 26.61% below unit threshold.",
+      "suggestedTest": "Add tests for uncovered lines: "
+    },
+    {
+      "priority": "medium",
+      "file": "src\\lib\\storage.ts",
+      "message": "File at 73.17% coverage, just below 80% threshold.",
+      "suggestedTest": "Cover remaining 0 lines and 0 branches."
+    }
+  ]
+}
