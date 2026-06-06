@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Cline (the VS Code AI coding agent) when working with code in this repository.
+This file provides guidance to Cline and CLAUDE (the VS Code AI coding agent) when working with code in this repository.
 
 ## Commands
 
@@ -25,6 +25,7 @@ When asked to review changes and push, always split changes into multiple logica
 After all commits are made, push once. This is the default behavior — no need for the user to ask explicitly.
 
 Run a single test file:
+
 ```bash
 pnpm vitest run src/lib/__tests__/sync.test.ts
 ```
