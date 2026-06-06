@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Cline (the VS Code AI coding agent) when working with code in this repository.
 
 ## Commands
 
