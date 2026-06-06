@@ -1,0 +1,266 @@
+
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Mock @tauri-apps/api/tauri
+vi.mock('@tauri-apps/api/tauri', () => ({
+	invoke: vi.fn(),
+}));
+
+describe('auth', () => {
+	afterEach(() => {
+		if (typeof localStorage !== 'undefined') localStorage.clear();
+		vi.resetAllMocks();
+		vi.unstubAllGlobals();
+		vi.resetModules();
+	});
+
+	// ── Browser mode (no Tauri) ────────────────────────────────────────────────
+
+	describe('Browser mode (no Tauri)', () => {
+		beforeEach(() => {
+			vi.stubGlobal('__TAURI__', undefined);
+		});
+
+		describe('getAdminSecret', () => {
+			it('should return null when no secret is stored', async () => {
+				const { getAdminSecret } = await import('$lib/auth');
+				const result = await getAdminSecret();
+				expect(result).toBeNull();
+			});
+
+			it('should read from localStorage', async () => {
+				localStorage.setItem('hle:adminSecret', 'my-secret-key');
+				const { getAdminSecret } = await import('$lib/auth');
+				const result = await getAdminSecret();
+				expect(result).toBe('my-secret-key');
+			});
+		});
+
+		describe('getClaudeApiKey', () => {
+			it('should return null when no key is stored', async () => {
+				const { getClaudeApiKey } = await import('$lib/auth');
+				const result = await getClaudeApiKey();
+				expect(result).toBeNull();
+			});
+
+			it('should read from localStorage', async () => {
+				localStorage.setItem('hle:claudeApiKey', 'sk-ant-12345');
+				const { getClaudeApiKey } = await import('$lib/auth');
+				const result = await getClaudeApiKey();
+				expect(result).toBe('sk-ant-12345');
+			});
+		});
+
+		describe('setClaudeApiKey', () => {
+			it('should write to localStorage', async () => {
+				const { setClaudeApiKey } = await import('$lib/auth');
+				await setClaudeApiKey('sk-ant-new-key');
+				expect(localStorage.getItem('hle:claudeApiKey')).toBe('sk-ant-new-key');
+			});
+		});
+
+		describe('clearClaudeApiKey', () => {
+			it('should remove from localStorage', async () => {
+				localStorage.setItem('hle:claudeApiKey', 'sk-ant-existing');
+				const { clearClaudeApiKey } = await import('$lib/auth');
+				await clearClaudeApiKey();
+				expect(localStorage.getItem('hle:claudeApiKey')).toBeNull();
+			});
+		});
+
+		describe('getMcpApiKey', () => {
+			it('should return null when no key is stored', async () => {
+				const { getMcpApiKey } = await import('$lib/auth');
+				const result = await getMcpApiKey();
+				expect(result).toBeNull();
+			});
+
+			it('should read from localStorage', async () => {
+				localStorage.setItem('hle:mcpApiKey', 'mcp-key-123');
+				const { getMcpApiKey } = await import('$lib/auth');
+				const result = await getMcpApiKey();
+				expect(result).toBe('mcp-key-123');
+			});
+		});
+
+		describe('setMcpApiKey', () => {
+			it('should write to localStorage', async () => {
+				const { setMcpApiKey } = await import('$lib/auth');
+				await setMcpApiKey('mcp-new-key');
+				expect(localStorage.getItem('hle:mcpApiKey')).toBe('mcp-new-key');
+			});
+		});
+
+		describe('clearMcpApiKey', () => {
+			it('should remove from localStorage', async () => {
+				localStorage.setItem('hle:mcpApiKey', 'mcp-existing');
+				const { clearMcpApiKey } = await import('$lib/auth');
+				await clearMcpApiKey();
+				expect(localStorage.getItem('hle:mcpApiKey')).toBeNull();
+			});
+		});
+
+		describe('Edge cases', () => {
+			describe('empty string values', () => {
+				it('should return empty string if stored in localStorage', async () => {
+					localStorage.setItem('hle:claudeApiKey', '');
+					const { getClaudeApiKey } = await import('$lib/auth');
+					const result = await getClaudeApiKey();
+					expect(result).toBe('');
+				});
+
+				it('should store empty string if provided', async () => {
+					const { setClaudeApiKey } = await import('$lib/auth');
+					await setClaudeApiKey('');
+					expect(localStorage.getItem('hle:claudeApiKey')).toBe('');
+				});
+			});
+
+			describe('special characters in keys', () => {
+				it('should handle special characters in API keys', async () => {
+					const specialKey = 'sk-ant-123!@#$%^&*()_+-=[]{}|;:,.<>?';
+					localStorage.setItem('hle:claudeApiKey', specialKey);
+					const { getClaudeApiKey } = await import('$lib/auth');
+					const result = await getClaudeApiKey();
+					expect(result).toBe(specialKey);
+				});
+
+				it('should handle multiline keys', async () => {
+					const multilineKey = 'line1\nline2\nline3';
+					localStorage.setItem('hle:mcpApiKey', multilineKey);
+					const { getMcpApiKey } = await import('$lib/auth');
+					const result = await getMcpApiKey();
+					expect(result).toBe(multilineKey);
+				});
+			});
+
+			describe('very long keys', () => {
+				it('should handle long API keys', async () => {
+					const longKey = 'a'.repeat(1000);
+					localStorage.setItem('hle:claudeApiKey', longKey);
+					const { getClaudeApiKey } = await import('$lib/auth');
+					const result = await getClaudeApiKey();
+					expect(result).toBe(longKey);
+				});
+			});
+		});
+	});
+
+	// ── Tauri mode ─────────────────────────────────────────────────────────────
+
+	describe('Tauri mode', () => {
+		beforeEach(() => {
+			// Enable Tauri
+			vi.stubGlobal('__TAURI__', {});
+		});
+
+		describe('getAdminSecret', () => {
+			it('should call keyring_get with correct account', async () => {
+				const { invoke } = await import('@tauri-apps/api/tauri');
+				vi.mocked(invoke).mockResolvedValue('tauri-admin-secret');
+
+				const { getAdminSecret } = await import('$lib/auth');
+				const result = await getAdminSecret();
+
+				expect(invoke).toHaveBeenCalledWith('keyring_get', { account: 'admin_secret' });
+				expect(result).toBe('tauri-admin-secret');
+			});
+
+			it('should return null when keyring returns null', async () => {
+				const { invoke } = await import('@tauri-apps/api/tauri');
+				vi.mocked(invoke).mockResolvedValue(null);
+
+				const { getAdminSecret } = await import('$lib/auth');
+				const result = await getAdminSecret();
+
+				expect(result).toBeNull();
+			});
+		});
+
+		describe('getClaudeApiKey', () => {
+			it('should call keyring_get with correct account', async () => {
+				const { invoke } = await import('@tauri-apps/api/tauri');
+				vi.mocked(invoke).mockResolvedValue('sk-ant-tauri');
+
+				const { getClaudeApiKey } = await import('$lib/auth');
+				const result = await getClaudeApiKey();
+
+				expect(invoke).toHaveBeenCalledWith('keyring_get', { account: 'claude_api_key' });
+				expect(result).toBe('sk-ant-tauri');
+			});
+		});
+
+		describe('setClaudeApiKey', () => {
+			it('should call keyring_set with correct parameters', async () => {
+				const { invoke } = await import('@tauri-apps/api/tauri');
+				vi.mocked(invoke).mockResolvedValue(undefined);
+
+				const { setClaudeApiKey } = await import('$lib/auth');
+				await setClaudeApiKey('new-sk-key');
+
+				expect(invoke).toHaveBeenCalledWith('keyring_set', {
+					account: 'claude_api_key',
+					value: 'new-sk-key',
+				});
+			});
+		});
+
+		describe('clearClaudeApiKey', () => {
+			it('should call keyring_delete with correct account', async () => {
+				const { invoke } = await import('@tauri-apps/api/tauri');
+				vi.mocked(invoke).mockResolvedValue(undefined);
+
+				const { clearClaudeApiKey } = await import('$lib/auth');
+				await clearClaudeApiKey();
+
+				expect(invoke).toHaveBeenCalledWith('keyring_delete', {
+					account: 'claude_api_key',
+				});
+			});
+		});
+
+		describe('getMcpApiKey', () => {
+			it('should call keyring_get with correct account', async () => {
+				const { invoke } = await import('@tauri-apps/api/tauri');
+				vi.mocked(invoke).mockResolvedValue('mcp-tauri-key');
+
+				const { getMcpApiKey } = await import('$lib/auth');
+				const result = await getMcpApiKey();
+
+				expect(invoke).toHaveBeenCalledWith('keyring_get', { account: 'mcp_api_key' });
+				expect(result).toBe('mcp-tauri-key');
+			});
+		});
+
+		describe('setMcpApiKey', () => {
+			it('should call keyring_set with correct parameters', async () => {
+				const { invoke } = await import('@tauri-apps/api/tauri');
+				vi.mocked(invoke).mockResolvedValue(undefined);
+
+				const { setMcpApiKey } = await import('$lib/auth');
+				await setMcpApiKey('new-mcp-key');
+
+				expect(invoke).toHaveBeenCalledWith('keyring_set', {
+					account: 'mcp_api_key',
+					value: 'new-mcp-key',
+				});
+			});
+		});
+
+		describe('clearMcpApiKey', () => {
+			it('should call keyring_delete with correct account', async () => {
+				const { invoke } = await import('@tauri-apps/api/tauri');
+				vi.mocked(invoke).mockResolvedValue(undefined);
+
+				const { clearMcpApiKey } = await import('$lib/auth');
+				await clearMcpApiKey();
+
+				expect(invoke).toHaveBeenCalledWith('keyring_delete', {
+					account: 'mcp_api_key',
+				});
+			});
+		});
+	});
+
+});
