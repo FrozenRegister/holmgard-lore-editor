@@ -207,8 +207,11 @@
     // These scripts are loaded as static assets and expect certain DOM structures
     const scriptOrder = [
       '/hexmap/worker-patch.js',  // Patch Worker constructor for relative paths
-      '/hexmap/mcp-auth.js',
-      '/hexmap/mcp-storage.js',
+      '/hexmap/map-worker.js',    // Vendor: Worker-based map utilities
+      '/hexmap/auth.js',          // Vendor: Core authentication library
+      '/hexmap/mcp-auth.js',      // MCP authentication bridge
+      '/hexmap/cloud-storage.js', // Vendor: Cloud storage library
+      '/hexmap/mcp-storage.js',   // MCP storage bridge
       '/hexmap/game.js',
       '/hexmap/hexmap-render-patch.js',  // Boundary-based sparse hex rendering
       '/hexmap/parent-child-terrain-sync.js',  // Aggregate detail hex terrain to parents
@@ -247,8 +250,8 @@
 <svelte:head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/hexmap/style.css?v=2026-05-07-13" />
-  <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-05-07-13" />
+  <link rel="stylesheet" href="/hexmap/style.css?v=2026-05-13-2" />
+  <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-05-13-2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link
