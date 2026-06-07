@@ -234,14 +234,15 @@ export async function streamChat(
     messages.push({ role: 'assistant', content: assistantContent });
 
     // ── Execute tools and collect results ───────────────────────────────────
-    const toolResults: any[] = [];
-    for (const tc of activeCalls) {
+    const toolResultPromises = activeCalls.map(async (tc) => {
       let input: any = {};
       try { input = JSON.parse(tc.inputJson || '{}'); } catch {}
       const result = await executeTool(tc.name, input);
       onToolCall(tc.name, 'done', result);
-      toolResults.push({ type: 'tool_result', tool_use_id: tc.id, content: result });
-    }
+      return { type: 'tool_result', tool_use_id: tc.id, content: result };
+    });
+
+    const toolResults = await Promise.all(toolResultPromises);
     messages.push({ role: 'user', content: toolResults });
   }
 
