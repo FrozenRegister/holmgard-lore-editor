@@ -25,8 +25,12 @@ static/hexmap/cloud-storage.js
 static/hexmap/mobile-companion.css
 static/hexmap/mobile-companion.js
 static/hexmap/small_logo.svg
+
+# Playwright
 playwright-report/
 test-results/
+blob-report/
+
 src/lib/data/workingMap.json
 src/lib/data/extracted_images/*
 src/lib/data/img/*
