@@ -10,7 +10,7 @@
     "vendor:build": "npm run vendor:fetch && npm run vendor:bundle",
     "precheck": "node scripts/check-vendor.mjs",
     "build": "npm run vendor:build && vite build",
-    "deploy": "npm run vendor:build && wrangler deploy",
+    "deploy": "npm run build && wrangler deploy",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
