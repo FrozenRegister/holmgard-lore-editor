@@ -9,7 +9,7 @@ on:
 
 env:
   NODE_VERSION: '20'
-  PNPM_VERSION: '11'
+  PNPM_VERSION: '9'
 
 jobs:
   lint-and-typecheck:
