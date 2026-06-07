@@ -2,6 +2,10 @@
 
 This file provides guidance to Cline and CLAUDE (the VS Code AI coding agent) when working with code in this repository.
 
+## Environment
+
+**Use PowerShell commands only. Assume Windows 11.** Do not use bash, `cat`, `ls`, or other Linux commands. Use `Get-Content` instead of `cat`, `Get-ChildItem` instead of `ls`, `Remove-Item` instead of `rm`, etc.
+
 ## Commands
 
 ```bash
