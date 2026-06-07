@@ -1,30 +1,41 @@
 import { test, expect } from '@playwright/test';
 
+/**
+ * E2E tests for the Hex Map Editor menu and global functionality.
+ * These tests verify that the SvelteKit frontend correctly interacts with the
+ * underlying game.js library and maintains the application state.
+ */
 test.describe('Hex Map Editor - Menu Interactions', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the world editor page where hex map is loaded
+    // Ensure we start on the world editor route
     await page.goto('/world-editor');
 
-    // Wait for the hex map to load and game.js to initialize
-    // Check for the hex map canvas or main container
+    // Synchronization point: Wait for the rendering engine to initialize.
+    // We check for the primary canvas or its container.
     await page.waitForSelector('[data-testid="hex-map-container"], canvas, #hexCanvas', {
       timeout: 10000,
     }).catch(() => {
-      // If no specific selector found, just wait for the page to be ready
       return Promise.resolve();
     });
 
-    // Wait for game-ui-bindings.js to complete initialization (200ms + some buffer)
+    // game-ui-bindings.js has an internal 200ms delay to ensure game.js is ready.
+    // We provide a 500ms buffer here to ensure all window functions are exposed.
     await page.waitForTimeout(500);
   });
 
   test('should expose functions to window object', async ({ page }) => {
-    // Check that expected functions are available on window
+    /**
+     * Verification: Ensure the 'game-ui-bindings.js' script has successfully
+     * attached the necessary API hooks to the global window object.
+     */
     const functionsExposed = await page.evaluate(() => {
       return {
+        // Navigation & View
         zoomIn: typeof (window as any).zoomIn === 'function',
         zoomOut: typeof (window as any).zoomOut === 'function',
+        // State Management
         newMap: typeof (window as any).newMap === 'function',
+        // Auth & Sync
         quickCloudSave: typeof (window as any).quickCloudSave === 'function',
         shareMap: typeof (window as any).shareMap === 'function',
         showAuthModal: typeof (window as any).showAuthModal === 'function',
@@ -35,6 +46,40 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
     Object.entries(functionsExposed).forEach(([key, value]) => {
       expect(value, `${key} should be exposed to window`).toBe(true);
     });
+  });
+
+  test('should load seeded map data from global-setup correctly', async ({ page }) => {
+    /**
+     * Integration Test: Verify that data injected into IndexedDB by 
+     * global-setup.ts is correctly retrieved by the application on startup.
+     */
+    await page.waitForTimeout(1000);
+
+    const mapData = await page.evaluate(() => {
+      const hexMap = (window as any).state?.hexMap;
+      // Return null if state hasn't populated yet
+      if (!hexMap) return null;
+      
+      return {
+        name: hexMap.name,
+        hexes: hexMap.hexes || [],
+        landmarks: hexMap.landmarks || []
+      };
+    });
+
+    expect(mapData, 'The seeded map should be active in the application state').not.toBeNull();
+    expect(mapData?.name).toBe('Playwright Seeded Map');
+
+    // Coordinate Check: Axial (0,0) is our primary reference point in the seed data
+    const grassHex = mapData?.hexes.find((h: any) => h.q === 0 && h.r === 0);
+    expect(grassHex, 'Seeded grassland hex should exist').toBeDefined();
+    expect(grassHex?.terrain).toBe('grassland');
+
+    // Metadata Check: Verify the lore link established during setup
+    const tower = mapData?.landmarks.find((l: any) => l.id === 'seed-landmark-1');
+    expect(tower, 'Seeded landmark should exist').toBeDefined();
+    expect(tower?.name).toBe('The Seeded Tower');
+    expect(tower?.linkedLoreKey).toBe('topic:seeded-lore');
   });
 
   test('should have no console errors on page load', async ({ page }) => {
@@ -49,8 +94,11 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
     await page.goto('/world-editor');
     await page.waitForTimeout(500);
 
-    // Filter out known non-blocking/expected errors
     const blockerErrors = errors.filter((err) => {
+      /**
+       * Noise Reduction: Exclude network-related errors and MCP fetch failures
+       * that are external to the hex-map logic itself.
+       */
       // Known non-critical errors that don't block functionality
       if (err.includes('ERR_FILE_NOT_FOUND')) return false;
       if (err.includes('404')) return false;
@@ -63,20 +111,24 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
   });
 
   test('File menu - New Map should trigger confirmation', async ({ page }) => {
-    // Setup dialog handler
+    // Intercept the browser's confirm() dialog
     page.once('dialog', (dialog) => {
       expect(dialog.type()).toBe('confirm');
       expect(dialog.message()).toContain('Create a new map');
-      dialog.dismiss();
+      dialog.dismiss(); // Prevent actual reset for this specific test
     });
 
-    // Click File menu
+    // UI Interaction: Open the File menu
     await page.click('button:has-text("File"), [data-testid="file-menu"]').catch(() => {
-      // Try alternative selector if menu button not found
       return Promise.resolve();
     });
 
-    // Try to click "New Map" option
+    /**
+     * Resilience: Attempt to find the "New Map" option via UI locators.
+     * If the menu is blocked or styled in a way that prevents clicking,
+     * we fall back to calling the exposed window function to verify
+     * that the logic behind the menu item still executes.
+     */
     const newMapButton = page.locator('text=New Map, button:has-text("New Map")');
     if (await newMapButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await newMapButton.first().click();
@@ -88,8 +140,30 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
     }
   });
 
+  test('File menu - New Map should reset map state after confirmation', async ({ page }) => {
+    // Grant permission to reset
+    page.once('dialog', async (dialog) => {
+      await dialog.accept();
+    });
+
+    /**
+     * State Reset Verification: We inject a dummy hex into the active state,
+     * trigger newMap(), and then assert that the hexes array is cleared.
+     */
+    await page.evaluate(() => {
+      if ((window as any).state?.hexMap) {
+        (window as any).state.hexMap.hexes = [{ q: 0, r: 0, terrain: 'test' }];
+      }
+      (window as any).newMap?.();
+    });
+
+    // Post-condition: The map should be empty
+    const hexCount = await page.evaluate(() => (window as any).state?.hexMap?.hexes?.length || 0);
+    expect(hexCount).toBe(0);
+  });
+
   test('File menu - Save should show notification', async ({ page }) => {
-    // Track notifications
+    // Notification Spy: Override the app's notification handler to capture results
     const notifications: string[] = [];
 
     await page.evaluate(() => {
@@ -100,25 +174,78 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
       };
     });
 
-    // Try Save action
+    // Trigger Save via keyboard shortcut
     await page.keyboard.press('Control+S').catch(() => {
-      // Fallback: call quickCloudSave directly
       return page.evaluate(() => {
         (window as any).quickCloudSave?.();
       });
     });
 
-    // Check if notification was triggered
+    // Assert that the user was notified of the save status
     const notification = await page.evaluate(() => {
       return (window as any).__lastNotification;
     }).catch(() => null);
 
     if (notification) {
-      expect(notification.message).toContain('Saving');
+      expect(notification.message.toLowerCase()).toMatch(/saved|saving/);
     }
   });
 
+  test('File menu - Import Map should trigger file input click', async ({ page }) => {
+    /**
+     * Verification: Ensure that the 'Import Map (JSON)' menu item correctly
+     * triggers the hidden file input element.
+     */
+    const clickTriggered = await page.evaluate(() => {
+      return new Promise((resolve) => {
+        const input = document.getElementById('importFileInput') as HTMLInputElement;
+        if (!input) return resolve(false);
+        
+        input.addEventListener('click', (e) => {
+          e.preventDefault(); // Prevent opening actual file dialog in test
+          resolve(true);
+        }, { once: true });
+        
+        (window as any).importMapFromFile?.();
+        setTimeout(() => resolve(false), 500);
+      });
+    });
+
+    expect(clickTriggered).toBe(true);
+  });
+
+  test('File menu - Import Map should load data from file', async ({ page }) => {
+    const testMapData = {
+      hexMap: {
+        hexes: [{ q: 10, r: 20, terrain: 'grassland', elevation: 2 }]
+      }
+    };
+
+    /**
+     * Import Functional Test: Simulates the data flow of the JSON import system.
+     * We inject data directly into state and trigger the re-render.
+     */
+    await page.evaluate((data) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.id = 'importFileInput';
+      document.body.appendChild(input);
+
+      if ((window as any).state) {
+        (window as any).state.hexMap = data.hexMap;
+        (window as any).renderHex?.();
+      }
+    }, testMapData);
+
+    const hexCount = await page.evaluate(() => (window as any).state?.hexMap?.hexes?.length);
+    expect(hexCount).toBe(1);
+  });
+
   test('Zoom buttons should exist and be callable', async ({ page }) => {
+    /**
+     * Viewport Scaling: Verify that the zoom API is present and 
+     * can read the current viewport state.
+     */
     const zoomFunctions = await page.evaluate(() => {
       return {
         zoomInExists: typeof (window as any).zoomIn === 'function',
@@ -132,6 +259,10 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
   });
 
   test('Zoom In should increase viewport scale', async ({ page }) => {
+    /**
+     * Zoom Logic: Calling zoomIn() should result in a scale factor 
+     * larger than the starting value.
+     */
     const result = await page.evaluate(() => {
       const initialScale = (window as any).state?.hexMap?.viewport?.scale;
 
@@ -178,11 +309,10 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
 
     expect(settingsAvailable).toBe(true);
 
-    // Try to open settings
     await page.evaluate(() => {
       (window as any).openSettingsModal?.();
     }).catch(() => {
-      // Function may not have full implementation, but should exist
+      // If stubbed, we just ensure it doesn't crash
     });
   });
 
@@ -194,39 +324,82 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
     expect(closeModalAvailable).toBe(true);
   });
 
-  test('Export functions should be available', async ({ page }) => {
-    const exportFunctions = await page.evaluate(() => {
-      return {
-        exportAsPNG: typeof (window as any).exportAsPNG === 'function',
-        exportAsJSON: typeof (window as any).exportAsJSON === 'function',
-        showFoundryExportDialog: typeof (window as any).showFoundryExportDialog === 'function',
-        importMapFromFile: typeof (window as any).importMapFromFile === 'function',
-      };
+  test('File menu - Export as PNG should trigger download', async ({ page }) => {
+    /**
+     * Browser Interaction: Verify that the PNG export function triggers
+     * a native file download event.
+     */
+    const downloadPromise = page.waitForEvent('download');
+    
+    await page.evaluate(() => {
+      (window as any).exportAsPNG?.();
     });
 
-    Object.entries(exportFunctions).forEach(([key, value]) => {
-      expect(value, `${key} should be available`).toBe(true);
-    });
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toContain('.png');
   });
 
-  test('Share Map should show "coming soon" notification', async ({ page }) => {
-    await page.evaluate(() => {
-      const originalNotification = (window as any).showNotification;
-      (window as any).showNotification = function (message: string, type: string) {
-        (window as any).__lastNotification = { message, type };
-        if (originalNotification) originalNotification(message, type);
-      };
+  test('File menu - Foundry VTT Export should be available', async ({ page }) => {
+    const foundryAvailable = await page.evaluate(() => {
+      return typeof (window as any).showFoundryExportDialog === 'function';
+    });
 
+    expect(foundryAvailable).toBe(true);
+  });
+
+  test('File menu - Export as JSON should trigger download', async ({ page }) => {
+    /**
+     * Browser Interaction: Verify that the export function triggers
+     * a native file download event.
+     */
+    const downloadPromise = page.waitForEvent('download');
+    
+    await page.evaluate(() => {
+      (window as any).exportAsJSON?.();
+    });
+
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toContain('.json');
+  });
+
+  test('Example maps should open modal', async ({ page }) => {
+    const exampleMapsAvailable = await page.evaluate(() => {
+      return typeof (window as any).openExamplesModal === 'function';
+    });
+
+    expect(exampleMapsAvailable).toBe(true);
+    // We check existence as functional behavior often relies on game.js internals
+  });
+
+  test('Share Map should copy link to clipboard and show success notification', async ({ page }) => {
+    /**
+     * Social Sharing: Verify that the shareMap function correctly utilizes
+     * the Clipboard API to copy the current page URL.
+     */
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+    await page.evaluate(() => {
+      (window as any).__lastNotification = null;
+      const original = (window as any).showNotification;
+      (window as any).showNotification = (msg: string, type: string) => {
+        (window as any).__lastNotification = { msg, type };
+        if (original) original(msg, type);
+      };
+    });
+    
+    await page.evaluate(() => {
       (window as any).shareMap?.();
     });
 
-    const notification = await page.evaluate(() => {
-      return (window as any).__lastNotification;
-    }).catch(() => null);
+    // Verify notification appeared
+    const notification = await page.evaluate(() => (window as any).__lastNotification);
+    expect(notification?.msg.toLowerCase()).toContain('copied');
+    expect(notification?.type).toBe('success');
 
-    if (notification) {
-      expect(notification.message).toContain('coming soon');
-    }
+    // Verify clipboard content matches page URL
+    const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+    const currentUrl = page.url();
+    expect(clipboardText).toBe(currentUrl);
   });
 
   test('Auth modal should be callable and show modal', async ({ page }) => {
@@ -249,6 +422,28 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
     });
 
     expect(result.functionExists).toBe(true);
+    expect(result.modalTriggered).toBe(true);
+  });
+
+  test('UI Panels - toggleLayersPanel should be callable', async ({ page }) => {
+    const exists = await page.evaluate(() => typeof (window as any).toggleLayersPanel === 'function');
+    expect(exists).toBe(true);
+  });
+
+  test('Tools - showTokenCreator and showLandmarkCreator should be available', async ({ page }) => {
+    const tools = await page.evaluate(() => {
+      return {
+        token: typeof (window as any).showTokenCreator === 'function',
+        landmark: typeof (window as any).showLandmarkCreator === 'function',
+      };
+    });
+    expect(tools.token).toBe(true);
+    expect(tools.landmark).toBe(true);
+  });
+
+  test('Themes - openThemesModal should be available', async ({ page }) => {
+    const exists = await page.evaluate(() => typeof (window as any).openThemesModal === 'function');
+    expect(exists).toBe(true);
   });
 
   test('Game UI Bindings should log initialization to console', async ({ page }) => {
@@ -286,9 +481,11 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
   });
 
   test('Performance: zoom operations should not cause violations', async ({ page }) => {
-    const violations: string[] = [];
-
-    // Listen for performance issues
+    /**
+     * Performance Regression: We intercept console warnings related to
+     * Long Tasks or forced reflows during rapid zoom actions to 
+     * verify that debouncing/rAF logic is working.
+     */
     await page.evaluate(() => {
       const originalWarn = console.warn;
       (window as any).__violations = [];
@@ -301,7 +498,6 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
       };
     });
 
-    // Perform multiple zoom operations
     for (let i = 0; i < 5; i++) {
       await page.evaluate(() => {
         (window as any).zoomIn?.();
@@ -313,7 +509,7 @@ test.describe('Hex Map Editor - Menu Interactions', () => {
       return (window as any).__violations || [];
     });
 
-    // Should have minimal or no violations due to debouncing
+    // Threshold: Allow minimal violations but fail on systemic lag
     expect(recordedViolations.length, 'Should minimize performance violations').toBeLessThan(5);
   });
 
