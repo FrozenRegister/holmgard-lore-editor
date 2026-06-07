@@ -9,9 +9,26 @@ When asked to review changes and push, always split changes into multiple logica
 
 After all commits are made, push once. This is the default behavior — no need for the user to ask explicitly.
 
+## GitHub tooling: MCP vs `gh` CLI
+
+A GitHub MCP server (`https://api.githubcopilot.com/mcp/`) is configured in `cline_mcp_settings.json`. **Prefer MCP over `gh` CLI for everything except Project V2 operations.**
+
+| Capability | MCP (use_mcp_tool) | `gh` CLI (execute_command) |
+|---|---|---|
+| Issues — create, update, read, comment, search, labels | ✅ All | ⚠️ JSON parsing |
+| Pull requests — create, update, diff, merge, reviews, comments | ✅ All | ⚠️ JSON parsing |
+| Repos — search, fork, contents, branches, tags, releases | ✅ All | ⚠️ |
+| Code/commit/issue search | ✅ `search_code`, `search_issues`, etc. | ❌ |
+| Files — create/update/delete, push multiple | ✅ `create_or_update_file`, `push_files` | ❌ |
+| **Project V2** — draft items, status, fields | ❌ Not supported | ✅ Only option |
+| Issue body editing | ✅ `issue_write` with `issue_number` | ✅ `gh issue edit` |
+
+### Default rule
+Use the **GitHub MCP server** for all issue/PR/repo operations. Fall back to `gh` CLI only for Project V2 drafting and status changes.
+
 ## GitHub Project workflow
 
-We track planned work in a GitHub Project (V2). All planning goes through `gh`, not custom scripts.
+We track planned work in a GitHub Project (V2). Project operations go through `gh`, not MCP.
 
 ## Project identity
 
