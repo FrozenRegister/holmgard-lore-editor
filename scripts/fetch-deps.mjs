@@ -9,6 +9,9 @@ loadEnv();
 
 const vendorManifestEnv = process.env.VENDOR_MANIFEST;
 
+console.log('DEBUG: All env vars:', Object.keys(process.env).filter(k => k.includes('VENDOR')));
+console.log('DEBUG: VENDOR_MANIFEST =', process.env.VENDOR_MANIFEST);
+
 if (!vendorManifestEnv) {
   console.log('⊘ VENDOR_MANIFEST not set - skipping fetch (vendor files may already exist)');
   process.exit(0);
