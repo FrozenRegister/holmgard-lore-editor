@@ -1,6 +1,4 @@
-# codecov.yml
-# Strong coverage enforcement with per-flag tracking and strict thresholds
-
+# codecov.yml for holmgard-lore-mcp
 coverage:
   precision: 2
   round: down
@@ -11,100 +9,20 @@ coverage:
       default:
         target: 80%
         threshold: 1%
-        flags:
-          - unit
-          - integration
-          - e2e
-      # Strict gate: every flag must hit its target independently (matching vitest.config.ts)
-      unit:
-        target: 80%
-        threshold: 0%
-        flags:
-          - unit
-      integration:
-        target: 70%
-        threshold: 0%
-        flags:
-          - integration
-      e2e:
-        target: 60%
-        threshold: 0%
-        flags:
-          - e2e
-
     patch:
       default:
-        target: 100%
+        target: 100% # THE GAP PROTECTOR: New code must be fully tested
         threshold: 0%
         informational: false
-      # New code in unit tests must be fully covered
-      unit:
-        target: 100%
-        threshold: 0%
-        flags:
-          - unit
-        informational: false
-      # Integration/E2E patches get slight leeway
-      integration:
-        target: 90%
-        threshold: 0%
-        flags:
-          - integration
-        informational: true
-      e2e:
-        target: 80%
-        threshold: 0%
-        flags:
-          - e2e
-        informational: true
-
-  # Fail if total coverage drops below baseline
-  flags:
-    unit:
-      paths:
-        - src/lib/**/*.test.ts
-        - src/lib/**/*.spec.ts
-      carryforward: true
-    integration:
-      paths:
-        - e2e/**/*.test.ts
-        - src/**/*.integration.test.ts
-      carryforward: true
-    e2e:
-      paths:
-        - e2e/**/*.spec.ts
-      carryforward: true
-
-parsers:
-  gcov:
-    branch_detection:
-      conditional: yes
-      loop: yes
-      method: no
-      macro: no
 
 ignore:
-  - "*.d.ts"
+  - "test/**"
   - "*.config.*"
-  - "**/*.config.*"
-  - "vite.config.ts"
-  - "vitest.config.ts"
-  - "playwright.config.ts"
-  - "svelte.config.js"
-  - "tailwind.config.*"
-  - "src/app.d.ts"
-  - "src/app.html"
-  - "src/test-setup.ts"
+  - "wrangler.toml"
   - "node_modules/**"
-  - ".svelte-kit/**"
-  - "build/**"
-  - "dist/**"
-  - "coverage/**"
-  - "e2e/**/*.spec.ts"  # Playwright specs tracked separately via e2e flag
 
 comment:
-  layout: "header, diff, flags, files, branches"
+  layout: "header, diff, flags, files"
   behavior: default
   require_changes: false
   require_base: yes
-  require_head: yes

@@ -9,7 +9,7 @@ When asked to review changes and push, always split changes into multiple logica
 
 After all commits are made, push once. This is the default behavior — no need for the user to ask explicitly.
 
-# GitHub Project workflow
+## GitHub Project workflow
 
 We track planned work in a GitHub Project (V2). All planning goes through `gh`, not custom scripts.
 
@@ -19,7 +19,7 @@ We track planned work in a GitHub Project (V2). All planning goes through `gh`, 
 - **Project number:** 3
 - **Owner:** FrozenRegister
 - **Project node ID:** `PVT_kwHOEMCAyM4BZ3n-`
-- **URL:** https://github.com/users/FrozenRegister/projects/3
+- **URL:** <https://github.com/users/FrozenRegister/projects/3>
 - **Status field options:** `Todo`, `In Progress`, `Done`
 
 ## Auth (one-time per machine)
@@ -146,5 +146,3 @@ Repo: <org>/<repo> | Project: https://github.com/users/FrozenRegister/projects/3
 When the user asks for a "session summary" or "wrap up" or "log this", call `Add-SessionSummary`. Always pass `-DryRun` first in a non-obvious case to preview the body, then drop `-DryRun` to actually create it. Always confirm with the user before creating the item unless they explicitly asked for the summary.
 
 If `Add-SessionSummary` errors with `missing required scopes [project]`, the gh token needs the **write** project scope. Run `gh auth refresh -h github.com -s project` once and complete the browser prompt.
-
-
