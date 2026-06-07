@@ -22,17 +22,21 @@ pnpm install
 ### Development
 
 **Browser mode (hot reload, no Tauri):**
+
 ```bash
 pnpm dev
 ```
+
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 **Desktop app mode (Tauri with hot reload):**
+
 ```bash
 pnpm tauri:dev
 ```
 
 **Production build:**
+
 ```bash
 pnpm build         # Web build
 pnpm tauri:build   # Desktop binary
@@ -63,32 +67,38 @@ The MCP Worker lives at `https://holmgard-lore-mcp.frozenregister.workers.dev` (
 ### Unit Tests (Vitest)
 
 Run all unit tests:
+
 ```bash
 pnpm test
 ```
 
 Run in watch mode:
+
 ```bash
 pnpm test:watch
 ```
 
 Run a specific file:
+
 ```bash
 pnpm vitest run src/lib/__tests__/game-ui-bindings.test.ts
 ```
 
 **Test coverage:** 211 tests across 11 test suites including:
+
 - **game-ui-bindings.test.ts** (13 tests) — Hex map editor function exposure, zoom controls, stubs, auth
 - Storage, sync, import/export, worldmap, MCP integration, and more
 
 ### E2E Tests (Playwright)
 
 Install Playwright browsers (one time):
+
 ```bash
 pnpm exec playwright install
 ```
 
 Run E2E tests:
+
 ```bash
 pnpm test:e2e              # Run all tests headlessly
 pnpm test:e2e:ui           # Interactive UI mode (recommended for development)
@@ -96,6 +106,7 @@ pnpm test:e2e:debug        # Step-through debugger
 ```
 
 **Test coverage:** 15 E2E tests for hex map editor covering:
+
 - Function exposure to window object
 - Console error detection
 - Menu interactions (File, Settings, Export)
@@ -107,7 +118,7 @@ pnpm test:e2e:debug        # Step-through debugger
 
 ## File Structure
 
-```
+```bash
 .
 ├── src/
 │   ├── lib/
@@ -153,7 +164,7 @@ pnpm test:e2e:debug        # Step-through debugger
 ## Scripts
 
 | Script | Purpose |
-|--------|---------|
+| ------ | ------- |
 | `pnpm dev` | Start Vite dev server (browser) |
 | `pnpm tauri:dev` | Start Tauri desktop app with hot reload |
 | `pnpm build` | Production web build |
