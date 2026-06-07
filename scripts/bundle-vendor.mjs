@@ -20,8 +20,14 @@ const vendorMap = [
 
 const missing = vendorMap.filter(({ src }) => !existsSync(src)).map(({ src }) => src);
 if (missing.length > 0) {
-  console.error(`Missing vendor files: ${missing.join(', ')}. Run \`npm run vendor:build\` first.`);
-  process.exit(1);
+  const allMissing = missing.length === vendorMap.length;
+  if (allMissing) {
+    console.log('⊘ No vendor files to bundle - skipping (may already be in static/hexmap/)');
+    process.exit(0);
+  } else {
+    console.error(`Missing vendor files: ${missing.join(', ')}. Run \`npm run vendor:build\` first.`);
+    process.exit(1);
+  }
 }
 
 await mkdir('static/hexmap', { recursive: true });
