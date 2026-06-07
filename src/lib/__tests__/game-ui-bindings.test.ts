@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// If you moved the logic into a TS module, import it here to test it directly
+// import { initializeBindings } from '../game-ui-bindings';
 
 describe('Game UI Bindings - Function Exposure', () => {
   let originalWindow: Partial<Window & typeof globalThis>;

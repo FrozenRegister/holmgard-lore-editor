@@ -83,7 +83,8 @@ gh project item-create 3 --owner FrozenRegister \
 Get the draft issue content ID first (`gh project item-list` returns the project-item ID `PVTI_*`, but body edits need the draft ID `DI_*` — query via `gh api graphql`):
 
 ```bash
-gh api graphql -f query='query($iid:ID!){node(id:$iid){... on ProjectV2Item{content{... on DraftIssue{id} ... on Issue{id}}}}}'
+gh api graphql -f query='query($iid:ID!){node(id:$iid){... on ProjectV2Item{content{... on DraftIssue{id} ... on Issue{id}}}}}' \
+  -f iid=<PVTI_id>
 # → returns e.g. "DI_xxx" for drafts, or "I_xxx" for real issues
 
 gh project item-edit --id DI_xxx --body "<new body>"
