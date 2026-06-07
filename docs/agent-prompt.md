@@ -82,6 +82,7 @@ When the user asks to review and push:
 - **`.clinerules`** — canonical source of truth for the above. If this
   prompt ever conflicts with `.clinerules`, follow `.clinerules`.
 - **`scripts/session-end.ps1`** — the `Add-SessionSummary` helper
+- **`docs/style-guide.md`** — UI tokens, typography standards, and coding patterns.
 - **`docs/future/<feature>.md`** — back-burner feature specs (e.g.
   `claude-map-tools.md` for the map↔MCP plan)
 - **`scripts/`** — `gh`-driven scripts only. No custom PowerShell toolkits
