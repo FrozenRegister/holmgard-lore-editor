@@ -21,6 +21,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "coverage:gaps": "tsx scripts/coverage-gap-analysis.ts",
+    "analyze:map": "tsx scripts/analyze-working-map.ts",
+    "ts": "tsx",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
