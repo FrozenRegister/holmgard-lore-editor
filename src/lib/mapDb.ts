@@ -53,6 +53,7 @@ interface MapDBSchema extends DBSchema {
 		value: HexRecord;
 		indexes: {
 			'by-map-q': [string, number]; // [mapId, q]
+			'by-map-q-r': [string, number, number]; // [mapId, q, r]
 			'by-map-terrain': [string, string]; // [mapId, terrain]
 		};
 	};
@@ -61,14 +62,16 @@ interface MapDBSchema extends DBSchema {
 		value: LandmarkRecord;
 		indexes: {
 			'by-map-q': [string, number]; // [mapId, q]
+			'by-map-q-r': [string, number, number]; // [mapId, q, r]
 			'by-map-type': [string, string]; // [mapId, type]
 			'by-map-linked-lore': [string, string]; // [mapId, linkedLoreKey] — null links are not indexed
+			'linkedLoreKey': string; // global index for finding landmarks by lore key
 		};
 	};
 }
 
 const DB_NAME = 'holmgard-maps';
-const DB_VERSION = 2;
+const DB_VERSION = 4;
 
 let dbInstance: IDBPDatabase<MapDBSchema> | null = null;
 
@@ -99,6 +102,8 @@ export async function getMapDb(): Promise<IDBPDatabase<MapDBSchema>> {
 					keyPath: ['mapId', 'q', 'r']
 				});
 				hexStore.createIndex('by-map-q', ['mapId', 'q']);
+				// Compound index for better spatial narrowing
+				hexStore.createIndex('by-map-q-r', ['mapId', 'q', 'r']);
 				hexStore.createIndex('by-map-terrain', ['mapId', 'terrain']);
 			}
 
@@ -108,6 +113,7 @@ export async function getMapDb(): Promise<IDBPDatabase<MapDBSchema>> {
 					keyPath: ['mapId', 'id']
 				});
 				landmarkStore.createIndex('by-map-q', ['mapId', 'q']);
+				landmarkStore.createIndex('by-map-q-r', ['mapId', 'q', 'r']);
 				landmarkStore.createIndex('by-map-type', ['mapId', 'type']);
 				landmarkStore.createIndex('by-map-linked-lore', ['mapId', 'linkedLoreKey']);
 			}
@@ -128,6 +134,13 @@ export async function getMapDb(): Promise<IDBPDatabase<MapDBSchema>> {
 				}
 				if (!store.indexNames.contains('by-map-linked-lore')) {
 					store.createIndex('by-map-linked-lore', ['mapId', 'linkedLoreKey']);
+				}
+			}
+
+			if (oldVersion < 4 && db.objectStoreNames.contains('landmarks')) {
+				const store = tx.objectStore('landmarks');
+				if (!store.indexNames.contains('linkedLoreKey')) {
+					store.createIndex('linkedLoreKey', 'linkedLoreKey');
 				}
 			}
 		}
@@ -169,11 +182,14 @@ export async function getHexRadius(
 	radius: number
 ): Promise<HexRecord[]> {
 	const db = await getMapDb();
-	const index = db.transaction('hexes').store.index('by-map-q');
+	const index = db.transaction('hexes').store.index('by-map-q-r');
 
-	// Use bounded range to get candidates
-	const range = IDBKeyRange.bound([mapId, q - radius], [mapId, q + radius]);
-	const candidates = await index.getAll(range);
+	// By using the compound index [mapId, q, r], we can significantly narrow the 
+	// search space by bounding both q AND r in the IDB query itself.
+	const candidates = await index.getAll(IDBKeyRange.bound(
+		[mapId, q - radius, r - radius],
+		[mapId, q + radius, r + radius]
+	));
 
 	// Filter by axial hex distance
 	return candidates.filter((hex: HexRecord) => {
@@ -195,11 +211,13 @@ export async function getLandmarksInRadius(
 	radius: number
 ): Promise<Array<LandmarkRecord & { dist: number }>> {
 	const db = await getMapDb();
-	const index = db.transaction('landmarks').store.index('by-map-q');
+	const index = db.transaction('landmarks').store.index('by-map-q-r');
 
-	// Use bounded range to get candidates
-	const range = IDBKeyRange.bound([mapId, q - radius], [mapId, q + radius]);
-	const candidates = await index.getAll(range);
+	// Use the compound index to bound both q AND r in the database query
+	const candidates = await index.getAll(IDBKeyRange.bound(
+		[mapId, q - radius, r - radius],
+		[mapId, q + radius, r + radius]
+	));
 
 	// Filter by axial hex distance and add dist field
 	return candidates
@@ -260,20 +278,9 @@ export async function deleteMap(mapId: string): Promise<void> {
 	await tx.objectStore('maps').delete(mapId);
 
 	// Delete all hexes for this map
-	const hexIndex = tx.objectStore('hexes').index('by-map-q');
-	const hexRange = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
-	const hexKeys = await hexIndex.getAllKeys(hexRange);
-	for (const key of hexKeys) {
-		await tx.objectStore('hexes').delete(key);
-	}
-
-	// Delete all landmarks for this map
-	const landmarkIndex = tx.objectStore('landmarks').index('by-map-q');
-	const landmarkRange = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
-	const landmarkKeys = await landmarkIndex.getAllKeys(landmarkRange);
-	for (const key of landmarkKeys) {
-		await tx.objectStore('landmarks').delete(key);
-	}
+	const mapRange = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
+	await tx.objectStore('hexes').delete(mapRange);
+	await tx.objectStore('landmarks').delete(mapRange);
 
 	await tx.done;
 }
@@ -283,10 +290,9 @@ export async function deleteMap(mapId: string): Promise<void> {
  */
 export async function getHexCount(mapId: string): Promise<number> {
 	const db = await getMapDb();
-	const index = db.transaction('hexes').store.index('by-map-q');
+	const index = db.transaction('hexes').store.index('by-map-q-r');
 	const range = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
-	const keys = await index.getAllKeys(range);
-	return keys.length;
+	return index.count(range);
 }
 
 /**
@@ -294,10 +300,9 @@ export async function getHexCount(mapId: string): Promise<number> {
  */
 export async function getLandmarkCount(mapId: string): Promise<number> {
 	const db = await getMapDb();
-	const index = db.transaction('landmarks').store.index('by-map-q');
+	const index = db.transaction('landmarks').store.index('by-map-q-r');
 	const range = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
-	const keys = await index.getAllKeys(range);
-	return keys.length;
+	return index.count(range);
 }
 
 /**
@@ -305,9 +310,8 @@ export async function getLandmarkCount(mapId: string): Promise<number> {
  */
 export async function getAllHexes(mapId: string): Promise<HexRecord[]> {
 	const db = await getMapDb();
-	const index = db.transaction('hexes').store.index('by-map-q');
 	const range = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
-	return index.getAll(range);
+	return db.getAll('hexes', range);
 }
 
 /**
@@ -315,9 +319,8 @@ export async function getAllHexes(mapId: string): Promise<HexRecord[]> {
  */
 export async function getAllLandmarks(mapId: string): Promise<LandmarkRecord[]> {
 	const db = await getMapDb();
-	const index = db.transaction('landmarks').store.index('by-map-q');
 	const range = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
-	return index.getAll(range);
+	return db.getAll('landmarks', range);
 }
 
 /**
@@ -402,10 +405,9 @@ export async function getLandmarksForLoreKey(
 	loreKey: string
 ): Promise<LandmarkRecord[]> {
 	const db = await getMapDb();
-	const all = (await db.getAll('landmarks')) as LandmarkRecord[];
-	return all
-		.filter((l) => (l.linkedLoreKey ?? null) === loreKey)
-		.map((l) => ({ ...l, linkedLoreKey: l.linkedLoreKey ?? null }));
+	const index = db.transaction('landmarks').store.index('linkedLoreKey');
+	const rows = await index.getAll(IDBKeyRange.only(loreKey));
+	return rows.map((l) => ({ ...l, linkedLoreKey: l.linkedLoreKey ?? null }));
 }
 
 /**
