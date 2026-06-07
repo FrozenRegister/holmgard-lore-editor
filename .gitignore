@@ -4,6 +4,7 @@ build/
 dist/
 coverage/
 src-tauri/target/
+vendor-src/
 .env
 .env.*
 !.env.example
