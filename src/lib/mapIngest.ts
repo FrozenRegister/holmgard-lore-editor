@@ -123,12 +123,8 @@ async function deleteHexesForMap(
 	db: Awaited<ReturnType<typeof getMapDb>>,
 	mapId: string
 ): Promise<void> {
-	const index = db.transaction('hexes', 'readwrite').store.index('by-map-q');
 	const range = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
-	const keys = await index.getAllKeys(range);
-	for (const key of keys) {
-		await db.delete('hexes', key);
-	}
+	await db.delete('hexes', range);
 }
 
 /**
@@ -138,10 +134,6 @@ async function deleteLandmarksForMap(
 	db: Awaited<ReturnType<typeof getMapDb>>,
 	mapId: string
 ): Promise<void> {
-	const index = db.transaction('landmarks', 'readwrite').store.index('by-map-q');
 	const range = IDBKeyRange.bound([mapId], [mapId, '\uffff']);
-	const keys = await index.getAllKeys(range);
-	for (const key of keys) {
-		await db.delete('landmarks', key);
-	}
+	await db.delete('landmarks', range);
 }
