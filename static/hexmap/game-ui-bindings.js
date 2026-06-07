@@ -93,7 +93,12 @@
     if (typeof w.newMap !== 'function') {
       w.newMap = function() {
         if (confirm('Create a new map? Any unsaved changes will be lost.')) {
-          w.showNotification?.('New map feature coming soon', 'info');
+          if (w.state && w.state.hexMap) {
+            w.state.hexMap.hexes = [];
+            w.state.hexMap.landmarks = [];
+            if (typeof w.renderHex === 'function') w.renderHex();
+          }
+          w.showNotification?.('New map created', 'success');
         }
       };
       console.log('[Game UI Bindings] Created newMap stub');
@@ -106,9 +111,29 @@
       console.log('[Game UI Bindings] Created quickCloudSave stub');
     }
 
+    // importMapFromFile is defined in game.js but the vendor R2 deploy overwrites it.
+    // Expose it here so the "Import Map (JSON)" menu item always works.
+    if (typeof w.importMapFromFile !== 'function') {
+      w.importMapFromFile = function() {
+        const fileInput = document.getElementById('importFileInput');
+        if (fileInput) {
+          fileInput.click();
+        } else {
+          w.showNotification?.('Import file picker not available', 'error');
+        }
+      };
+      console.log('[Game UI Bindings] Created importMapFromFile stub');
+    }
+
     if (typeof w.shareMap !== 'function') {
       w.shareMap = function() {
-        w.showNotification?.('Share feature coming soon', 'info');
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+          w.showNotification?.('Link copied to clipboard', 'success');
+        }).catch(err => {
+          console.error('Could not copy link:', err);
+          w.showNotification?.('Failed to copy link', 'error');
+        });
       };
       console.log('[Game UI Bindings] Created shareMap stub');
     }
@@ -338,14 +363,7 @@
 
     if (typeof window.loadMapDataIntoState === 'function') {
       window.loadMapDataIntoState(state);
-      console.log('[Game UI Bindings] Restored map:', state.mapName, '(' + (state.hexes && state.hexes.length) + ' hexes)');
+      console.log('[Game UI Bindings] Restored map from IDB key:', fullKey);
     }
   }
-
-  // Re-save when game.js navigates (pushState/replaceState) to a new draftId.
-  var _origPush = history.pushState.bind(history);
-  var _origReplace = history.replaceState.bind(history);
-  history.pushState = function() { _origPush.apply(history, arguments); saveLastOpenedDraftKey(); };
-  history.replaceState = function() { _origReplace.apply(history, arguments); saveLastOpenedDraftKey(); };
-  window.addEventListener('popstate', saveLastOpenedDraftKey);
 })();

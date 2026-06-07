@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { showToast } from '$lib/stores';
   import { exposeAggregationAPI } from '$lib/terrain-aggregation';
+  import '$lib/importMap';
 
   let isLoaded = false;
   let pageContainer: HTMLElement;
