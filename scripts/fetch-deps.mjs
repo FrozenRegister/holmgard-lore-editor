@@ -10,8 +10,8 @@ loadEnv();
 const vendorManifestEnv = process.env.VENDOR_MANIFEST;
 
 if (!vendorManifestEnv) {
-  console.error('Error: VENDOR_MANIFEST is not set. See .env.example.');
-  process.exit(1);
+  console.log('⊘ VENDOR_MANIFEST not set - skipping fetch (vendor files may already exist)');
+  process.exit(0);
 }
 
 let manifest;
