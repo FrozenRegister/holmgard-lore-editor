@@ -162,7 +162,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   autoSyncIntervalSecs: 30,
   autoSync: true,
   syncHistory: true,
-
 };
 
 export async function loadSettings(): Promise<AppSettings> {
