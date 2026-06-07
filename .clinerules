@@ -2,7 +2,7 @@
 
 **Use PowerShell commands only. Assume Windows 11.** Do not use bash, `cat`, `ls`, or other Linux commands. Use `Get-Content` instead of `cat`, `Get-ChildItem` instead of `ls`, `Remove-Item` instead of `rm`, etc.
 
-# Git workflow
+## Git workflow
 
 When asked to review changes and push, always split changes into multiple logical commits grouped by concern instead of one large commit. Each group should be self-contained with a descriptive conventional-commit message (feat:, fix:, chore:, test:, etc.). Example groupings:
 
@@ -18,7 +18,7 @@ After all commits are made, push once. This is the default behavior — no need 
 A GitHub MCP server (`https://api.githubcopilot.com/mcp/`) is configured in `cline_mcp_settings.json`. **Prefer MCP over `gh` CLI for everything except Project V2 operations.**
 
 | Capability | MCP (use_mcp_tool) | `gh` CLI (execute_command) |
-|---|---|---|
+| --- | --- | --- |
 | Issues — create, update, read, comment, search, labels | ✅ All | ⚠️ JSON parsing |
 | Pull requests — create, update, diff, merge, reviews, comments | ✅ All | ⚠️ JSON parsing |
 | Repos — search, fork, contents, branches, tags, releases | ✅ All | ⚠️ |
@@ -28,6 +28,7 @@ A GitHub MCP server (`https://api.githubcopilot.com/mcp/`) is configured in `cli
 | Issue body editing | ✅ `issue_write` with `issue_number` | ✅ `gh issue edit` |
 
 ### Default rule
+
 Use the **GitHub MCP server** for all issue/PR/repo operations. Fall back to `gh` CLI only for Project V2 drafting and status changes.
 
 ## GitHub Project workflow
