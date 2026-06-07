@@ -42,6 +42,31 @@ pnpm build         # Web build
 pnpm tauri:build   # Desktop binary
 ```
 
+### Deployment
+
+**Deploy to Cloudflare Workers:**
+
+```bash
+pnpm deploy
+```
+
+This runs the complete deployment pipeline:
+
+1. `npm run vendor:build` — Fetch vendor JS/CSS from Cloudflare R2, minify via esbuild
+2. `vite build` — Build the SvelteKit app
+3. `wrangler deploy` — Deploy to Cloudflare Workers
+
+**Requirements:**
+
+- Cloudflare Workers project with authentication token
+- `VENDOR_MANIFEST` environment variable set in Cloudflare Build & Deploy settings
+
+**Local testing (without deploying):**
+
+```bash
+pnpm build         # Runs vendor:build + vite build (no wrangler)
+```
+
 ## Architecture
 
 ### Dual-Environment Pattern
@@ -137,13 +162,23 @@ pnpm test:e2e:debug        # Step-through debugger
 ├── src-tauri/                   # Rust backend
 ├── e2e/                         # Playwright E2E tests
 ├── static/
-│   ├── hexmap/                  # External hex map library
-│   │   ├── game.js              # External (gitignore)
-│   │   ├── game-ui-bindings.js  # Function exposure for game.js
-│   │   └── worker-patch.js      # Worker path resolution
+│   ├── hexmap/                  # Hex map editor
+│   │   ├── game.js              # Vendor (gitignored, fetched from R2)
+│   │   ├── auth.js              # Vendor (gitignored, fetched from R2)
+│   │   ├── cloud-storage.js     # Vendor (gitignored, fetched from R2)
+│   │   ├── game-ui-bindings.js  # Custom: Function exposure for game.js
+│   │   ├── worker-patch.js      # Custom: Worker path resolution
+│   │   └── ...
+│   └── ...
+├── scripts/
+│   ├── fetch-deps.mjs           # Fetch vendor files from URLs
+│   ├── bundle-vendor.mjs        # Minify vendor files via esbuild
+│   ├── check-vendor.mjs         # Verify vendor files exist
+│   ├── load-env.mjs             # Utility: Parse .env file
 │   └── ...
 ├── CLAUDE.md                    # Development instructions
 ├── TESTING.md                   # Test documentation
+├── .env.example                 # Vendor pipeline config template
 ├── vitest.config.ts             # Vitest configuration
 ├── playwright.config.ts         # Playwright configuration
 └── package.json
@@ -153,13 +188,21 @@ pnpm test:e2e:debug        # Step-through debugger
 
 ### Environment Variables
 
-**TODO:** Document required environment variables here (API keys, etc.)
+**Local development (`.env` file):**
+
+- `VENDOR_MANIFEST` — JSON array of vendor files to fetch from Cloudflare R2 (see `.env.example`)
+- `VENDOR_TOKEN` — Optional Bearer token for authenticating vendor file downloads
+
+**Cloudflare deployment:**
+
+Set `VENDOR_MANIFEST` in Cloudflare Workers → **Settings** → **Build & Deploy** → **Environment variables**. This tells the build process where to fetch the vendor JS/CSS files.
 
 ### Build Configuration
 
 - **Vite:** `vite.config.ts` (SvelteKit + Svelte plugin)
 - **Type checking:** `svelte-check` via `pnpm check`
 - **SvelteKit sync:** Required before type checking: `pnpm svelte-kit sync`
+- **Vendor pipeline:** `scripts/fetch-deps.mjs` and `scripts/bundle-vendor.mjs` handle vendor file management
 
 ## Scripts
 
@@ -167,8 +210,12 @@ pnpm test:e2e:debug        # Step-through debugger
 | ------ | ------- |
 | `pnpm dev` | Start Vite dev server (browser) |
 | `pnpm tauri:dev` | Start Tauri desktop app with hot reload |
-| `pnpm build` | Production web build |
+| `pnpm build` | Production web build (runs vendor:build first) |
 | `pnpm tauri:build` | Production desktop build |
+| `pnpm deploy` | Deploy to Cloudflare Workers (runs vendor:build + build + wrangler deploy) |
+| `pnpm vendor:fetch` | Fetch vendor files from Cloudflare R2 |
+| `pnpm vendor:bundle` | Minify vendor files via esbuild |
+| `pnpm vendor:build` | Fetch + bundle vendor files |
 | `pnpm check` | Type check and sync SvelteKit |
 | `pnpm check:watch` | Type check in watch mode |
 | `pnpm test` | Run unit tests once |
