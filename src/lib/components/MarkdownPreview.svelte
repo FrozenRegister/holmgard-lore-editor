@@ -7,9 +7,9 @@
 </script>
 
 <div class="preview-wrapper">
-  <div class="prose" contenteditable="false">
+  <article class="prose" contenteditable="false">
     {@html html}
-  </div>
+  </article>
 </div>
 
 <style>
@@ -18,7 +18,31 @@
     overflow-y: auto;
     padding: 1.5rem 2rem;
     background: var(--bg);
+    box-sizing: border-box;
   }
 
-  /* Prose styles inherited from app.css .prose class */
+  .prose {
+    max-width: 70ch;
+    margin: 0 auto;
+  }
+
+  /* Ensure content injected via @html is responsive */
+  .prose :global(img) {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .prose :global(pre) {
+    max-width: 100%;
+    overflow-x: auto;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    border-radius: 4px;
+  }
+
+  .prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
 </style>
