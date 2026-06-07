@@ -7,4 +7,6 @@ onlyBuiltDependencies:
 
 allowBuilds:
   esbuild: true
+  sharp: set this to true or false
   svelte-preprocess: true
+  workerd: set this to true or false
