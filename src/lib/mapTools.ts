@@ -139,9 +139,6 @@ export async function findPath(
 	const pushEntry = (q: number, r: number, g: number) => {
 		const f = g + axialDistance({ q, r }, to);
 		open.push({ f, q, r });
-		// Lazy sort keeps the array short. For typical map sizes (≤ a few
-		// thousand nodes) a linear scan is fast enough.
-		open.sort((a, b) => a.f - b.f);
 	};
 
 	pushEntry(from.q, from.r, 0);
@@ -149,7 +146,18 @@ export async function findPath(
 	let iterations = 0;
 	while (open.length > 0) {
 		if (++iterations > maxSteps) return null;
-		const cur = open.shift()!;
+
+		// Optimized: Find index of element with lowest f-score.
+		// For very large maps, a Binary Heap would be O(log N).
+		// For typical game maps, this O(N) selection is efficient.
+		let bestIdx = 0;
+		for (let i = 1; i < open.length; i++) {
+			if (open[i].f < open[bestIdx].f) {
+				bestIdx = i;
+			}
+		}
+		const cur = open.splice(bestIdx, 1)[0];
+
 		const ck = key(cur.q, cur.r);
 		if (closed.has(ck)) continue;
 		closed.add(ck);
