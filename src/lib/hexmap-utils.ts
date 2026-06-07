@@ -6,10 +6,53 @@
 
 import type { CoastlineMap, Hex } from '$lib/types';
 
+// Simple cache to avoid re-calculating ray-casting for static hexes
+const COASTLINE_CACHE = new Map<string, boolean>();
+
+/** 
+ * Clear the coastline lookup cache. 
+ * Useful when switching coastline maps or to free up memory.
+ */
+export function clearCoastlineCache(): void {
+  COASTLINE_CACHE.clear();
+}
+
+function getBoundingBox(coords: [number, number][]) {
+  let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  for (const [lon, lat] of coords) {
+    if (lon < minLon) minLon = lon; if (lon > maxLon) maxLon = lon;
+    if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat;
+  }
+  return { minLon, maxLon, minLat, maxLat };
+}
+
+const MAX_CACHE_SIZE = 10000;
+
 /**
  * Point-in-polygon test using ray casting algorithm
  * Tests if a hex center (converted to lat/lon) is inside any coastline polygon
  */
+/**
+ * Compute a stable identity hash for a coastline map so the cache
+ * can distinguish between different coastline sets (e.g. a square
+ * polygon vs. a multi-island set). Does NOT deep-compare every coordinate.
+ */
+function coastlineId(coastlines: CoastlineMap): string {
+  const n = coastlines.features.length;
+  const first = coastlines.features[0];
+  const geom = first?.geometry;
+  if (!geom || !Array.isArray(geom.coordinates)) return `f${n}`;
+
+  // Dig into the first ring of the first polygon
+  const ring: [number, number][] | undefined =
+    geom.type === 'MultiPolygon' && Array.isArray(geom.coordinates[0]?.[0])
+      ? geom.coordinates[0][0] as [number, number][]
+      : geom.coordinates[0] as [number, number][];
+
+  if (!ring?.length) return `f${n}`;
+  return `${n}:${geom.type}:${ring[0][0]?.toFixed(3)},${ring[0][1]?.toFixed(3)}-${ring[ring.length - 1][0]?.toFixed(3)},${ring[ring.length - 1][1]?.toFixed(3)}`;
+}
+
 export function isInsideCoastline(
   q: number,
   r: number,
@@ -17,8 +60,14 @@ export function isInsideCoastline(
   scale: number = 1.3
 ): boolean {
   if (!coastlines?.features?.length) return false;
+  
+  // Check cache first — key now includes coastline identity
+  const cacheKey = `${coastlineId(coastlines)}|${q},${r},${scale}`;
+  if (COASTLINE_CACHE.has(cacheKey)) return COASTLINE_CACHE.get(cacheKey)!;
 
   const { lat, lon } = axialToLatLon(q, r, scale);
+
+  let result = false;
 
   for (const feature of coastlines.features) {
     if (
@@ -26,8 +75,12 @@ export function isInsideCoastline(
       Array.isArray(feature.geometry.coordinates)
     ) {
       const ring = feature.geometry.coordinates[0] as [number, number][];
+      const bbox = getBoundingBox(ring);
+      if (lon < bbox.minLon || lon > bbox.maxLon || lat < bbox.minLat || lat > bbox.maxLat) continue;
+
       if (pointInPolygon(lat, lon, ring)) {
-        return true;
+        result = true;
+        break;
       }
     } else if (
       feature.geometry?.type === 'MultiPolygon' &&
@@ -35,14 +88,25 @@ export function isInsideCoastline(
     ) {
       for (const polygon of feature.geometry.coordinates) {
         const ring = polygon[0] as [number, number][];
+        const bbox = getBoundingBox(ring);
+        if (lon < bbox.minLon || lon > bbox.maxLon || lat < bbox.minLat || lat > bbox.maxLat) continue;
+
         if (pointInPolygon(lat, lon, ring)) {
-          return true;
+          result = true;
+          break;
         }
       }
+      if (result) break;
     }
   }
 
-  return false;
+  // Prevent memory leaks by capping the cache size. 
+  // If we hit the limit, we clear and start fresh.
+  if (COASTLINE_CACHE.size >= MAX_CACHE_SIZE) {
+    COASTLINE_CACHE.clear();
+  }
+  COASTLINE_CACHE.set(cacheKey, result);
+  return result;
 }
 
 /**
