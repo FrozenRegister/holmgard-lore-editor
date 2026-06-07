@@ -1,3 +1,7 @@
+# Environment
+
+**Use PowerShell commands only. Assume Windows 11.** Do not use bash, `cat`, `ls`, or other Linux commands. Use `Get-Content` instead of `cat`, `Get-ChildItem` instead of `ls`, `Remove-Item` instead of `rm`, etc.
+
 # Git workflow
 
 When asked to review changes and push, always split changes into multiple logical commits grouped by concern instead of one large commit. Each group should be self-contained with a descriptive conventional-commit message (feat:, fix:, chore:, test:, etc.). Example groupings:
