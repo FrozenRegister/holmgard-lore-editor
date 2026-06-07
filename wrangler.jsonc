@@ -1,0 +1,13 @@
+{
+	"name": "holmgard-lore-editor",
+	"main": "build/index.js",
+	"site": {
+		"bucket": "./build",
+		"include": ["**/*"],
+		"exclude": []
+	},
+	"compatibility_date": "2026-05-20",
+	"observability": {
+		"enabled": true
+	}
+}
