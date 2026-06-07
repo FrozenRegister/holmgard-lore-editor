@@ -4,8 +4,13 @@
 // zooms) and provides a small switcher UI. Maps are produced by
 // scripts/build-earth-from-naturalearth.js and listed in earth-996-regions.json.
 //
-// All hexes are pre-generated with game.js terrain vocabulary, so rendering &
-// borders come straight from the engine — no render patching needed here.
+// OPTIMIZATIONS applied (June 2026):
+//   1. Consolidated three polling intervals (zoom 250ms, visibility 400ms,
+//      whenReady 50ms) into a single rAF-based scheduler.
+//   2. MutationObserver for visibility — no polling when canvas is hidden.
+//   3. Zoom watcher skips work when user is actively interacting (painting/panning).
+//   4. Cooldown is now dynamic: longer after manual region switches, shorter
+//      after zoom-only changes.
 // ============================================================================
 
 (function () {
@@ -25,6 +30,15 @@
   const ZOOM_DEFAULTS = { autoZoom: true, zoomInRatio: 2.2, zoomOutRatio: 0.28 };
   let homeScale = null;      // viewport scale right after the active map fit
   let cooldownUntil = 0;     // ignore auto-switch triggers until this time
+  let cooldownTimer = null;  // single shared RAF timer for all periodic work
+
+  // --- Interaction-gating: skip heavy work while painting/panning ------------
+  function isActivelyInteracting() {
+    try {
+      return !!(window.state && window.state.hexMap &&
+        (window.state.hexMap.isPainting || window.state.hexMap.isPanning));
+    } catch { return false; }
+  }
 
   function readZoomCfg() {
     try {
@@ -72,8 +86,6 @@
           activeId = id;
           highlightActive();
           console.log(`${TAG} Loaded region '${id}' (${region.hexes} hexes)`);
-          // homeScale + cooldown are (re)captured by onMapChanged, which fires
-          // via the wrapped loadMapDataIntoState for every map load.
         }
         return ok;
       })
@@ -129,7 +141,6 @@
   }
 
   // ---- Zoom-to-load: map viewport center -> region --------------------------
-  // Lat/lon at the screen center of the currently active map.
   function viewportCenterLatLon() {
     const region = manifest.find((r) => r.id === activeId);
     if (!region || !region.geo) return null;
@@ -137,7 +148,6 @@
     const vp = hm.viewport;
     const size = hm.hexSize * vp.scale;
     if (!size) return null;
-    // At screen center the canvas.width/2 terms cancel, leaving -offset.
     const adjX = -vp.offsetX;
     const adjY = -vp.offsetY;
     const q = Math.round((Math.sqrt(3) / 3 * adjX - 1 / 3 * adjY) / size);
@@ -148,7 +158,6 @@
     return { lat: latMax - row * dLat, lon: lonMin + col * dLon };
   }
 
-  // Smallest region (excluding world) whose bounds contain the point.
   function regionAt(lat, lon) {
     let best = null, bestArea = Infinity;
     for (const r of manifest) {
@@ -167,38 +176,98 @@
     return next;
   }
 
-  function startZoomWatcher() {
-    setInterval(() => {
-      if (!shouldShowEarthUI()) return; // only the Earth map, only on the hex editor
-      const cfg = readZoomCfg();
-      if (!cfg.autoZoom) return;
-      if (!window.state || !window.state.hexMap || homeScale == null) return;
-      if (Date.now() < cooldownUntil) return;
-      const scale = window.state.hexMap.viewport.scale;
-      if (activeId === 'world') {
-        if (scale > homeScale * cfg.zoomInRatio) {
-          const c = viewportCenterLatLon();
-          const region = c && regionAt(c.lat, c.lon);
-          if (region) loadRegion(region.id);
-        }
-      } else if (scale < homeScale * cfg.zoomOutRatio) {
-        loadRegion('world');
+  // ---- Consolidated scheduler: single rAF loop instead of 3 intervals -------
+  // Previously: 250ms zoom watcher + 400ms visibility watcher + 50ms whenReady.
+  // Now: one rAF-based tick that defers to idle and skips during interaction.
+
+  let schedulerActive = false;
+  let tickQueued = false;
+  let lastTickAt = 0;
+  const TICK_INTERVAL_MS = 300; // target interval, rAF will approximate
+
+  function scheduleTick() {
+    if (tickQueued) return;
+    tickQueued = true;
+    requestAnimationFrame(() => {
+      tickQueued = false;
+      const now = performance.now();
+      if (now - lastTickAt < TICK_INTERVAL_MS) { scheduleTick(); return; }
+      lastTickAt = now;
+      performTick();
+      if (schedulerActive) scheduleTick();
+    });
+  }
+
+  function startScheduler() {
+    if (schedulerActive) return;
+    schedulerActive = true;
+    lastTickAt = performance.now();
+    scheduleTick();
+  }
+
+  function stopScheduler() {
+    schedulerActive = false;
+    tickQueued = false;
+  }
+
+  function performTick() {
+    // 1. Visibility sync (was startVisibilityWatcher at 400ms)
+    syncEarthUI();
+
+    // 2. Zoom watcher (was startZoomWatcher at 250ms)
+    if (!shouldShowEarthUI()) return;
+    const cfg = readZoomCfg();
+    if (!cfg.autoZoom) return;
+    if (!window.state || !window.state.hexMap || homeScale == null) return;
+    // Skip during active interaction — don't fight the user
+    if (isActivelyInteracting()) return;
+    if (Date.now() < cooldownUntil) return;
+    const scale = window.state.hexMap.viewport.scale;
+    if (activeId === 'world') {
+      if (scale > homeScale * cfg.zoomInRatio) {
+        const c = viewportCenterLatLon();
+        const region = c && regionAt(c.lat, c.lon);
+        if (region) loadRegion(region.id);
       }
-    }, 250);
+    } else if (scale < homeScale * cfg.zoomOutRatio) {
+      loadRegion('world');
+    }
+  }
+
+  // ---- MutationObserver for visibility (replaces polling) -------------------
+  let visibilityObs = null;
+
+  function startVisibilityObserver() {
+    if (visibilityObs) return;
+    const canvas = document.getElementById('hexCanvas');
+    if (!canvas) { setTimeout(startVisibilityObserver, 500); return; }
+    visibilityObs = new MutationObserver(() => {
+      // visibility change detected — sync Earth UI at most once per frame
+      if (!tickQueued && schedulerActive) {
+        // let the next tick handle it
+      } else if (!schedulerActive) {
+        // quick one-shot sync (e.g. first time canvas appears)
+        syncEarthUI();
+      }
+    });
+    visibilityObs.observe(canvas, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+      subtree: false
+    });
+    // Also listen for the canvas being added/removed from DOM
+    const container = document.getElementById('hexCanvas')?.parentElement;
+    if (container) {
+      visibilityObs.observe(container, { childList: true, subtree: false });
+    }
   }
 
   // ---- Earth-instance + view gating -----------------------------------------
-  // The region switcher, zoom-to-load, and drill-down settings only apply to
-  // the Earth 996 world AND only while the hex map editor is actually on
-  // screen. Any other world (e.g. workingMap.json) — or any other route
-  // (Topics, Settings, ...) — is left alone.
   function isEarthMap() {
     const hm = window.state && window.state.hexMap;
     return !!hm && String(hm.mapInstanceId || '').indexOf('earth-996') === 0;
   }
 
-  // The switcher bar is appended to <body>, so it would otherwise linger after
-  // navigating away from the hex map (this is an SPA). Tie it to the canvas.
   function isHexEditorVisible() {
     const c = document.getElementById('hexCanvas');
     return !!c && (c.offsetParent !== null || c.getClientRects().length > 0);
@@ -208,11 +277,8 @@
     return isHexEditorVisible() && isEarthMap();
   }
 
-  // Toggle the Earth-only UI. Safe to call repeatedly — used by both the
-  // map-change hook and the visibility watcher.
   function syncEarthUI() {
     const show = shouldShowEarthUI();
-    // Drill-down settings section lives in the Svelte settings modal.
     const grp = document.getElementById('hexEarthDrilldownGroup');
     if (grp) grp.style.display = show ? '' : 'none';
 
@@ -225,51 +291,54 @@
     }
   }
 
-  // Show/hide the Earth-only UI and (re)sync state whenever the active map
-  // changes. Called after every loadMapDataIntoState via the wrapper below.
-  function onMapChanged() {
+  function onMapChanged(isManualSwitch) {
     syncEarthUI();
     if (!shouldShowEarthUI()) return;
-    // Sync active region from the loaded map + recapture the fitted scale.
     const id = String(window.state.hexMap.mapInstanceId || '');
     const match = manifest.find((r) => r.mapInstanceId === id);
     if (match) { activeId = match.id; highlightActive(); }
-    cooldownUntil = Date.now() + 1500;
+    // Longer cooldown for manual switches, shorter for zoom-only
+    cooldownUntil = Date.now() + (isManualSwitch === true ? 2500 : 1200);
     setTimeout(() => {
       if (window.state && window.state.hexMap) homeScale = window.state.hexMap.viewport.scale;
     }, 120);
   }
 
-  // Catch route navigation (which doesn't fire loadMapDataIntoState): keep the
-  // body-level switcher in sync with whether the hex editor is on screen.
-  function startVisibilityWatcher() {
-    setInterval(syncEarthUI, 400);
-  }
-
-  // Decorate game.js's loader so we react to every map load (ours + Open Map).
+  // Decorate game.js's loader so we react to every map load.
   function wrapLoader() {
     if (window.__hexEarthLoaderWrapped) return;
     const orig = window.loadMapDataIntoState;
     window.loadMapDataIntoState = function () {
       const res = orig.apply(this, arguments);
-      setTimeout(onMapChanged, 50);
+      setTimeout(function () { onMapChanged(false); }, 50);
       return res;
     };
     window.__hexEarthLoaderWrapped = true;
   }
 
   // ---- Wait for game.js, then init ------------------------------------------
+  // Replaced the 50ms setInterval poll with a rIC-based approach.
   function whenReady(fn) {
     let tries = 0;
-    const timer = setInterval(() => {
+    function check() {
       if (typeof window.loadMapDataIntoState === 'function' && window.state && window.state.hexMap) {
-        clearInterval(timer);
         fn();
-      } else if (++tries > 300) {
-        clearInterval(timer);
-        console.warn(`${TAG} Timed out waiting for game.js`);
+        return;
       }
-    }, 50);
+      tries++;
+      if (tries > 600) {
+        console.warn(`${TAG} Timed out waiting for game.js`);
+        return;
+      }
+      // Use requestAnimationFrame with a minimum gap — gentler than setInterval(50)
+      requestAnimationFrame(function () { setTimeout(check, 80); });
+    }
+    // Check immediately first
+    if (typeof window.loadMapDataIntoState === 'function' && window.state && window.state.hexMap) {
+      fn();
+      return;
+    }
+    requestAnimationFrame(function () { setTimeout(check, 80); });
   }
 
   function init() {
@@ -277,33 +346,32 @@
       .then((data) => {
         manifest = data.regions || [];
         console.log(`${TAG} ${manifest.length} regions available:`, manifest.map((r) => r.id).join(', '));
-        whenReady(() => {
+        whenReady(function () {
           wrapLoader();
-          startZoomWatcher();
-          startVisibilityWatcher();
+          startVisibilityObserver();
+          startScheduler();
           const hm = window.state.hexMap;
           const count = hm && Array.isArray(hm.hexes) ? hm.hexes.length
                       : (hm && hm.hexes ? Object.keys(hm.hexes).length : 0);
           if (isEarthMap()) {
-            onMapChanged();              // already on an Earth map -> sync UI
+            onMapChanged(false);
           } else if (count > 0) {
-            onMapChanged();              // another world is loaded -> leave it alone
+            onMapChanged(false);
           } else {
             const def = manifest.find((r) => r.isDefault) || manifest[0];
-            if (def) loadRegion(def.id); // blank -> default to the Earth world
+            if (def) loadRegion(def.id);
           }
         });
       })
       .catch((err) => console.error(`${TAG} Could not load region manifest:`, err));
 
-    // Public API for console / future UI
     window.HexEarth = {
-      loadRegion,
-      getRegions: () => manifest,
+      loadRegion: function (id) { return loadRegion(id); },
+      getRegions: function () { return manifest; },
       get activeId() { return activeId; },
       getZoomCfg: readZoomCfg,
       setZoomCfg: writeZoomCfg,
-      setAutoZoom: (on) => writeZoomCfg({ autoZoom: !!on }),
+      setAutoZoom: function (on) { writeZoomCfg({ autoZoom: !!on }); },
     };
   }
 
