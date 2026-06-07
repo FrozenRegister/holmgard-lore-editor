@@ -25,6 +25,9 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp", "workerd"]
+  },
   "dependencies": {
     "@monaco-editor/loader": "^1.4.0",
     "dexie": "^4.4.3",
