@@ -86,6 +86,33 @@ describe('mcp.ts', () => {
     );
   });
 
+  it('throws a 401-specific hint when the Worker rejects with 401', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+    });
+    global.fetch = mockFetch;
+
+    await expect(callTool('http://localhost', 'test', {})).rejects.toThrow(
+      'check your MCP API key in Settings'
+    );
+  });
+
+  it('emits console.warn when called without an API key', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1000, result: {} }),
+    });
+    global.fetch = mockFetch;
+
+    await callTool('http://localhost', 'test_method', {});
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('without an API key'));
+    warnSpy.mockRestore();
+  });
+
   it('throws on JSON-RPC error response', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
