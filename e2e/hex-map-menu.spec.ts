@@ -8,19 +8,20 @@ import { test, expect } from '@playwright/test';
 test.describe('Hex Map Editor - Menu Interactions', () => {
   test.beforeEach(async ({ page }) => {
     // Ensure we start on the world editor route
-    await page.goto('/world-editor');
+    await page.goto('/world-editor', { waitUntil: 'domcontentloaded' });
+
+    // Wait significantly longer for all dynamic scripts to load and initialize.
+    // The +page.svelte onMount runs AFTER component mounts, loading scripts sequentially.
+    // game-ui-bindings.js is the last script and must fully initialize before tests run.
+    await page.waitForTimeout(3000);
 
     // Synchronization point: Wait for the rendering engine to initialize.
     // We check for the primary canvas or its container.
     await page.waitForSelector('[data-testid="hex-map-container"], canvas, #hexCanvas', {
-      timeout: 10000,
+      timeout: 5000,
     }).catch(() => {
       return Promise.resolve();
     });
-
-    // game-ui-bindings.js has an internal 200ms delay to ensure game.js is ready.
-    // We provide a 500ms buffer here to ensure all window functions are exposed.
-    await page.waitForTimeout(500);
   });
 
   test('should expose functions to window object', async ({ page }) => {

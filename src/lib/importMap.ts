@@ -31,23 +31,23 @@ interface LoadableMapData {
   [key: string]: unknown;
 }
 
-function normalizeLoadedMapCollections(data: LoadableMapData): LoadableMapData {
-  const collectionKeys = [
-    'hexes',
-    'tokens',
-    'landmarks',
-    'textLabels',
-    'imageOverlays',
-    'paths',
-    'fogOfWar',
-    'subHexes',
-    'subHexLandmarks',
-    'subHexTokens',
-    'detailHexes',
-    'layers',
-  ] as const;
+const MAP_COLLECTION_KEYS = [
+  'hexes',
+  'tokens',
+  'landmarks',
+  'textLabels',
+  'imageOverlays',
+  'paths',
+  'fogOfWar',
+  'subHexes',
+  'subHexLandmarks',
+  'subHexTokens',
+  'detailHexes',
+  'layers',
+] as const;
 
-  for (const key of collectionKeys) {
+export function normalizeLoadedMapCollections(data: LoadableMapData): LoadableMapData {
+  for (const key of MAP_COLLECTION_KEYS) {
     const val = data[key];
     if (val && typeof val === 'object' && !Array.isArray(val)) {
       (data as Record<string, unknown>)[key] = Object.values(val);
@@ -64,20 +64,6 @@ function hasLoadableMapContent(data: LoadableMapData): boolean {
     return true;
   }
 
-  const collectionKeys = [
-    'hexes',
-    'tokens',
-    'landmarks',
-    'textLabels',
-    'imageOverlays',
-    'paths',
-    'fogOfWar',
-    'detailHexes',
-    'subHexes',
-    'subHexLandmarks',
-    'subHexTokens',
-  ];
-
   const hasBlankWorldMapScaffold =
     Array.isArray(data.hexes) &&
     Array.isArray(data.tokens) &&
@@ -93,10 +79,9 @@ function hasLoadableMapContent(data: LoadableMapData): boolean {
       Object.prototype.hasOwnProperty.call(data, 'fogSettings'));
 
   return (
-    collectionKeys.some(
+    MAP_COLLECTION_KEYS.some(
       (key) => Array.isArray(data[key]) && (data[key] as Array<unknown>).length > 0,
     ) ||
-    (Array.isArray(data.layers) && data.layers.length > 0) ||
     !!data.viewport ||
     !!data.customTerrains ||
     hasBlankWorldMapScaffold
@@ -128,6 +113,8 @@ export function importMapFromFile(): void {
   fallbackPicker.style.display = 'none';
   document.body.appendChild(fallbackPicker);
 
+  // Using a one-time listener to handle the file processing
+  // and ensure we clean up the DOM afterward.
   fallbackPicker.addEventListener('change', async (event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
@@ -187,8 +174,10 @@ export function importMapFromFile(): void {
     } catch (error) {
       console.error('Error importing map:', error);
       alert('Error importing map file. Please make sure it\'s a valid hex map JSON file.');
+    } finally {
+      fallbackPicker.remove();
     }
-  });
+  }, { once: true });
 
   fallbackPicker.click();
 }
