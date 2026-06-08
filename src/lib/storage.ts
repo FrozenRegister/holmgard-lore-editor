@@ -4,6 +4,7 @@
  */
 import { invoke } from '@tauri-apps/api/tauri';
 import type { Topic, AppSettings, QueuedSave } from './types';
+import { DEFAULT_SETTINGS } from './defaults';
 import {
   idbLoadAllTopics,
   idbLoadTopic,
@@ -183,12 +184,6 @@ export async function deleteTopic(key: string): Promise<void> {
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 const SETTINGS_PATH = 'settings.json';
-const DEFAULT_SETTINGS: AppSettings = {
-  workerHost: 'https://holmgard-lore-mcp.frozenregister.workers.dev',
-  autoSyncIntervalSecs: 30,
-  autoSync: true,
-  syncHistory: true,
-};
 
 export async function loadSettings(): Promise<AppSettings> {
   const raw = await readFile(SETTINGS_PATH);

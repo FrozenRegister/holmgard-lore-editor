@@ -3,6 +3,7 @@
  */
 import { writable, derived } from 'svelte/store';
 import type { Topic, SyncState, ConflictInfo, AppSettings } from './types';
+import { DEFAULT_SETTINGS } from './defaults';
 
 // ── Topics ────────────────────────────────────────────────────────────────────
 
@@ -16,12 +17,7 @@ export const topicMap = derived(topics, ($topics) => {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 
-export const settings = writable<AppSettings>({
-  workerHost: 'https://holmgard-lore-mcp.frozenregister.workers.dev',
-  autoSyncIntervalSecs: 30,
-  autoSync: true,
-  syncHistory: false,
-});
+export const settings = writable<AppSettings>(DEFAULT_SETTINGS);
 
 // ── Sync state ────────────────────────────────────────────────────────────────
 
