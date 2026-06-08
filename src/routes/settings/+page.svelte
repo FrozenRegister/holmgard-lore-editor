@@ -262,25 +262,25 @@
       return;
     }
     try {
-      const res = await fetch(`${workerHost}/mcp`, {
+      // Test against an admin endpoint that actually checks the admin secret.
+      // /admin/delete-lore on a nonexistent key will 401 if the secret is wrong,
+      // or 404/200 if auth passes (key doesn't exist, which is safe).
+      const res = await fetch(`${workerHost}/admin/delete-lore`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Admin-Secret": adminSecretInput.trim(),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "list_topics",
-          params: {},
+          key: "__admin_test_nonexistent_key__",
+          secret: adminSecretInput.trim(),
         }),
       });
-      if (res.ok) {
+      if (res.ok || res.status === 404) {
+        // Auth passed — 200 or 404 means the secret was accepted
         showToast("Admin secret valid ✓", "success");
+      } else if (res.status === 401 || res.status === 403) {
+        showToast("Admin secret rejected — check the value", "error");
       } else {
-        const json = await res.json().catch(() => ({}));
-        const msg = json.error?.message || `HTTP ${res.status}`;
-        showToast(`Auth failed: ${msg}`, "error");
+        const text = await res.text().catch(() => "");
+        showToast(`Unexpected response (${res.status}): ${text}`, "error");
       }
     } catch (err: any) {
       showToast(`Test error: ${err.message}`, "error");

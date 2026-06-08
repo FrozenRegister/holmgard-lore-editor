@@ -267,6 +267,19 @@ describe('listTopicsRemote', () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Error' } as Response);
     await expect(listTopicsRemote('http://worker')).rejects.toThrow('HTTP 500');
   });
+
+  it('emits console.warn when called without an API key', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fetchMock.mockResolvedValueOnce(okFetch({ keys: [] }));
+    await listTopicsRemote('http://worker');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('without an API key'));
+    warnSpy.mockRestore();
+  });
+
+  it('throws a 401-specific hint when the Worker rejects with 401', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401, statusText: 'Unauthorized' } as Response);
+    await expect(listTopicsRemote('http://worker')).rejects.toThrow('check your MCP API key in Settings');
+  });
 });
 
 // ── getTopicRemote ─────────────────────────────────────────────────────────────
@@ -468,6 +481,21 @@ describe('getChanges', () => {
   it('throws on HTTP error', async () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Error' } as Response);
     await expect(getChanges('http://worker', '2026-01-01T00:00:00.000Z')).rejects.toThrow('HTTP 500');
+  });
+
+  it('emits console.warn when called without an API key', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ changes: [] }) } as Response);
+    await getChanges('http://worker', '2026-01-01T00:00:00.000Z');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('without an API key'));
+    warnSpy.mockRestore();
+  });
+
+  it('throws a 401-specific hint when the Worker rejects with 401', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401, statusText: 'Unauthorized' } as Response);
+    await expect(getChanges('http://worker', '2026-01-01T00:00:00.000Z')).rejects.toThrow(
+      'check your MCP API key in Settings'
+    );
   });
 });
 
