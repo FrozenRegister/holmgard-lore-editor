@@ -62,13 +62,11 @@ for (const { src, out, type, format } of vendorMap) {
   try {
     await esbuild.build(options);
   } catch (e) {
-    if (src.includes('game.js')) {
-      console.error(`Warning: Failed to minify ${src}, using unminified version`);
-      const unminified = await readFile(src, 'utf-8');
-      await writeFile(out, unminified, 'utf-8');
-    } else {
-      throw e;
-    }
+    console.error(`\nWarning: Failed to minify ${src}`);
+    console.error(`Error: ${e.message}`);
+    console.error(`Using unminified version\n`);
+    const unminified = await readFile(src, 'utf-8');
+    await writeFile(out, unminified, 'utf-8');
   }
 
   const afterStat = await stat(out);
