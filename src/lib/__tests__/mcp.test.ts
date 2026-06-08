@@ -146,6 +146,68 @@ describe('mcp.ts', () => {
   });
 });
 
+describe('checkAuth', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns { authenticated: true } when Worker confirms auth', async () => {
+    const { checkAuth } = await import('../mcp');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        jsonrpc: '2.0',
+        id: 1000,
+        result: { content: [{ type: 'text', text: 'Authenticated' }], metadata: { authenticated: true } },
+      }),
+    });
+    global.fetch = mockFetch;
+
+    const result = await checkAuth('http://localhost', 'my-key');
+    expect(result.authenticated).toBe(true);
+    expect(mockFetch.mock.calls[0][1].headers['X-Api-Key']).toBe('my-key');
+  });
+
+  it('returns { authenticated: false } when Worker rejects auth', async () => {
+    const { checkAuth } = await import('../mcp');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        jsonrpc: '2.0',
+        id: 1000,
+        result: { content: [{ type: 'text', text: 'Not authenticated' }], metadata: { authenticated: false } },
+      }),
+    });
+    global.fetch = mockFetch;
+
+    const result = await checkAuth('http://localhost', 'bad-key');
+    expect(result.authenticated).toBe(false);
+  });
+
+  it('returns { authenticated: false } on network error', async () => {
+    const { checkAuth } = await import('../mcp');
+    const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    global.fetch = mockFetch;
+
+    const result = await checkAuth('http://localhost', 'key');
+    expect(result.authenticated).toBe(false);
+  });
+
+  it('does not include X-Api-Key header when key is undefined', async () => {
+    const { checkAuth } = await import('../mcp');
+    const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    global.fetch = mockFetch;
+
+    await checkAuth('http://localhost');
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.headers['X-Api-Key']).toBeUndefined();
+  });
+});
+
 describe('listTools', () => {
   beforeEach(() => {
     vi.clearAllMocks();

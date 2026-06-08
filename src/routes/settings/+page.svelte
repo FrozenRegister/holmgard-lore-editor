@@ -11,6 +11,7 @@
     setMcpApiKey,
     clearMcpApiKey,
   } from "$lib/auth";
+  import { checkAuth } from "$lib/mcp";
   import type { AppSettings } from "$lib/types";
 
   const IS_TAURI = typeof window !== "undefined" && "__TAURI__" in window;
@@ -231,25 +232,17 @@
   async function testConnection() {
     try {
       const mcpKey = await getMcpApiKey();
-      const res = await fetch(`${workerHost}/mcp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(mcpKey ? { "X-Api-Key": mcpKey } : {}),
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "list_topics",
-          params: {},
-        }),
-      });
-      if (res.ok) {
-        showToast("Connection successful ✓", "success");
+      const { authenticated } = await checkAuth(
+        workerHost.trim(),
+        mcpKey ?? undefined,
+      );
+      if (authenticated) {
+        showToast("Connection successful ✓ — API key valid", "success");
       } else {
-        const json = await res.json().catch(() => ({}));
-        const msg = json.error?.message || `HTTP ${res.status}`;
-        showToast(`Connection failed: ${msg}`, "error");
+        showToast(
+          "Connection failed — Worker unreachable or API key invalid. Check your MCP API key in the MCP Worker section below.",
+          "error",
+        );
       }
     } catch (err: any) {
       showToast(`Connection error: ${err.message}`, "error");
@@ -293,25 +286,17 @@
       return;
     }
     try {
-      const res = await fetch(`${workerHost}/mcp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": mcpApiKeyInput.trim(),
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "list_topics",
-          params: {},
-        }),
-      });
-      if (res.ok) {
-        showToast("MCP API key valid ✓", "success");
+      const { authenticated } = await checkAuth(
+        workerHost.trim(),
+        mcpApiKeyInput.trim(),
+      );
+      if (authenticated) {
+        showToast("MCP API key valid ✓ — Worker confirms authentication", "success");
       } else {
-        const json = await res.json().catch(() => ({}));
-        const msg = json.error?.message || `HTTP ${res.status}`;
-        showToast(`Auth failed: ${msg}`, "error");
+        showToast(
+          "API key rejected — the Worker says this key is not valid. Double-check the value.",
+          "error",
+        );
       }
     } catch (err: any) {
       showToast(`Test error: ${err.message}`, "error");
