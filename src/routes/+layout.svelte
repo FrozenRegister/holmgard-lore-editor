@@ -105,8 +105,10 @@
     {#if $isMobile && sidebarOpen}
       <div
         class="sidebar-backdrop"
-        role="presentation"
+        role="button"
+        tabindex="0"
         on:click={() => (sidebarOpen = false)}
+        on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sidebarOpen = false; } }}
       ></div>
     {/if}
 
