@@ -30,7 +30,7 @@ async function flushPendingDeletes(host: string): Promise<void> {
   if (!pendingDeletes.length) return
   const secret = await getAdminSecret()
   if (!secret) {
-    pendingDeletes.forEach(enqueuePendingDelete)
+    pendingDeletes.forEach((key) => enqueuePendingDelete(key))
     return
   }
   await Promise.all(
@@ -68,7 +68,7 @@ export async function runSync(): Promise<void> {
         newTopics.push(t)
       } else {
         const local = localMap.get(key)!
-        const base = local.meta.syncedRemoteText ?? null
+        const base = local.meta.syncedRemoteText || null
         const conflict = detectConflict(local, rTopic, base)
         if (conflict) {
           conflicts.push(conflict)
