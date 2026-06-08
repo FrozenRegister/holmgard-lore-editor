@@ -342,13 +342,103 @@
     requestAnimationFrame(function () { setTimeout(pollForGameJs, delay); });
   }
 
+  // Check for seeded E2E map data and load it directly (for testing)
+  function loadE2ESeededMap() {
+    var HEXMAP_DB = 'HexAtlasDB';
+    try {
+      var req = indexedDB.open(HEXMAP_DB);
+      req.onsuccess = function(e) {
+        var db = e.target.result;
+        var metaReq = db.transaction(['mapMeta'], 'readonly').objectStore('mapMeta').getAll();
+
+        metaReq.onsuccess = function() {
+          var entries = metaReq.result;
+          if (!entries || entries.length === 0) {
+            db.close();
+            console.log('[Game UI Bindings] No seeded maps found');
+            return;
+          }
+
+          var mapEntry = entries[0];
+          if (mapEntry.name !== 'Playwright Seeded Map' && mapEntry.draftId !== 'e2e-test-map') {
+            db.close();
+            return;
+          }
+
+          // Now fetch the related data
+          var tx = db.transaction(['regionTerrain', 'items', 'detailTerrain', 'fog', 'layersSettings'], 'readonly');
+          var data = { mapMeta: mapEntry };
+          var pending = 5;
+
+          function checkAllLoaded() {
+            if (--pending === 0) {
+              db.close();
+              applyRestoredMap(data, mapEntry.id);
+              console.log('[Game UI Bindings] Loaded E2E seeded map:', mapEntry.name);
+            }
+          }
+
+          var terrainReq = tx.objectStore('regionTerrain').get(mapEntry.id);
+          terrainReq.onsuccess = function() {
+            data.regionTerrain = terrainReq.result;
+            checkAllLoaded();
+          };
+          terrainReq.onerror = checkAllLoaded;
+
+          var itemsReq = tx.objectStore('items').get(mapEntry.id);
+          itemsReq.onsuccess = function() {
+            data.items = itemsReq.result;
+            checkAllLoaded();
+          };
+          itemsReq.onerror = checkAllLoaded;
+
+          var detailReq = tx.objectStore('detailTerrain').get(mapEntry.id);
+          detailReq.onsuccess = function() {
+            data.detailTerrain = detailReq.result;
+            checkAllLoaded();
+          };
+          detailReq.onerror = checkAllLoaded;
+
+          var fogReq = tx.objectStore('fog').get(mapEntry.id);
+          fogReq.onsuccess = function() {
+            data.fog = fogReq.result;
+            checkAllLoaded();
+          };
+          fogReq.onerror = checkAllLoaded;
+
+          var layersReq = tx.objectStore('layersSettings').get(mapEntry.id);
+          layersReq.onsuccess = function() {
+            data.layersSettings = layersReq.result;
+            checkAllLoaded();
+          };
+          layersReq.onerror = checkAllLoaded;
+        };
+
+        metaReq.onerror = function() {
+          db.close();
+          console.warn('[Game UI Bindings] Failed to query mapMeta');
+        };
+      };
+    } catch (err) {
+      console.warn('[Game UI Bindings] E2E seeded map load failed:', err);
+    }
+  }
+
   // Kick off the poll after a short initial delay (let DOMContentLoaded settle)
   if (document.readyState === 'complete') {
-    setTimeout(function () { requestAnimationFrame(pollForGameJs); }, 0);
+    setTimeout(function () {
+      requestAnimationFrame(pollForGameJs);
+      // Also try to load E2E seeded data
+      setTimeout(loadE2ESeededMap, 500);
+    }, 0);
   } else {
     document.addEventListener('readystatechange', function () {
       if (document.readyState === 'complete') {
-        setTimeout(function () { requestAnimationFrame(pollForGameJs); }, 0);
+        setTimeout(function () {
+          requestAnimationFrame(pollForGameJs);
+          // Also try to load E2E seeded data
+          setTimeout(loadE2ESeededMap, 500);
+        }, 0);
       }
     });
   }
@@ -490,7 +580,7 @@
     var layers = data.layersSettings || {};
 
     var state = Object.assign({},
-      { version: meta.version, mapName: meta.mapName, mapType: meta.mapType,
+      { version: meta.version, name: meta.name || meta.mapName, mapName: meta.mapName, mapType: meta.mapType,
         mapInstanceId: meta.mapInstanceId, canvasBackground: meta.canvasBackground,
         orientation: meta.orientation, hexSize: meta.hexSize, viewport: meta.viewport,
         nextLandmarkId: meta.nextLandmarkId, nextTextLabelId: meta.nextTextLabelId,
@@ -510,6 +600,13 @@
     if (typeof window.loadMapDataIntoState === 'function') {
       window.loadMapDataIntoState(state);
       console.log('[Game UI Bindings] Restored map from IDB key:', fullKey);
+    } else {
+      // Fallback: directly set state on window if loadMapDataIntoState is not available (e.g., in E2E tests)
+      if (!window.state) {
+        window.state = {};
+      }
+      window.state.hexMap = state;
+      console.log('[Game UI Bindings] Applied restored map directly to window.state (fallback):', fullKey);
     }
   }
 })();

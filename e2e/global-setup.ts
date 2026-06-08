@@ -26,7 +26,7 @@ const DEFAULT_TEST_MAP_CONFIG: TestMapConfig = {
   width: 20,
   height: 20,
   indexedDbVersion: 4,
-  dbName: 'holmgard-maps',
+  dbName: 'HexAtlasDB',
   terrainHexes: [
     { q: 0, r: 0, terrain: 'grassland', name: 'Seeded Plains' },
     { q: 1, r: -1, terrain: 'mountain', name: 'Seed Peak' },
@@ -102,26 +102,36 @@ async function globalSetup(config: FullConfig): Promise<void> {
 
         request.onupgradeneeded = (event: any) => {
           const db = event.target.result;
-          if (!db.objectStoreNames.contains('maps')) {
-            db.createObjectStore('maps', { keyPath: 'id' });
+          // Create stores matching the app's expected schema
+          if (!db.objectStoreNames.contains('mapMeta')) {
+            db.createObjectStore('mapMeta', { keyPath: 'id' });
           }
-          if (!db.objectStoreNames.contains('hexes')) {
-            const hexStore = db.createObjectStore('hexes', {
-              keyPath: ['mapId', 'q', 'r']
+          if (!db.objectStoreNames.contains('regionTerrain')) {
+            const terrainStore = db.createObjectStore('regionTerrain', {
+              keyPath: 'id'
             });
-            hexStore.createIndex('by-map', 'mapId');
+            terrainStore.createIndex('by-map', 'mapId');
           }
-          if (!db.objectStoreNames.contains('landmarks')) {
-            const landmarkStore = db.createObjectStore('landmarks', {
-              keyPath: ['mapId', 'id']
+          if (!db.objectStoreNames.contains('items')) {
+            const itemsStore = db.createObjectStore('items', {
+              keyPath: 'id'
             });
-            landmarkStore.createIndex('by-map', 'mapId');
+            itemsStore.createIndex('by-map', 'mapId');
+          }
+          if (!db.objectStoreNames.contains('detailTerrain')) {
+            db.createObjectStore('detailTerrain', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('fog')) {
+            db.createObjectStore('fog', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('layersSettings')) {
+            db.createObjectStore('layersSettings', { keyPath: 'id' });
           }
         };
 
         request.onsuccess = () => {
           const db = request.result;
-          const requiredStores = ['maps', 'hexes', 'landmarks'];
+          const requiredStores = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings'];
           const missingStores = requiredStores.filter((store) => !db.objectStoreNames.contains(store));
 
           if (missingStores.length > 0) {
@@ -134,32 +144,73 @@ async function globalSetup(config: FullConfig): Promise<void> {
           }
 
           const tx = db.transaction(requiredStores, 'readwrite');
-          const mapsStore = tx.objectStore('maps');
-          const hexesStore = tx.objectStore('hexes');
-          const landmarksStore = tx.objectStore('landmarks');
+          const metaStore = tx.objectStore('mapMeta');
+          const terrainStore = tx.objectStore('regionTerrain');
+          const itemsStore = tx.objectStore('items');
 
-          const deleteRequest = mapsStore.delete(cfg.mapId);
-          deleteRequest.onsuccess = () => {
-            mapsStore.put({
-              id: cfg.mapId,
-              name: cfg.name,
-              width: cfg.width,
-              height: cfg.height,
-              pushedAt: null,
+          // Create a unique ID for this seeded map instance
+          const mapInstanceId = `e2e-${Date.now()}`;
+
+          metaStore.put({
+            id: mapInstanceId,
+            draftId: cfg.mapId,
+            name: cfg.name,
+            mapName: cfg.name,
+            mapType: 'earth',
+            mapInstanceId: mapInstanceId,
+            version: 1,
+            canvasBackground: '#1a1a1a',
+            orientation: 'pointy',
+            hexSize: 50,
+            viewport: { x: 0, y: 0, scale: 1 },
+            nextLandmarkId: 1,
+            nextTextLabelId: 1,
+            nextImageOverlayId: 1,
+            nextTokenId: 1,
+            nextPathId: 1,
+            dungeonLayout: {},
+            settlementLayout: {}
+          });
+
+          // Store terrain hexes
+          const hexesArray: any[] = [];
+          for (const hex of cfg.terrainHexes) {
+            hexesArray.push({
+              q: hex.q,
+              r: hex.r,
+              terrain: hex.terrain,
+              name: hex.name
             });
+          }
 
-            for (const hex of cfg.terrainHexes) {
-              hexesStore.put({ mapId: cfg.mapId, ...hex });
-            }
+          terrainStore.put({
+            id: mapInstanceId,
+            mapId: cfg.mapId,
+            hexes: hexesArray
+          });
 
-            for (const landmark of cfg.landmarks) {
-              landmarksStore.put({ mapId: cfg.mapId, ...landmark });
-            }
-          };
+          // Store landmarks
+          const landmarksArray: any[] = [];
+          for (const landmark of cfg.landmarks) {
+            landmarksArray.push({
+              id: landmark.id,
+              q: landmark.q,
+              r: landmark.r,
+              name: landmark.name,
+              type: landmark.type,
+              linkedLoreKey: landmark.linkedLoreKey
+            });
+          }
 
-          deleteRequest.onerror = () => {
-            resolve({ success: false, error: new Error('Failed to delete existing test map') });
-          };
+          itemsStore.put({
+            id: mapInstanceId,
+            mapId: cfg.mapId,
+            landmarks: landmarksArray,
+            textLabels: [],
+            imageOverlays: [],
+            tokens: [],
+            paths: []
+          });
 
           tx.oncomplete = () => {
             db.close();
