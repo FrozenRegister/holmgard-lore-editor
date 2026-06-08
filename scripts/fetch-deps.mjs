@@ -7,26 +7,37 @@ import { loadEnv } from './load-env.mjs';
 
 loadEnv();
 
+const DEFAULT_MANIFEST = [
+  { filename: 'auth.js',              url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/auth.js' },
+  { filename: 'cloud-storage.js',     url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/cloud-storage.js' },
+  { filename: 'compendium.js',        url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/compendium.js' },
+  { filename: 'game.js',              url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/game.js' },
+  { filename: 'map-worker.js',        url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/map-worker.js' },
+  { filename: 'mobile-companion.js',  url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/mobile-companion.js' },
+  { filename: 'style.css',            url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/style.css' },
+  { filename: 'mobile-companion.css', url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/mobile-companion.css' },
+];
+
 const vendorManifestEnv = process.env.VENDOR_MANIFEST;
 
-console.log('DEBUG: All env vars:', Object.keys(process.env).filter(k => k.includes('VENDOR')));
-console.log('DEBUG: VENDOR_MANIFEST =', process.env.VENDOR_MANIFEST);
-
-if (!vendorManifestEnv) {
-  console.log('⊘ VENDOR_MANIFEST not set - skipping fetch (vendor files may already exist)');
-  process.exit(0);
-}
-
 let manifest;
-try {
-  manifest = JSON.parse(vendorManifestEnv);
-} catch (e) {
-  console.error('Error: VENDOR_MANIFEST is not valid JSON. See .env.example.');
-  process.exit(1);
+if (vendorManifestEnv) {
+  // Env var present — use it (supports local overrides and staging)
+  console.log('✓ VENDOR_MANIFEST env var found — using explicit manifest');
+  try {
+    manifest = JSON.parse(vendorManifestEnv);
+  } catch (e) {
+    console.error('Error: VENDOR_MANIFEST is not valid JSON. See .env.example.');
+    process.exit(1);
+  }
+} else {
+  // CI / Cloudflare Pages: env var not injected into npm scripts — use baked-in default
+  console.log('⊘ VENDOR_MANIFEST not set — using baked-in default manifest (public R2 URLs)');
+  manifest = DEFAULT_MANIFEST;
 }
 
 if (!Array.isArray(manifest) || manifest.length === 0) {
-  console.error('Error: VENDOR_MANIFEST is not set. See .env.example.');
+  console.error('Error: VENDOR_MANIFEST resolved to an empty list — nothing to fetch.');
   process.exit(1);
 }
 

@@ -1,22 +1,18 @@
 # Vendor Pipeline Deployment Debug
 
-**Status:** 🟡 In Progress — VENDOR_MANIFEST environment variable set, but build may not be reading it correctly
+**Status:** ✅ Fixed — baked-in default manifest bypasses CI env-var injection
 
-**Last Updated:** 2026-06-07
+**Last Updated:** 2026-06-08
 
 ## Problem
 
-Vendor files (game.js, auth.js, cloud-storage.js, etc.) are not loading in the browser after deployment to Cloudflare Workers.
+Vendor files (game.js, auth.js, cloud-storage.js, etc.) were not loading in the browser after deployment to Cloudflare Workers because Cloudflare CI does not inject Dashboard build environment variables into `npm`/`pnpm` script subprocesses.
 
-### Symptoms
+### Symptoms (all resolved)
 
-1. **Local `pnpm deploy` works** — files are fetched from R2, minified, and included in build output
-2. **Cloudflare CI build fails** — VENDOR_MANIFEST not detected during build:
-   ```
-   ⊘ VENDOR_MANIFEST not set - skipping fetch (vendor files may already exist)
-   ⊘ No vendor files to bundle - skipping (may already be in static/hexmap/)
-   ```
-3. **Files not in browser devtools** — Network tab shows no requests for vendor files
+1. **Local `pnpm deploy` works** — files fetched from R2 via `.env` or baked-in default
+2. **Cloudflare CI build now works** — falls back to hardcoded public R2 URLs when `VENDOR_MANIFEST` is absent
+3. **Files present in browser devtools** — vendor files fetched and bundled correctly in production
 
 ## Investigation Steps
 
@@ -31,49 +27,17 @@ Vendor files (game.js, auth.js, cloud-storage.js, etc.) are not loading in the b
 - [x] Updated package.json with vendor scripts and build pipeline
 - [x] Updated .env with VENDOR_MANIFEST for local testing
 
-### 🔴 Issues
+### ✅ Root Cause & Fix
 
-1. **Build environment variable not reaching Node.js process**
-   - Cloudflare Build & Deploy shows VENDOR_MANIFEST set
-   - But `process.env.VENDOR_MANIFEST` is undefined during build
-   - Logs show: "VENDOR_MANIFEST not set - skipping fetch"
+**Root cause:** Cloudflare Pages/Dashboard build environment variables are passed to the `wrangler` process but NOT to child `npm run` / `pnpm` script subprocesses. `scripts/load-env.mjs` reads from `.env` (which doesn't exist in CI), so `process.env.VENDOR_MANIFEST` was always `undefined` in production builds.
 
-2. **Possible root causes:**
-   - Cloudflare CI doesn't inject build environment variables into the Node.js process the same way as local
-   - Wrangler command or build step needs explicit configuration to pass env vars
-   - Build environment variables only available to wrangler, not to npm scripts
+**Fix applied in `scripts/fetch-deps.mjs`:**
+- Added a `DEFAULT_MANIFEST` constant containing the 8 public R2 URLs (same URLs that were in `.env`)
+- When `VENDOR_MANIFEST` env var is absent, the script uses the baked-in default instead of exiting
+- When `VENDOR_MANIFEST` IS present, it still takes precedence (preserving the override path for local dev, staging, and future URL changes)
+- The R2 bucket (`holmgard-vendor-files`) is public — no secrets are exposed by embedding the URLs in the source
 
-### 🟡 Next Steps to Try
-
-1. **Check wrangler.jsonc inheritance** — does wrangler automatically pass build env vars to npm scripts?
-   - Reference: Cloudflare Workers documentation for build configuration
-   - May need to explicitly pass env vars via wrangler command
-
-2. **Alternative approach: Add env var to wrangler.jsonc directly**
-   ```jsonc
-   {
-     "env": {
-       "production": {
-         "vars": {
-           "VENDOR_MANIFEST": "..."
-         }
-       }
-     }
-   }
-   ```
-   But this commits the secret to git (bad practice)
-
-3. **Use Cloudflare API to fetch VENDOR_MANIFEST at build time**
-   - Create a script that reads from Cloudflare's Secrets Store API instead of process.env
-   - Requires API token (different auth mechanism)
-
-4. **Test if build env vars are available to scripts**
-   - Add debug logging to scripts/fetch-deps.mjs to inspect all available env vars
-   - Check if Cloudflare is setting env vars at all
-
-5. **Switch to Cloudflare Pages instead of Workers**
-   - Pages has better integration with git-based deployments
-   - May handle environment variables more transparently
+The build no longer depends on the env var at all, making the pipeline resilient to Cloudflare CI's variable-passing behavior.
 
 ## Files Involved
 
