@@ -128,7 +128,7 @@
 
 {#if $chatOpen}
   <!-- Backdrop (click to close) -->
-  <div class="chat-backdrop" on:click={() => chatOpen.set(false)} aria-hidden="true" />
+  <div class="chat-backdrop" role="button" tabindex="0" on:click={() => chatOpen.set(false)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chatOpen.set(false); } }} aria-hidden="true" />
 
   <aside class="chat-panel" role="complementary" aria-label="Claude chat">
     <!-- Header -->
