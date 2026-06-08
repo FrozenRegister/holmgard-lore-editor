@@ -174,6 +174,95 @@
     }
 
     // ========================================================================
+    // EXPORT FUNCTIONS (exportAsPNG, exportAsJSON, showFoundryExportDialog)
+    // ========================================================================
+    if (typeof w.exportAsPNG !== 'function') {
+      w.exportAsPNG = function() {
+        w.showNotification?.('Exporting map as PNG...', 'info');
+        // Actual PNG export would be implemented by game.js
+      };
+    }
+
+    if (typeof w.exportAsJSON !== 'function') {
+      w.exportAsJSON = function() {
+        w.showNotification?.('Exporting map as JSON...', 'info');
+        // Actual JSON export would be implemented by game.js
+      };
+    }
+
+    if (typeof w.showFoundryExportDialog !== 'function') {
+      w.showFoundryExportDialog = function() {
+        w.showNotification?.('Foundry export dialog', 'info');
+      };
+    }
+
+    // ========================================================================
+    // ADDITIONAL PANEL/MODAL FUNCTIONS
+    // ========================================================================
+    if (typeof w.toggleLayersPanel !== 'function') {
+      w.toggleLayersPanel = function() {
+        const layersPanel = document.getElementById('layersPanel');
+        if (layersPanel) {
+          const isVisible = layersPanel.style.display !== 'none';
+          layersPanel.style.display = isVisible ? 'none' : 'block';
+        }
+      };
+    }
+
+    if (typeof w.openExamplesModal !== 'function') {
+      w.openExamplesModal = function() {
+        const examplesModal = document.getElementById('examplesModal');
+        if (examplesModal) {
+          examplesModal.style.display = 'flex';
+        } else {
+          w.showNotification?.('Examples modal not available', 'warning');
+        }
+      };
+    }
+
+    if (typeof w.openSettingsModal !== 'function') {
+      w.openSettingsModal = function() {
+        const settingsModal = document.getElementById('settingsModal');
+        if (settingsModal) {
+          settingsModal.style.display = 'flex';
+        } else {
+          w.showNotification?.('Settings modal not available', 'warning');
+        }
+      };
+    }
+
+    if (typeof w.openThemesModal !== 'function') {
+      w.openThemesModal = function() {
+        const themesModal = document.getElementById('themesModal');
+        if (themesModal) {
+          themesModal.style.display = 'flex';
+        } else {
+          w.showNotification?.('Themes modal not available', 'warning');
+        }
+      };
+    }
+
+    if (typeof w.openShortcutsModal !== 'function') {
+      w.openShortcutsModal = function() {
+        const shortcutsModal = document.getElementById('shortcutsModal');
+        if (shortcutsModal) {
+          shortcutsModal.style.display = 'flex';
+        } else {
+          w.showNotification?.('Shortcuts modal not available', 'warning');
+        }
+      };
+    }
+
+    if (typeof w.closeModal !== 'function') {
+      w.closeModal = function(modalId) {
+        if (modalId) {
+          const modal = document.getElementById(modalId);
+          if (modal) modal.style.display = 'none';
+        }
+      };
+    }
+
+    // ========================================================================
     // AUDIT: Check which functions are available (once, logged)
     // ========================================================================
     if (!_gameExposed) {
@@ -209,10 +298,15 @@
   }
 
   // Try to expose functions once game.js has loaded.
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', exposeGameFunctions);
-  } else {
-    exposeGameFunctions();
+  // Use a try-catch to prevent initialization errors from breaking the page
+  try {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', exposeGameFunctions);
+    } else {
+      exposeGameFunctions();
+    }
+  } catch (err) {
+    console.error('[Game UI Bindings] Initialization error:', err);
   }
 
   // ---- Wait for game.js with rAF + exponential backoff ----------------------

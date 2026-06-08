@@ -5,7 +5,7 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import type { HistoryEntry } from './types';
 
-const IS_TAURI = typeof window !== 'undefined' && '__TAURI__' in window;
+const isTauri = () => typeof window !== 'undefined' && '__TAURI__' in window;
 const MAX_ENTRIES = 50;
 const HISTORY_DIR = 'history';
 
@@ -14,14 +14,14 @@ function historyPath(key: string) {
 }
 
 async function readRaw(path: string): Promise<string | null> {
-  if (IS_TAURI) {
+  if (isTauri()) {
     try { return await invoke<string>('fs_read', { path }); } catch { return null; }
   }
   return localStorage.getItem(`hle:file:${path}`);
 }
 
 async function writeRaw(path: string, content: string): Promise<void> {
-  if (IS_TAURI) {
+  if (isTauri()) {
     await invoke('fs_write', { path, content });
   } else {
     localStorage.setItem(`hle:file:${path}`, content);
@@ -53,7 +53,7 @@ export async function pushHistory(
 }
 
 export async function clearHistory(key: string): Promise<void> {
-  if (IS_TAURI) {
+  if (isTauri()) {
     try { await invoke('fs_delete', { path: historyPath(key) }); } catch { /* ok */ }
   } else {
     localStorage.removeItem(`hle:file:${historyPath(key)}`);

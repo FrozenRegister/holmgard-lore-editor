@@ -1,10 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   testDir: './e2e',
   // E2E Lifecycle Orchestration
-  globalSetup: require.resolve('./e2e/global-setup'),
-  globalTeardown: require.resolve('./e2e/global-teardown'),
+  globalSetup: resolve(__dirname, 'e2e/global-setup.ts'),
+  globalTeardown: resolve(__dirname, 'e2e/global-teardown.ts'),
   
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -13,7 +17,7 @@ export default defineConfig({
   
   // Reporting and Artifacts
   reporter: [['html', { outputFolder: './playwright-report' }], ['json', { outputFile: './playwright-report/results.json' }]],
-  outputDir: 'playwright-report/test-results',
+  outputDir: 'test-results',
   
   use: {
     baseURL: 'http://localhost:5173',

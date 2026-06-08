@@ -25,7 +25,7 @@ const DEFAULT_TEST_MAP_CONFIG: TestMapConfig = {
   name: 'Playwright Seeded Map',
   width: 20,
   height: 20,
-  indexedDbVersion: 2,
+  indexedDbVersion: 4,
   dbName: 'holmgard-maps',
   terrainHexes: [
     { q: 0, r: 0, terrain: 'grassland', name: 'Seeded Plains' },
@@ -72,17 +72,105 @@ async function globalSetup(config: FullConfig): Promise<void> {
   const page = await browser.newPage();
 
   try {
-    // Bootstrap: Navigate to the app to ensure the database schema is initialized
+    // Clear IndexedDB before loading to ensure fresh state
+    const context = page.context();
+    await context.clearCookies();
+
+    // Inject seeding script before the page loads
+    await page.addInitScript((cfg: TestMapConfig) => {
+      // This runs before the page script loads, so we can set up test data early
+      (window as any).__e2eSeedConfig = cfg;
+    }, DEFAULT_TEST_MAP_CONFIG);
+
+    // Bootstrap: Navigate to the app
     await page.goto(`${baseURL}/world-editor`, { waitUntil: 'domcontentloaded' });
 
-    // Wait for the app to fully initialize (IndexedDB schema creation)
-    await page.waitForFunction(
-      () => typeof indexedDB !== 'undefined',
-      { timeout: 10_000 }
-    );
+    // Wait for the seeding to complete via a helper that checks if it's done
+    const seedResult: SeedResult = await page.evaluate(async () => {
+      return new Promise<SeedResult>((resolve) => {
+        const cfg = (window as any).__e2eSeedConfig;
+        if (!cfg) {
+          resolve({ success: false, error: new Error('Seed config not available') });
+          return;
+        }
 
-    // Seed the database with test data
-    const result = await seedIndexedDB(page, DEFAULT_TEST_MAP_CONFIG);
+        const request = indexedDB.open(cfg.dbName, cfg.indexedDbVersion);
+
+        request.onerror = () => {
+          resolve({ success: false, error: new Error('Failed to open IndexedDB') });
+        };
+
+        request.onupgradeneeded = (event: any) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains('maps')) {
+            db.createObjectStore('maps', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('hexes')) {
+            const hexStore = db.createObjectStore('hexes', {
+              keyPath: ['mapId', 'q', 'r']
+            });
+            hexStore.createIndex('by-map', 'mapId');
+          }
+          if (!db.objectStoreNames.contains('landmarks')) {
+            const landmarkStore = db.createObjectStore('landmarks', {
+              keyPath: ['mapId', 'id']
+            });
+            landmarkStore.createIndex('by-map', 'mapId');
+          }
+        };
+
+        request.onsuccess = () => {
+          const db = request.result;
+          const requiredStores = ['maps', 'hexes', 'landmarks'];
+          const missingStores = requiredStores.filter((store) => !db.objectStoreNames.contains(store));
+
+          if (missingStores.length > 0) {
+            db.close();
+            resolve({
+              success: false,
+              error: new Error(`Missing required object stores: ${missingStores.join(', ')}`)
+            });
+            return;
+          }
+
+          const tx = db.transaction(requiredStores, 'readwrite');
+          const mapsStore = tx.objectStore('maps');
+          const hexesStore = tx.objectStore('hexes');
+          const landmarksStore = tx.objectStore('landmarks');
+
+          const deleteRequest = mapsStore.delete(cfg.mapId);
+          deleteRequest.onsuccess = () => {
+            mapsStore.put({
+              id: cfg.mapId,
+              name: cfg.name,
+              width: cfg.width,
+              height: cfg.height,
+              pushedAt: null,
+            });
+
+            for (const hex of cfg.terrainHexes) {
+              hexesStore.put({ mapId: cfg.mapId, ...hex });
+            }
+
+            for (const landmark of cfg.landmarks) {
+              landmarksStore.put({ mapId: cfg.mapId, ...landmark });
+            }
+          };
+
+          deleteRequest.onerror = () => {
+            resolve({ success: false, error: new Error('Failed to delete existing test map') });
+          };
+
+          tx.oncomplete = () => {
+            db.close();
+            resolve({ success: true });
+          };
+          tx.onerror = () => resolve({ success: false, error: tx.error ?? new Error('Transaction failed') });
+          tx.onabort = () => resolve({ success: false, error: new Error('Transaction aborted') });
+        };
+      });
+    });
+    const result = seedResult;
 
     if (result.success) {
       console.log(`[E2E Setup] Successfully seeded IndexedDB with "${DEFAULT_TEST_MAP_CONFIG.mapId}".`);
@@ -96,81 +184,6 @@ async function globalSetup(config: FullConfig): Promise<void> {
   } finally {
     await browser.close();
   }
-}
-
-/**
- * Seeds IndexedDB with the provided test map configuration.
- * Runs entirely in the browser context via page.evaluate.
- */
-async function seedIndexedDB(page: Page, config: TestMapConfig): Promise<SeedResult> {
-  return page.evaluate(async (cfg: TestMapConfig): Promise<SeedResult> => {
-    return new Promise((resolve) => {
-      const request = indexedDB.open(cfg.dbName, cfg.indexedDbVersion);
-
-      request.onerror = () => {
-        resolve({ success: false, error: new Error('Failed to open IndexedDB for seeding') });
-      };
-
-      request.onsuccess = () => {
-        const db = request.result;
-
-        // Verify required object stores exist
-        const requiredStores = ['maps', 'hexes', 'landmarks'];
-        const missingStores = requiredStores.filter((store) => !db.objectStoreNames.contains(store));
-
-        if (missingStores.length > 0) {
-          resolve({
-            success: false,
-            error: new Error(`Missing required object stores: ${missingStores.join(', ')}`),
-          });
-          return;
-        }
-
-        const tx = db.transaction(requiredStores, 'readwrite');
-
-        const mapsStore = tx.objectStore('maps');
-        const hexesStore = tx.objectStore('hexes');
-        const landmarksStore = tx.objectStore('landmarks');
-
-        // Idempotency: Clean up any existing test map data
-        const deleteRequest = mapsStore.delete(cfg.mapId);
-        deleteRequest.onsuccess = () => {
-          // Insert map metadata
-          mapsStore.put({
-            id: cfg.mapId,
-            name: cfg.name,
-            width: cfg.width,
-            height: cfg.height,
-            pushedAt: null,
-          });
-
-          // Insert terrain hexes
-          for (const hex of cfg.terrainHexes) {
-            hexesStore.put({ mapId: cfg.mapId, ...hex });
-          }
-
-          // Insert landmarks
-          for (const landmark of cfg.landmarks) {
-            landmarksStore.put({ mapId: cfg.mapId, ...landmark });
-          }
-        };
-
-        deleteRequest.onerror = () => {
-          resolve({ success: false, error: new Error('Failed to delete existing test map') });
-        };
-
-        tx.oncomplete = () => resolve({ success: true });
-        tx.onerror = () => resolve({ success: false, error: tx.error ?? new Error('Transaction failed') });
-        tx.onabort = () => resolve({ success: false, error: new Error('Transaction aborted') });
-      };
-
-      request.onupgradeneeded = () => {
-        // This shouldn't happen in normal operation since the app creates the schema
-        // But we log it for debugging
-        console.warn('[E2E Setup] onupgradeneeded fired - schema may not have been initialized by app');
-      };
-    });
-  }, config);
 }
 
 export default globalSetup;
