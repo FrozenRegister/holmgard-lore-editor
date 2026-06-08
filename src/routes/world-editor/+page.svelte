@@ -371,51 +371,51 @@
           <span>File</span>
         </button>
         <div class="dropdown-menu header-dropdown-menu" id="fileMenu">
-          <div class="dropdown-item" on:click={() => window.newMap?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.newMap?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.newMap?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2zm-3-7V3.5L18.5 9H13z"/>
             </svg>
             New Map
           </div>
-          <div class="dropdown-item" on:click={() => window.quickCloudSave?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.quickCloudSave?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.quickCloudSave?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
             </svg>
             Save
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" on:click={() => window.importMapFromFile?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.importMapFromFile?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.importMapFromFile?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
             </svg>
             Import Map (JSON)
           </div>
-          <div class="dropdown-item" on:click={() => window.exportAsPNG?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.exportAsPNG?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.exportAsPNG?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
             </svg>
             Export as PNG
           </div>
-          <div class="dropdown-item" on:click={() => window.exportAsJSON?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.exportAsJSON?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.exportAsJSON?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
             </svg>
             Export as JSON
           </div>
-          <div class="dropdown-item" on:click={() => window.showFoundryExportDialog?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.showFoundryExportDialog?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.showFoundryExportDialog?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
             Export to Foundry VTT
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" on:click={() => window.shareMap?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.shareMap?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.shareMap?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
             </svg>
             Share Link
           </div>
-          <div class="dropdown-item" on:click={() => window.openExamplesModal?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.openExamplesModal?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.openExamplesModal?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
             </svg>
@@ -452,7 +452,7 @@
           </svg>
         </button>
         <div class="dropdown-menu header-dropdown-menu" id="moreMenu">
-          <div class="dropdown-item" on:click={() => window.openSettingsModal?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.openSettingsModal?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.openSettingsModal?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
             </svg>
@@ -471,44 +471,44 @@
             Keyboard Shortcuts <span class="coming-soon-badge">Soon</span>
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" on:click={() => window.resetToolTutorials?.()}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.resetToolTutorials?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.resetToolTutorials?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
             </svg>
             Reset Tool Tutorials
           </div>
           <div class="dropdown-divider" data-dev-tools-item></div>
-          <div class="dropdown-item" data-dev-tools-item on:click={() => window.togglePerfHud?.()}>
+          <div class="dropdown-item" data-dev-tools-item role="button" tabindex="0" on:click={() => window.togglePerfHud?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.togglePerfHud?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M3 3h18v2H3V3zm2 6h3v10H5V9zm5-4h3v14h-3V5zm5 7h3v7h-3v-7z"/>
             </svg>
             Toggle Performance HUD
           </div>
-          <div class="dropdown-item" data-dev-tools-item on:click={() => window.runHexMapPerfBenchmarksFromUI?.()}>
+          <div class="dropdown-item" data-dev-tools-item role="button" tabindex="0" on:click={() => window.runHexMapPerfBenchmarksFromUI?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.runHexMapPerfBenchmarksFromUI?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M13 2L3 14h7v8l10-12h-7z"/>
             </svg>
             Run Performance Benchmark
           </div>
-          <div class="dropdown-item" data-dev-tools-item on:click={() => window.saveLatestHexMapBenchmarkBaseline?.()}>
+          <div class="dropdown-item" data-dev-tools-item role="button" tabindex="0" on:click={() => window.saveLatestHexMapBenchmarkBaseline?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.saveLatestHexMapBenchmarkBaseline?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
             </svg>
             Save Benchmark Baseline
           </div>
-          <div class="dropdown-item" data-dev-tools-item on:click={() => window.copyLatestHexMapBenchmarkReportFromUI?.()}>
+          <div class="dropdown-item" data-dev-tools-item role="button" tabindex="0" on:click={() => window.copyLatestHexMapBenchmarkReportFromUI?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.copyLatestHexMapBenchmarkReportFromUI?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/>
             </svg>
             Copy Benchmark Report
           </div>
-          <div class="dropdown-item" data-dev-tools-item on:click={() => window.copyLatestHexMapBenchmarkComparisonFromUI?.()}>
+          <div class="dropdown-item" data-dev-tools-item role="button" tabindex="0" on:click={() => window.copyLatestHexMapBenchmarkComparisonFromUI?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.copyLatestHexMapBenchmarkComparisonFromUI?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M10 3H5c-1.1 0-2 .9-2 2v5h2V5h5V3zm9 0h-5v2h5v5h2V5c0-1.1-.9-2-2-2zM5 14H3v5c0 1.1.9 2 2 2h5v-2H5v-5zm16 0v5h-5v2h5c1.1 0 2-.9 2-2v-5h-2zM8 16l3-8h2l3 8h-2l-.6-1.8H10.6L10 16H8zm3.1-3.6h1.8L12 9.8l-.9 2.6z"/>
             </svg>
             Copy Baseline Comparison
           </div>
-          <div class="dropdown-item" data-dev-tools-item on:click={() => window.clearHexMapBenchmarkBaseline?.()}>
+          <div class="dropdown-item" data-dev-tools-item role="button" tabindex="0" on:click={() => window.clearHexMapBenchmarkBaseline?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.clearHexMapBenchmarkBaseline?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1z"/>
             </svg>
@@ -528,26 +528,26 @@
             Help & Support <span class="coming-soon-badge">Soon</span>
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" on:click={() => window.location.href='/world-editor?marketing=1'}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.location.href='/world-editor?marketing=1'} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href='/world-editor?marketing=1'; } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
             </svg>
             Homepage
           </div>
-          <div class="dropdown-item" on:click={() => window.open('/world-editor?marketing=1#pricing', '_blank')}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.open('/world-editor?marketing=1#pricing', '_blank')} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open('/world-editor?marketing=1#pricing', '_blank'); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/>
             </svg>
             Pricing
           </div>
           <div class="dropdown-divider"></div>
-          <div class="dropdown-item" on:click={() => window.open('privacy.html', '_blank')}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.open('privacy.html', '_blank')} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open('privacy.html', '_blank'); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
             </svg>
             Privacy Policy
           </div>
-          <div class="dropdown-item" on:click={() => window.open('terms.html', '_blank')}>
+          <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.open('terms.html', '_blank')} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open('terms.html', '_blank'); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
             </svg>
@@ -938,7 +938,7 @@
         <p style="margin-top: 8px; font-size: 12px;">Click any hex on the map</p>
       </div>
     </div>
-    <div class="mobile-panel-backdrop" id="mobilePanelBackdrop" on:click={() => window.closeMobilePanels?.()}></div>
+    <div class="mobile-panel-backdrop" id="mobilePanelBackdrop" role="button" tabindex="0" on:click={() => window.closeMobilePanels?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.closeMobilePanels?.(); } }}></div>
   </div>
 
   <!-- Settings Modal -->
@@ -967,14 +967,14 @@
                   <div class="setting-label">Show Region Numbers</div>
                   <div class="setting-description">Display coordinate numbers on each region hex (0,0 at center)</div>
                 </div>
-                <div class="toggle-switch" id="hexCoordinatesToggle" on:click={(e) => window.toggleHexCoordinates?.(e.currentTarget)}></div>
+                <div class="toggle-switch" id="hexCoordinatesToggle" role="button" tabindex="0" on:click={(e) => window.toggleHexCoordinates?.(e.currentTarget)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.toggleHexCoordinates?.(e.currentTarget); } }}></div>
               </div>
               <div class="setting-item" id="continentGridSettingItem">
                 <div>
                   <div class="setting-label setting-label-with-badge">Continent Layer <span class="pro-feature-indicator">PRO</span></div>
                   <div class="setting-description">Fade into a broader continent grid when you zoom far enough out</div>
                 </div>
-                <div class="toggle-switch" id="continentGridToggle" on:click={(e) => window.toggleContinentGrid?.(e.currentTarget)}></div>
+                <div class="toggle-switch" id="continentGridToggle" role="button" tabindex="0" on:click={(e) => window.toggleContinentGrid?.(e.currentTarget)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.toggleContinentGrid?.(e.currentTarget); } }}></div>
               </div>
               <div class="setting-item" id="continentGridDensitySettingItem">
                 <div>
@@ -997,7 +997,7 @@
                   <div class="setting-label setting-label-with-badge">Settlement Layer <span class="pro-feature-indicator">PRO</span></div>
                   <div class="setting-description">Fade into a denser editable settlement grid when zoomed far enough in</div>
                 </div>
-                <div class="toggle-switch" id="detailGridToggle" on:click={(e) => window.toggleDetailGrid?.(e.currentTarget)}></div>
+                <div class="toggle-switch" id="detailGridToggle" role="button" tabindex="0" on:click={(e) => window.toggleDetailGrid?.(e.currentTarget)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.toggleDetailGrid?.(e.currentTarget); } }}></div>
               </div>
               <div class="setting-item" id="detailGridDensitySettingItem">
                 <div>
@@ -1019,7 +1019,7 @@
                   <div class="setting-label">Auto Zoom-to-Load</div>
                   <div class="setting-description">Zoom into a region on the World map to auto-load its detailed map; zoom back out to return to the overview</div>
                 </div>
-                <div class="toggle-switch" id="hexEarthAutoZoomToggle" on:click={(e) => window.hexEarthToggleAuto?.(e.currentTarget)}></div>
+                <div class="toggle-switch" id="hexEarthAutoZoomToggle" role="button" tabindex="0" on:click={(e) => window.hexEarthToggleAuto?.(e.currentTarget)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.hexEarthToggleAuto?.(e.currentTarget); } }}></div>
               </div>
               <div class="setting-item">
                 <div>
@@ -1082,7 +1082,7 @@
                   <div class="setting-label">Developer Tools</div>
                   <div class="setting-description">Show performance HUD and benchmark controls in the menus on this browser only</div>
                 </div>
-                <div class="toggle-switch" id="developerToolsToggle" on:click={(e) => window.toggleDeveloperTools?.(e.currentTarget)}></div>
+                <div class="toggle-switch" id="developerToolsToggle" role="button" tabindex="0" on:click={(e) => window.toggleDeveloperTools?.(e.currentTarget)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.toggleDeveloperTools?.(e.currentTarget); } }}></div>
               </div>
             </div>
 
