@@ -58,10 +58,11 @@ export async function idbLoadQueue(): Promise<QueuedSave[]> {
 }
 
 export async function idbSaveQueue(queue: QueuedSave[]): Promise<void> {
-  await db.queue.clear();
-  for (const item of queue) {
-    await db.queue.add({ data: item });
-  }
+  await db.transaction('rw', db.queue, async () => {
+    await db.queue.clear();
+    if (queue.length === 0) return;
+    await db.queue.bulkAdd(queue.map(data => ({ data })));
+  });
 }
 
 // ── Migration ─────────────────────────────────────────────────────────────────
