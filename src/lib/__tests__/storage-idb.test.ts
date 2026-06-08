@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import 'fake-indexeddb/auto';
 import {
   idbLoadAllTopics,
   idbLoadTopic,
@@ -7,23 +8,30 @@ import {
   idbLoadQueue,
   idbSaveQueue,
   migrateFromLocalStorage,
+  isIDBReady,
   HolmgardDB,
 } from '../storage-idb';
 import type { Topic, QueuedSave } from '../types';
 
-// Skip IndexedDB tests in jsdom — they require a full IDB implementation.
-// The actual functionality is verified by integration tests in the browser.
-describe.skip('IndexedDB storage layer', () => {
+// Use fake-indexeddb to enable these tests in the Vitest/jsdom environment.
+describe('IndexedDB storage layer', () => {
   let db: HolmgardDB;
 
   beforeEach(async () => {
     db = new HolmgardDB();
-    await db.delete(); // Clean database before each test
     await db.open();
+    // Clean tables to avoid cross-test contamination
+    await db.topics.clear();
+    await db.queue.clear();
+    localStorage.clear();
   });
 
   afterEach(async () => {
-    await db.delete();
+    // Close the per-test connection but do NOT delete the database — the
+    // module-level singleton inside storage-idb.ts will reuse it on the next
+    // test. Deleting the whole DB caused "Closing db now to resume the delete
+    // request" warnings and occasional hangs in jsdom.
+    if (db && db.isOpen()) db.close();
   });
 
   describe('Topics', () => {
@@ -179,6 +187,30 @@ describe.skip('IndexedDB storage layer', () => {
 
       const loaded = await idbLoadAllTopics();
       expect(loaded).toHaveLength(1);
+    });
+
+    it('skips invalid JSON in localStorage without crashing', async () => {
+      localStorage.setItem('hle:file:topics/bad.json', 'not-json');
+      localStorage.removeItem('hle:file:offline-queue.json');
+
+      const result = await migrateFromLocalStorage();
+
+      expect(result.topicsMigrated).toBe(1); // Only the valid character:test
+      expect(result.queueMigrated).toBe(false);
+    });
+
+    it('handles empty localStorage gracefully', async () => {
+      localStorage.clear();
+      const result = await migrateFromLocalStorage();
+
+      expect(result.topicsMigrated).toBe(0);
+      expect(result.queueMigrated).toBe(false);
+    });
+  });
+
+  describe('isIDBReady', () => {
+    it('returns true when IndexedDB is open and available', async () => {
+      await expect(isIDBReady()).resolves.toBe(true);
     });
   });
 });
