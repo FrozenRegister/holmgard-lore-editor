@@ -48,6 +48,36 @@ export async function callTool<T extends Record<string, unknown>>(
   return json.result as T;
 }
 
+export async function checkAuth(
+  host: string,
+  apiKey?: string
+): Promise<{ authenticated: boolean }> {
+  try {
+    const url = `${host}/mcp`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (apiKey) {
+      headers['X-Api-Key'] = apiKey;
+    }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: JSON_RPC_VERSION,
+        id: _reqId++,
+        method: 'tools/call',
+        params: { name: 'check_authentication', arguments: {} },
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
+    const metadata = (json.result as { metadata?: { authenticated?: boolean } })?.metadata;
+    return { authenticated: metadata?.authenticated ?? false };
+  } catch {
+    return { authenticated: false };
+  }
+}
+
 export async function listTools(
   host: string,
   apiKey?: string
