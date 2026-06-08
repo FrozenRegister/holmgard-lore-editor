@@ -147,6 +147,33 @@
     }
 
     // ========================================================================
+    // TOOL FUNCTIONS
+    // ========================================================================
+    if (typeof w.showTokenCreator !== 'function') {
+      w.showTokenCreator = function() {
+        const section = document.getElementById('tokenCreatorSection');
+        if (section) {
+          section.style.display = 'block';
+          w.showNotification?.('Token Creator - click a hex to place a token', 'info');
+        } else {
+          w.showNotification?.('Token creator not available', 'warning');
+        }
+      };
+    }
+
+    if (typeof w.showLandmarkCreator !== 'function') {
+      w.showLandmarkCreator = function() {
+        const section = document.getElementById('landmarkCreatorSection');
+        if (section) {
+          section.style.display = 'block';
+          w.showNotification?.('Landmark Creator - click a hex to place a landmark', 'info');
+        } else {
+          w.showNotification?.('Landmark creator not available', 'warning');
+        }
+      };
+    }
+
+    // ========================================================================
     // AUDIT: Check which functions are available (once, logged)
     // ========================================================================
     if (!_gameExposed) {
