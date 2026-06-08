@@ -17,6 +17,18 @@
   // Wait for game.js and state to fully initialize before creating wrappers
   let _gameExposed = false;
 
+  // Ensure undoRedoSystem is always available, even if game.js hasn't initialized
+  if (typeof window.undoRedoSystem !== 'object' || !window.undoRedoSystem) {
+    window.undoRedoSystem = {
+      undo: function() {
+        console.log('[Game UI Bindings] Undo called - waiting for game.js initialization');
+      },
+      redo: function() {
+        console.log('[Game UI Bindings] Redo called - waiting for game.js initialization');
+      }
+    };
+  }
+
   function exposeGameFunctions() {
     if (_gameExposed) return;
     const w = window;
@@ -69,16 +81,8 @@
     // ========================================================================
     // UNDO/REDO SYSTEM
     // ========================================================================
-    if (typeof w.undoRedoSystem !== 'object' || !w.undoRedoSystem) {
-      w.undoRedoSystem = {
-        undo: function() {
-          console.log('[Game UI Bindings] Undo called - waiting for game.js initialization');
-        },
-        redo: function() {
-          console.log('[Game UI Bindings] Redo called - waiting for game.js initialization');
-        }
-      };
-    }
+    // Note: undoRedoSystem is created at the top of this IIFE to ensure it's always available
+    // before game.js initializes
 
     // ========================================================================
     // FILE OPERATIONS (newMap, quickCloudSave, shareMap, etc.)
