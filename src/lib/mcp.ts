@@ -22,7 +22,11 @@ export async function callTool<T extends Record<string, unknown>>(
 ): Promise<T> {
   const url = `${host}/mcp`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (apiKey) headers['X-Api-Key'] = apiKey;
+  if (apiKey) {
+    headers['X-Api-Key'] = apiKey;
+  } else {
+    console.warn('[mcp] callTool() called without an API key — requests may be rejected by the Worker. Set your MCP API key in Settings.');
+  }
   const res = await fetch(url, {
     method: 'POST',
     headers,
@@ -33,7 +37,12 @@ export async function callTool<T extends Record<string, unknown>>(
       params: { name, arguments: args },
     }),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  if (!res.ok) {
+    const errMsg = res.status === 401
+      ? `HTTP 401: Unauthorized — check your MCP API key in Settings`
+      : `HTTP ${res.status}: ${res.statusText}`;
+    throw new Error(errMsg);
+  }
   const json = await res.json();
   if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
   return json.result as T;
@@ -46,7 +55,11 @@ export async function listTools(
   try {
     const url = `${host}/mcp`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (apiKey) headers['X-Api-Key'] = apiKey;
+    if (apiKey) {
+      headers['X-Api-Key'] = apiKey;
+    } else {
+      console.warn('[mcp] listTools() called without an API key — requests may be rejected by the Worker. Set your MCP API key in Settings.');
+    }
     const res = await fetch(url, {
       method: 'POST',
       headers,
@@ -57,7 +70,12 @@ export async function listTools(
         params: {},
       }),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    if (!res.ok) {
+      const errMsg = res.status === 401
+        ? `HTTP 401: Unauthorized — check your MCP API key in Settings`
+        : `HTTP ${res.status}: ${res.statusText}`;
+      throw new Error(errMsg);
+    }
     const json = await res.json();
     if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
     const result = json.result as { tools?: Tool[] };
