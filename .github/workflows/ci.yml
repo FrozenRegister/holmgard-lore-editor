@@ -61,7 +61,7 @@ jobs:
         run: pnpm exec svelte-kit sync
 
       - name: Run unit tests with coverage
-        run: pnpm test -- --coverage
+        run: pnpm test -- --coverage --reporter=default --reporter=github-actions
         env:
           VITEST_POOL: forks
 
@@ -106,7 +106,7 @@ jobs:
         run: pnpm exec svelte-kit sync
 
       - name: Run integration tests
-        run: pnpm test -- --coverage
+        run: pnpm test -- --coverage --reporter=default --reporter=github-actions
         env:
           VITEST_POOL: forks
 
@@ -213,9 +213,18 @@ jobs:
   notify:
     name: Notify on Failure
     needs: [lint-and-typecheck, unit-tests, integration-tests, e2e-tests, coverage-gate]
-    if: failure()
+    if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
-      - name: Send failure notification
-        run: echo "CI failed - check workflow logs"
-        # Add Slack/Discord/Email notification here
+      - name: Create GitHub Issue on Failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `❌ CI Failure on ${context.ref.replace('refs/heads/', '')}`,
+              body: `The latest CI run failed. View logs: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            })
