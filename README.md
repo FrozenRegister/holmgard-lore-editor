@@ -1,5 +1,8 @@
 # Holmgard Lore Editor
 
+[![CI](https://github.com/FrozenRegister/holmgard-lore-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/FrozenRegister/holmgard-lore-editor/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/FrozenRegister/holmgard-lore-editor/branch/main/graph/badge.svg)](https://codecov.io/gh/FrozenRegister/holmgard-lore-editor)
+
 A SvelteKit + Tauri v1 desktop application for editing world-building lore with integrated hex map support.
 
 ## Overview
@@ -130,14 +133,11 @@ pnpm test:e2e:ui           # Interactive UI mode (recommended for development)
 pnpm test:e2e:debug        # Step-through debugger
 ```
 
-**Test coverage:** 15 E2E tests for hex map editor covering:
+**Test Scope:** Full-browser validation of the hex map editor, ensuring:
 
-- Function exposure to window object
-- Console error detection
-- Menu interactions (File, Settings, Export)
-- Zoom controls and performance
-- Modal operations
-- Undo/Redo system
+- **Interface Integrity:** Function exposure to window and console error detection.
+- **Workflows:** Menu interactions (File, Settings, Export) and Modal operations.
+- **User Experience:** Zoom performance, viewport scaling, and Undo/Redo system integrity.
 
 **Details:** See [TESTING.md](TESTING.md) for full test documentation, workflows, and troubleshooting.
 
@@ -226,9 +226,11 @@ Set `VENDOR_MANIFEST` in Cloudflare Workers → **Settings** → **Build & Deplo
 
 ## Sync & Conflict Model
 
-**TODO:** Document conflict detection and resolution model in detail.
+The editor uses a **Local-First with Remote Sync** model. Every lore topic maintains metadata containing a `version`, `updatedAt` timestamp, and `syncedAt` status.
 
-Topics have `{ version, updatedAt, syncedAt }` in their `meta`. Conflict detection compares local vs. remote vs. stored base value. Conflicts are queued in `conflictQueue` store and resolved via `ConflictResolver.svelte`.
+1. **Conflict Detection:** When syncing, the application compares the local version against the remote version. If both have changed since the last known common "base" version, a conflict is triggered.
+2. **Resolution:** Conflicts are pushed to a `conflictQueue` Svelte store. Users are presented with a diff view (`ConflictResolver.svelte`) to pick the local version, the remote version, or a manual merge.
+3. **Offline Queue:** Mutations made while offline are stored in a persistent queue with exponential backoff (up to 8 attempts) to ensure eventually consistent synchronization with the Cloudflare Worker backend.
 
 ## Known Issues & Limitations
 
