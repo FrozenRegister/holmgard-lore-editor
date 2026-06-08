@@ -42,13 +42,22 @@ async function rpc<T>(
     params,
   });
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (apiKey) headers['X-Api-Key'] = apiKey;
+  if (apiKey) {
+    headers['X-Api-Key'] = apiKey;
+  } else {
+    console.warn('[sync] rpc() called without an API key — requests may be rejected by the Worker. Set your MCP API key in Settings.');
+  }
   const res = await fetch(url, {
     method: 'POST',
     headers,
     body,
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  if (!res.ok) {
+    const errMsg = res.status === 401
+      ? `HTTP 401: Unauthorized — check your MCP API key in Settings`
+      : `HTTP ${res.status}: ${res.statusText}`;
+    throw new Error(errMsg);
+  }
   const json = await res.json();
   if (json.error) throw new Error(json.error.message ?? JSON.stringify(json.error));
   return json.result as T;
@@ -272,9 +281,18 @@ export interface ChangelogEntry {
 export async function getChanges(host: string, since: string, apiKey?: string): Promise<ChangelogEntry[]> {
   const url = `${host}/changes?since=${encodeURIComponent(since)}`
   const headers: Record<string, string> = {};
-  if (apiKey) headers['X-Api-Key'] = apiKey;
+  if (apiKey) {
+    headers['X-Api-Key'] = apiKey;
+  } else {
+    console.warn('[sync] getChanges() called without an API key — requests may be rejected by the Worker. Set your MCP API key in Settings.');
+  }
   const res = await fetch(url, { headers })
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+  if (!res.ok) {
+    const errMsg = res.status === 401
+      ? `HTTP 401: Unauthorized — check your MCP API key in Settings`
+      : `HTTP ${res.status}: ${res.statusText}`;
+    throw new Error(errMsg);
+  }
   const json = await res.json() as { changes?: ChangelogEntry[] }
   return json.changes ?? []
 }

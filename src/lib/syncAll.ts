@@ -55,6 +55,9 @@ export async function runSync(): Promise<void> {
     await flushPendingDeletes($settings.workerHost)
 
     const apiKey = await getMcpApiKey()
+    if (!apiKey) {
+      console.warn('[syncAll] No MCP API key found — set your MCP API key in Settings to authenticate with the Worker.')
+    }
     const remote = await pullAll($settings.workerHost, apiKey ?? undefined)
     const localMap = new Map(get(topics).map((t) => [t.key, t]))
     const conflicts: ConflictInfo[] = []
@@ -126,6 +129,9 @@ export async function runSync(): Promise<void> {
 export async function runSmartSync(since: string): Promise<boolean> {
   const $settings = get(settings)
   const apiKey = await getMcpApiKey()
+  if (!apiKey) {
+    console.warn('[syncAll] No MCP API key found — set your MCP API key in Settings to authenticate with the Worker.')
+  }
 
   let changes: ChangelogEntry[]
   try {
