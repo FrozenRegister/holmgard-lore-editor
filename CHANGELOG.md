@@ -14,3 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Memoization tests for `getTauriInvoke`** (#21) — Added 2 new tests (`auth.test.ts`) verifying that the Tauri invoke import is reused across multiple auth function calls and that browser-mode caches `null` without re-importing.
+
+### Fixed
+
+- **Race condition in `getTauriInvoke()` memoization** (#21, #74) — Added a promise-sentinel pattern (`_tauriInvokePromise`) so concurrent callers hitting the function before the first `await import()` resolves reuse the same in-flight promise instead of each starting a separate dynamic import.
+
+### Security
+
+- **`__TAURI__` falsy-value hardening** (#21, #74) — Added 4 tests confirming that `__TAURI__` values of `false`, `null`, `0`, and `''` all correctly fall through to localStorage mode (previously only `undefined` was explicitly tested). Added 2 concurrent-call tests in both Tauri and browser modes.
