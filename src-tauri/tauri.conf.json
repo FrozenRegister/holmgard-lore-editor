@@ -33,7 +33,9 @@
         "icons/icon.ico"
       ]
     },
-    "security": { "csp": null },
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: https://asset.localhost; connect-src 'self' https://api.anthropic.com https://*.workers.dev https://*.cloudflare.com; font-src 'self'; frame-src 'none'; object-src 'none'"
+    },
     "windows": [
       {
         "fullscreen": false,
