@@ -263,4 +263,42 @@ describe('auth', () => {
 		});
 	});
 
+	// ── Memoization ─────────────────────────────────────────────────────────────
+
+	describe('getTauriInvoke memoization', () => {
+		it('should reuse cached invoke across multiple auth function calls', async () => {
+			vi.stubGlobal('__TAURI__', {});
+			const { invoke } = await import('@tauri-apps/api/tauri');
+			vi.mocked(invoke).mockResolvedValue('key-from-tauri');
+
+			const { getAdminSecret, getClaudeApiKey, getMcpApiKey } = await import('$lib/auth');
+
+			await getAdminSecret();
+			await getClaudeApiKey();
+			await getMcpApiKey();
+
+			// Three keyring_get calls, but the import should only have happened once
+			expect(invoke).toHaveBeenCalledTimes(3);
+			expect(invoke).toHaveBeenCalledWith('keyring_get', { account: 'admin_secret' });
+			expect(invoke).toHaveBeenCalledWith('keyring_get', { account: 'claude_api_key' });
+			expect(invoke).toHaveBeenCalledWith('keyring_get', { account: 'mcp_api_key' });
+		});
+
+		it('should cache null in browser mode and not attempt import again', async () => {
+			vi.stubGlobal('__TAURI__', undefined);
+
+			const { getAdminSecret, getClaudeApiKey } = await import('$lib/auth');
+
+			localStorage.setItem('hle:adminSecret', 's1');
+			localStorage.setItem('hle:claudeApiKey', 'k1');
+
+			await getAdminSecret();
+			await getClaudeApiKey();
+
+			// Both should have returned localStorage values without invoking Tauri
+			expect(localStorage.getItem('hle:adminSecret')).toBe('s1');
+			expect(localStorage.getItem('hle:claudeApiKey')).toBe('k1');
+		});
+	});
+
 });
