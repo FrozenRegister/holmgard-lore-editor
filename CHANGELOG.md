@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Content-Security-Policy headers** (#35) — Three-layer defense across browser, Cloudflare Pages, and native Tauri: meta tag in `app.html` for dev/webview fallback, `_headers` file for production, and `tauri.conf.json` policy. Restricts default to `'self'`, allows inline styles for hex map editor, API calls to Anthropic and Cloudflare Workers, and blocks frames/objects/external images.
+- **GitHub Actions automation pipeline** (#77) — Implemented 8 workflows for issue triage, agent assignment, parallel batching, and PR quality enforcement: setup-labels (bootstrap 24 labels), issue-tagger (auto-label by surface area + depth), parallelize-issues (group into conflict-free batches), agent-assignment (assign agent:claude/cline), agent-trigger (post work-orders), pr-quality (enforce CHANGELOG + docs), auto-merge (merge after CI), validate-workflows (YAML validation). Added testing-and-linting-guide.md. Updated CI to use pnpm@11.5.1 and Node 22.
 - **Memoization tests for `getTauriInvoke`** (#21) — Added 2 new tests (`auth.test.ts`) verifying that the Tauri invoke import is reused across multiple auth function calls and that browser-mode caches `null` without re-importing.
 
 ### Fixed
