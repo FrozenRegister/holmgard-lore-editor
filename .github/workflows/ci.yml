@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '20'
-  PNPM_VERSION: '9'
+  NODE_VERSION: '22'
+  PNPM_VERSION: '11.5.1'
 
 jobs:
   lint-and-typecheck:
@@ -225,6 +225,6 @@ jobs:
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `❌ CI Failure on ${context.ref.replace('refs/heads/', '')}`,
+              title: `CI Failure on ${context.ref.replace('refs/heads/', '')}`,
               body: `The latest CI run failed. View logs: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             })
