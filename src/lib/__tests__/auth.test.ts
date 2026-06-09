@@ -301,4 +301,83 @@ describe('auth', () => {
 		});
 	});
 
+	// ── Concurrent calls (promise-sentinel race protection) ────────────────────
+
+	describe('concurrent calls', () => {
+		it('should handle concurrent auth calls without double-importing', async () => {
+			vi.stubGlobal('__TAURI__', {});
+			const { invoke } = await import('@tauri-apps/api/tauri');
+			vi.mocked(invoke).mockResolvedValue('concurrent-result');
+
+			const { getAdminSecret, getClaudeApiKey } = await import('$lib/auth');
+
+			// Fire both simultaneously — the promise sentinel should dedupe the import
+			const [a, b] = await Promise.all([getAdminSecret(), getClaudeApiKey()]);
+
+			expect(a).toBe('concurrent-result');
+			expect(b).toBe('concurrent-result');
+			// Both calls should have used the same invoke reference
+			expect(invoke).toHaveBeenCalledWith('keyring_get', { account: 'admin_secret' });
+			expect(invoke).toHaveBeenCalledWith('keyring_get', { account: 'claude_api_key' });
+		});
+
+		it('should handle concurrent calls in browser mode without error', async () => {
+			vi.stubGlobal('__TAURI__', undefined);
+
+			localStorage.setItem('hle:adminSecret', 's1');
+			localStorage.setItem('hle:claudeApiKey', 'k1');
+
+			const { getAdminSecret, getClaudeApiKey } = await import('$lib/auth');
+
+			const [a, b] = await Promise.all([getAdminSecret(), getClaudeApiKey()]);
+
+			expect(a).toBe('s1');
+			expect(b).toBe('k1');
+		});
+	});
+
+	// ── __TAURI__ falsy-but-defined edge cases ─────────────────────────────────
+
+	describe('__TAURI__ falsy-but-defined values', () => {
+		it('should fall through to localStorage when __TAURI__ is false', async () => {
+			vi.stubGlobal('__TAURI__', false);
+			localStorage.setItem('hle:adminSecret', 'val');
+
+			const { getAdminSecret } = await import('$lib/auth');
+			const result = await getAdminSecret();
+
+			expect(result).toBe('val');
+		});
+
+		it('should fall through to localStorage when __TAURI__ is null', async () => {
+			vi.stubGlobal('__TAURI__', null);
+			localStorage.setItem('hle:claudeApiKey', 'ck');
+
+			const { getClaudeApiKey } = await import('$lib/auth');
+			const result = await getClaudeApiKey();
+
+			expect(result).toBe('ck');
+		});
+
+		it('should fall through to localStorage when __TAURI__ is 0', async () => {
+			vi.stubGlobal('__TAURI__', 0);
+			localStorage.setItem('hle:mcpApiKey', 'mk');
+
+			const { getMcpApiKey } = await import('$lib/auth');
+			const result = await getMcpApiKey();
+
+			expect(result).toBe('mk');
+		});
+
+		it('should fall through to localStorage when __TAURI__ is empty string', async () => {
+			vi.stubGlobal('__TAURI__', '');
+			localStorage.setItem('hle:claudeApiKey', 'ek');
+
+			const { setClaudeApiKey, getClaudeApiKey } = await import('$lib/auth');
+			await setClaudeApiKey('updated');
+
+			expect(localStorage.getItem('hle:claudeApiKey')).toBe('updated');
+		});
+	});
+
 });
