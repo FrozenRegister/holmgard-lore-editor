@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **River data loss on map reload** (#43) — `applyRestoredMap()` never read `riverEdges` and `rivers` from IndexedDB, causing maps with painted rivers to lose all river data when reloaded from disk. Added 'rivers' IDB store to restoration pipeline and updated E2E seeded map loader. Maps now persist river data across save/load cycles.
 - **Race condition in `getTauriInvoke()` memoization** (#21, #74) — Added a promise-sentinel pattern (`_tauriInvokePromise`) so concurrent callers hitting the function before the first `await import()` resolves reuse the same in-flight promise instead of each starting a separate dynamic import.
 
 ### Security
