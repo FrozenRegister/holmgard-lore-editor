@@ -1,0 +1,6 @@
+/*
+  Content-Security-Policy header served by Cloudflare Pages.
+  Mirrors the <meta> tag in src/app.html — keep both in sync.
+*/
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com https://*.workers.dev https://*.cloudflare.com; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'
