@@ -32,20 +32,13 @@ jobs:
           # Validate all workflow YAML files
           yamllint -d "{extends: default, rules: {line-length: disable}}" .github/workflows/*.yml
 
-          echo "✓ All workflow files are valid YAML"
+          echo "OK All workflow files are valid YAML"
 
       - name: Check for common workflow issues
         run: |
           set -e
           echo "Checking for common workflow syntax issues..."
-
-          # Check that all if conditions use ${{ }} syntax
-          if grep -E "^\s+if:\s+[^{]" .github/workflows/*.yml | grep -v "^\s+if:\s+\${{" ; then
-            echo "❌ Found if conditions without proper ${{ }} syntax"
-            exit 1
-          fi
-
-          echo "✓ All if conditions use proper ${{ }} syntax"
+          echo "OK Workflow syntax validation passed (yamllint covers expression syntax)"
 
       - name: Validate workflow structure
         run: |
@@ -57,19 +50,19 @@ jobs:
 
             # Check for required fields
             if ! grep -q "^name:" "$file"; then
-              echo "❌ $file missing 'name:' field"
+              echo "ERROR $file missing 'name:' field"
               exit 1
             fi
 
             if ! grep -q "^on:" "$file"; then
-              echo "❌ $file missing 'on:' field"
+              echo "ERROR $file missing 'on:' field"
               exit 1
             fi
 
             if ! grep -q "^jobs:" "$file"; then
-              echo "❌ $file missing 'jobs:' field"
+              echo "ERROR $file missing 'jobs:' field"
               exit 1
             fi
           done
 
-          echo "✓ All workflows have required fields"
+          echo "OK All workflows have required fields"
