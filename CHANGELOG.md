@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Content-Security-Policy headers** (#35) — Three-layer defense across browser, Cloudflare Pages, and native Tauri: meta tag in `app.html` for dev/webview fallback, `_headers` file for production, and `tauri.conf.json` policy. Restricts default to `'self'`, allows inline styles for hex map editor, API calls to Anthropic and Cloudflare Workers, and blocks frames/objects/external images.
 - **Memoization tests for `getTauriInvoke`** (#21) — Added 2 new tests (`auth.test.ts`) verifying that the Tauri invoke import is reused across multiple auth function calls and that browser-mode caches `null` without re-importing.
 
 ### Fixed
