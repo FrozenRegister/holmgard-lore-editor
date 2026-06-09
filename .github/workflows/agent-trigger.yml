@@ -48,7 +48,7 @@ jobs:
             const branchName = `issue/${issueNum}-${slug}`
 
             // Post work-order comment
-            const workOrder = `## Work Order ⚙️
+            const workOrder = `## Work Order [WORKORDER]
 
 **Issue:** #${issueNum}
 **Assigned to:** ${agent}
