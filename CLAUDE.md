@@ -15,7 +15,10 @@ pnpm tauri:build      # Production desktop build
 pnpm test             # Run all Vitest tests once
 pnpm test:watch       # Vitest in watch mode
 pnpm check            # svelte-kit sync + type check (run svelte-kit sync first)
+pnpm test:e2e         # Run Playwright E2E tests
 ```
+
+See [Testing and Linting Guide](docs/testing-and-linting-guide.md) for detailed testing documentation.
 
 ## Git workflow
 
