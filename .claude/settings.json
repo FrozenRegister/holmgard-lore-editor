@@ -3,7 +3,8 @@
     "allow": [
       "Bash(pnpm test)",
       "Bash(pnpm check)",
-      "PowerShell(pnpm *)",
+      "PowerShell(* pnpm *)",
+      "PowerShell(Set-Location * pnpm test*)",
       "PowerShell(node *)",
       "PowerShell(Stop-Process *)",
       "PowerShell(Get-ChildItem *)",
@@ -12,6 +13,10 @@
       "PowerShell(Test-Path *)",
       "PowerShell(Get-NetTCPConnection *)",
       "PowerShell(netstat *)",
+      "PowerShell(Set-Location * && git *)",
+      "PowerShell(Set-Location * && gh *)",
+      "PowerShell(git *)",
+      "PowerShell(gh *)",
       "mcp__claude-in-chrome__read_console_messages",
       "mcp__claude-in-chrome__read_network_requests",
       "mcp__claude-in-chrome__browser_batch"
