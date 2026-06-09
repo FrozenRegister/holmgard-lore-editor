@@ -373,4 +373,198 @@ describe('Game UI Bindings - Function Exposure', () => {
       expect(missing.length).toBe(0);
     });
   });
+
+  describe('IDB Restoration - Rivers', () => {
+    it('should restore riverEdges and rivers from IDB data', () => {
+      // Mock data that would come from IDB
+      const idbData: any = {
+        mapMeta: {
+          version: '1.4',
+          name: 'Test Map',
+          mapName: 'Test Map',
+          mapType: 'world',
+          mapInstanceId: 'test-123',
+          canvasBackground: null,
+          orientation: 'flat',
+          hexSize: 20,
+          viewport: { x: 0, y: 0, scale: 1 },
+          nextLandmarkId: 1,
+          nextTextLabelId: 1,
+          nextImageOverlayId: 1,
+          nextTokenId: 1,
+          nextPathId: 1,
+          dungeonLayout: null,
+          settlementLayout: null,
+        },
+        regionTerrain: { hexes: [] },
+        detailTerrain: {
+          detailHexes: [],
+          subHexes: [],
+          subHexLandmarks: [],
+          subHexTokens: [],
+        },
+        items: {
+          landmarks: [],
+          textLabels: [],
+          imageOverlays: [],
+          tokens: [],
+          paths: [],
+        },
+        fog: { fogOfWar: [], fogSettings: {} },
+        layersSettings: {
+          detailGridEnabled: false,
+          detailGridDensity: 19,
+          showHexCoordinates: false,
+          layers: [],
+          customTerrains: {},
+          customDungeonTiles: {},
+        },
+        rivers: {
+          riverEdges: {
+            '0,0,0,parent': { riverId: 'river-1' },
+            '1,0,0,parent': { riverId: 'river-1' },
+          },
+          rivers: {
+            'river-1': {
+              id: 'river-1',
+              name: 'Test River',
+              color: '#2b6998',
+              width: 3,
+            },
+          },
+        },
+      };
+
+      (window as any).loadMapDataIntoState = vi.fn();
+
+      // Simulate applyRestoredMap logic
+      const meta = idbData.mapMeta;
+      const terrain = idbData.regionTerrain || {};
+      const detail = idbData.detailTerrain || {};
+      const items = idbData.items || {};
+      const fog = idbData.fog || {};
+      const layers = idbData.layersSettings || {};
+      const riverData = idbData.rivers || {};
+
+      const state = Object.assign(
+        {},
+        {
+          version: meta.version,
+          name: meta.name || meta.mapName,
+          mapName: meta.mapName,
+          mapType: meta.mapType,
+          mapInstanceId: meta.mapInstanceId,
+          canvasBackground: meta.canvasBackground,
+          orientation: meta.orientation,
+          hexSize: meta.hexSize,
+          viewport: meta.viewport,
+          nextLandmarkId: meta.nextLandmarkId,
+          nextTextLabelId: meta.nextTextLabelId,
+          nextImageOverlayId: meta.nextImageOverlayId,
+          nextTokenId: meta.nextTokenId,
+          nextPathId: meta.nextPathId,
+          dungeonLayout: meta.dungeonLayout,
+          settlementLayout: meta.settlementLayout,
+        },
+        { hexes: terrain.hexes || [] },
+        {
+          detailHexes: detail.detailHexes || [],
+          subHexes: detail.subHexes || [],
+          subHexLandmarks: detail.subHexLandmarks || [],
+          subHexTokens: detail.subHexTokens || [],
+        },
+        {
+          landmarks: items.landmarks || [],
+          textLabels: items.textLabels || [],
+          imageOverlays: items.imageOverlays || [],
+          tokens: items.tokens || [],
+          paths: items.paths || [],
+        },
+        { fogOfWar: fog.fogOfWar || [], fogSettings: fog.fogSettings || {} },
+        {
+          detailGridEnabled: layers.detailGridEnabled,
+          detailGridDensity: layers.detailGridDensity,
+          showHexCoordinates: layers.showHexCoordinates,
+          layers: layers.layers || [],
+          customTerrains: layers.customTerrains || {},
+          customDungeonTiles: layers.customDungeonTiles || {},
+        },
+        { riverEdges: riverData.riverEdges || {}, rivers: riverData.rivers || {} }
+      );
+
+      // Verify riverEdges and rivers were restored
+      expect(state.riverEdges).toBeDefined();
+      expect(Object.keys(state.riverEdges).length).toBe(2);
+      expect(state.riverEdges['0,0,0,parent'].riverId).toBe('river-1');
+      expect(state.riverEdges['1,0,0,parent'].riverId).toBe('river-1');
+
+      expect(state.rivers).toBeDefined();
+      expect(state.rivers['river-1']).toBeDefined();
+      expect(state.rivers['river-1'].name).toBe('Test River');
+      expect(state.rivers['river-1'].color).toBe('#2b6998');
+    });
+
+    it('should handle missing rivers data gracefully', () => {
+      // Simulate IDB data without rivers
+      const idbData: any = {
+        mapMeta: {
+          version: '1.4',
+          name: 'Test Map',
+          mapName: 'Test Map',
+          mapType: 'world',
+          mapInstanceId: 'test-123',
+          canvasBackground: null,
+          orientation: 'flat',
+          hexSize: 20,
+          viewport: { x: 0, y: 0, scale: 1 },
+          nextLandmarkId: 1,
+          nextTextLabelId: 1,
+          nextImageOverlayId: 1,
+          nextTokenId: 1,
+          nextPathId: 1,
+          dungeonLayout: null,
+          settlementLayout: null,
+        },
+        regionTerrain: { hexes: [] },
+        detailTerrain: {
+          detailHexes: [],
+          subHexes: [],
+          subHexLandmarks: [],
+          subHexTokens: [],
+        },
+        items: {
+          landmarks: [],
+          textLabels: [],
+          imageOverlays: [],
+          tokens: [],
+          paths: [],
+        },
+        fog: { fogOfWar: [], fogSettings: {} },
+        layersSettings: {
+          detailGridEnabled: false,
+          detailGridDensity: 19,
+          showHexCoordinates: false,
+          layers: [],
+          customTerrains: {},
+          customDungeonTiles: {},
+        },
+        // No rivers data
+      };
+
+      const riverData = idbData.rivers || {};
+      const state = {
+        riverEdges: riverData.riverEdges || {},
+        rivers: riverData.rivers || {},
+      };
+
+      // Should have empty objects instead of undefined
+      expect(state.riverEdges).toBeDefined();
+      expect(typeof state.riverEdges).toBe('object');
+      expect(Object.keys(state.riverEdges).length).toBe(0);
+
+      expect(state.rivers).toBeDefined();
+      expect(typeof state.rivers).toBe('object');
+      expect(Object.keys(state.rivers).length).toBe(0);
+    });
+  });
 });

@@ -366,9 +366,9 @@
           }
 
           // Now fetch the related data
-          var tx = db.transaction(['regionTerrain', 'items', 'detailTerrain', 'fog', 'layersSettings'], 'readonly');
+          var tx = db.transaction(['regionTerrain', 'items', 'detailTerrain', 'fog', 'layersSettings', 'rivers'], 'readonly');
           var data = { mapMeta: mapEntry };
-          var pending = 5;
+          var pending = 6;
 
           function checkAllLoaded() {
             if (--pending === 0) {
@@ -412,6 +412,13 @@
             checkAllLoaded();
           };
           layersReq.onerror = checkAllLoaded;
+
+          var riversReq = tx.objectStore('rivers').get(mapEntry.id);
+          riversReq.onsuccess = function() {
+            data.rivers = riversReq.result;
+            checkAllLoaded();
+          };
+          riversReq.onerror = checkAllLoaded;
         };
 
         metaReq.onerror = function() {
@@ -445,7 +452,7 @@
 
   // ---- IndexedDB helpers ---------------------------------------------------
   var HEXMAP_DB = 'HexAtlasDB';
-  var IDB_STORES = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings'];
+  var IDB_STORES = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings', 'rivers'];
 
   function saveLastOpenedDraftKey() {
     var mapId = window.state && window.state.hexMap && window.state.hexMap.mapInstanceId;
@@ -578,6 +585,7 @@
     var items = data.items || {};
     var fog = data.fog || {};
     var layers = data.layersSettings || {};
+    var riverData = data.rivers || {};
 
     var state = Object.assign({},
       { version: meta.version, name: meta.name || meta.mapName, mapName: meta.mapName, mapType: meta.mapType,
@@ -594,7 +602,8 @@
       { fogOfWar: fog.fogOfWar || [], fogSettings: fog.fogSettings || {} },
       { detailGridEnabled: layers.detailGridEnabled, detailGridDensity: layers.detailGridDensity,
         showHexCoordinates: layers.showHexCoordinates, layers: layers.layers || [],
-        customTerrains: layers.customTerrains || {}, customDungeonTiles: layers.customDungeonTiles || {} }
+        customTerrains: layers.customTerrains || {}, customDungeonTiles: layers.customDungeonTiles || {} },
+      { riverEdges: riverData.riverEdges || {}, rivers: riverData.rivers || {} }
     );
 
     if (typeof window.loadMapDataIntoState === 'function') {
