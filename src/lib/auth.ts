@@ -2,15 +2,22 @@ import type { invoke as TauriInvoke } from '@tauri-apps/api/tauri';
 
 // ── Memoized Tauri invoke accessor ────────────────────────────────────────────
 // Avoids 7 separate dynamic imports and 7 copies of the Tauri-detection guard.
+// Uses a promise-sentinel so concurrent callers reuse the first in-flight import
+// instead of each starting their own.
 
 let _tauriInvoke: typeof TauriInvoke | null | undefined;
+let _tauriInvokePromise: Promise<typeof TauriInvoke | null> | undefined;
 
 async function getTauriInvoke(): Promise<typeof TauriInvoke | null> {
 	if (_tauriInvoke !== undefined) return _tauriInvoke;
+	if (_tauriInvokePromise) return _tauriInvokePromise;
+
 	if (typeof __TAURI__ !== 'undefined' && __TAURI__) {
-		const { invoke } = await import('@tauri-apps/api/tauri');
-		_tauriInvoke = invoke;
-		return invoke;
+		_tauriInvokePromise = import('@tauri-apps/api/tauri').then(({ invoke }) => {
+			_tauriInvoke = invoke;
+			return invoke;
+		});
+		return _tauriInvokePromise;
 	}
 	_tauriInvoke = null;
 	return null;
