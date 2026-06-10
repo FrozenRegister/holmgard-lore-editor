@@ -1,6 +1,6 @@
 # Test Suites for Hex Map Editor
 
-This document describes the unit and E2E test suites for the hex map editor's function exposure and menu interactions.
+This document describes the unit, integration, and E2E test suites for the hex map editor's function exposure and menu interactions.
 
 ## Unit Tests (Vitest)
 
@@ -130,10 +130,16 @@ pnpm test:e2e e2e/hex-map-menu.spec.ts
   - Reports: HTML test report in `playwright-report/`
   - Retries: 2 retries in CI, 0 in local
 
-- **Vitest config:** `vitest.config.ts`
+- **Vitest unit config:** `vitest.config.ts`
   - Environment: jsdom
   - Globals: true (no need for imports)
-  - Include: `src/**/*.{test,spec}.{ts,js}`
+  - Include: `src/lib/**/*.{test,spec}.{ts,js}`
+  - Exclude: `*.integration.test.*` files (those belong to integration suite)
+
+- **Vitest integration config:** `vitest.integration.config.ts`
+  - Include: `src/lib/**/*.integration.test.ts`
+  - Coverage output: `coverage/integration/`
+  - Uses `fake-indexeddb/auto` for IndexedDB-backed tests
 
 ## Common Workflows
 
@@ -257,6 +263,37 @@ Extended tests for sync operations:
 - `adminSave()`, `adminDelete()` - Admin API operations
 - `getTopicHistories()`, `getChanges()` - History and changelog sync
 - Edge cases (max attempts, format parsing)
+
+## Integration Tests (Vitest — separate config)
+
+Integration tests exercise real cross-module interactions without mocking sibling `$lib` modules. They are configured separately from unit tests:
+
+**Run integration tests:**
+
+```bash
+pnpm test:integration           # Run all integration tests with coverage
+```
+
+**Integration test files:**
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `sync.integration.test.ts` | 26 | JSON-RPC, admin save/delete, conflict detection, pending deletes, changelog, batch ops |
+| `auth.integration.test.ts` | 12 | Browser + Tauri dual-path API key management, concurrent calls, edge cases |
+| `history.integration.test.ts` | 8 | Undo/redo stack with localStorage backing, MAX_ENTRIES trimming |
+| `defaults.integration.test.ts` | 5 | Settings defaults, storage/store integration |
+| `stores.integration.test.ts` | 13 | Svelte writable/derived store reactivity, toast system |
+| `storage.integration.test.ts` | 9 | IndexedDB CRUD via fake-indexeddb, localStorage settings |
+| `diff.integration.test.ts` | 8 | LCS line diff with real-world Markdown text |
+| `mcp.integration.test.ts` | 9 | JSON-RPC tools/call, checkAuth, listTools |
+
+### Key patterns
+
+- Mock `@tauri-apps/api/tauri` with `vi.mock()` and `vi.stubGlobal('__TAURI__', {})` for Tauri mode
+- Use `delete globalThis.__TAURI__` (not `stubGlobal(undefined)`) to simulate browser mode (the `'in'` operator detects stubGlobal even with undefined value)
+- Use `fake-indexeddb/auto` for Dexie/IndexedDB-backed tests
+- Mock `globalThis.fetch` for network-layer tests
+- Integration tests do NOT mock any `$lib/*` modules
 
 ## Future Enhancements
 
