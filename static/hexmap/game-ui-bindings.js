@@ -91,8 +91,26 @@
       w.newMap = function() {
         if (confirm('Create a new map? Any unsaved changes will be lost.')) {
           if (w.state && w.state.hexMap) {
-            w.state.hexMap.hexes = [];
-            w.state.hexMap.landmarks = [];
+            var m = w.state.hexMap;
+            // -- core collections --
+            m.hexes = [];
+            m.landmarks = [];
+            // -- detail/sub-hex data (settlement layer) --
+            m.detailHexes = new Map();
+            m.subHexes = [];
+            m.subHexLandmarks = [];
+            m.subHexTokens = [];
+            // -- river state --
+            m.riverEdges = {};
+            m.rivers = {};
+            // -- tokens, paths, fog --
+            m.tokens = [];
+            m.paths = [];
+            m.fogOfWar = [];
+            // -- text labels and image overlays --
+            m.textLabels = [];
+            m.imageOverlays = [];
+            // -- re-render --
             if (typeof w.renderHex === 'function') w.renderHex();
           }
           w.showNotification?.('New map created', 'success');
