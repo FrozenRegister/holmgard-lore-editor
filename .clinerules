@@ -129,6 +129,31 @@ For topics that cross repos, use separate draft items per repo, each scoped to t
 
 Always confirm with the user before creating items, unless they explicitly say to track the topic.
 
+## PR Quality Gate checklist
+
+Before pushing a PR branch, ensure these CI checks will pass:
+
+1. **CHANGELOG.md** — Every PR must modify `CHANGELOG.md` with an entry under `[Unreleased]`. Use the appropriate section (`Added`, `Changed`, `Fixed`, `Security`). Skip only for emergency hotfixes by applying the `skip-quality-checks` label.
+2. **Documentation** — Every PR must either:
+   - Modify at least one file under `docs/`, OR
+   - Include a `## Documentation` section in the PR body describing what docs were updated
+   
+   If neither is present, the `check-docs` job fails. Skip only via `skip-quality-checks` label.
+3. **svelte-check** — Must pass with 0 errors (warnings are OK). Before pushing, run `pnpm check` locally.
+4. **Unit tests** — All unit tests must pass. Run `pnpm test` locally. Ensure `vitest.config.ts` `exclude` glob excludes `*.integration.test.*` files so they don't bleed into the unit suite.
+5. **Integration tests** — All integration tests must pass. Run `pnpm test:integration`.
+6. **Coverage gate** — `coverage-gap-analysis.ts` runs in CI. Both unit and integration suites must have all files ≥80% coverage.
+
+### Common pitfalls and fixes
+
+| Failure | Fix |
+|---------|-----|
+| `check-changelog` fails | `CHANGELOG.md` must be one of the changed files; add an entry |
+| `check-docs` fails | Either touch a `docs/` file OR add `## Documentation` section to PR body |
+| `svelte-check` type errors on discriminated unions | Use `.filter()` to narrow before accessing union-specific fields (e.g. `ops.filter(o => o.type === 'mod')` instead of `ops.find(o => o.type === 'mod')!.a`) |
+| Integration tests bleeding into unit suite | Ensure `vitest.config.ts` excludes `'src/lib/**/*.integration.test.*'` |
+| Unit test `__TAURI__` detection wrong | Use `delete globalThis.__TAURI__` for browser mode, not `vi.stubGlobal('__TAURI__', undefined)` — the `'in'` operator detects the stub even with undefined value |
+
 ## Session-end helper: Add-SessionSummary
 
 At the end of a Cline/Claude session, append a draft issue to project #3 summarizing what was done and what the next session should pick up. Use the helper in `scripts/session-end.ps1`:
