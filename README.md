@@ -1,6 +1,7 @@
 # Holmgard Lore Editor
 
 [![CI](https://github.com/FrozenRegister/holmgard-lore-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/FrozenRegister/holmgard-lore-editor/actions/workflows/ci.yml)
+[![E2E](https://github.com/FrozenRegister/holmgard-lore-editor/actions/workflows/e2e-ci.yml/badge.svg)](https://github.com/FrozenRegister/holmgard-lore-editor/actions/workflows/e2e-ci.yml)
 [![codecov](https://codecov.io/gh/FrozenRegister/holmgard-lore-editor/branch/main/graph/badge.svg)](https://codecov.io/gh/FrozenRegister/holmgard-lore-editor)
 
 A SvelteKit + Tauri v1 desktop application for editing world-building lore with integrated hex map support.
