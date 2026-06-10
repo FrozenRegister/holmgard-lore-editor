@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-06-06T09:19:27.861Z",
+  "timestamp": "2026-06-10T16:32:25.519Z",
   "summary": {
     "unit": {
-      "lines": 91.52,
-      "functions": 92,
-      "branches": 87.16,
-      "statements": 91.52
+      "lines": 91.98,
+      "functions": 91.92,
+      "branches": 87.9,
+      "statements": 91.98
     },
     "integration": {
-      "lines": 0,
-      "functions": 0,
-      "branches": 0,
-      "statements": 0
+      "lines": 3.44,
+      "functions": 21.73,
+      "branches": 52,
+      "statements": 3.44
     },
     "e2e": {
       "passed": 0,
@@ -21,48 +21,272 @@
   },
   "gaps": [
     {
-      "file": "src\\lib\\storage-idb.ts",
+      "file": "src/lib/importMap.ts",
       "type": "unit",
       "uncoveredLines": [],
       "uncoveredBranches": [],
-      "pct": 58.33,
+      "pct": 39.15,
       "threshold": 80
     },
     {
-      "file": "src\\lib\\storage.ts",
+      "file": "src/lib/storage.ts",
       "type": "unit",
       "uncoveredLines": [],
       "uncoveredBranches": [],
-      "pct": 73.17,
+      "pct": 64.38,
       "threshold": 80
     },
     {
-      "file": "src\\lib\\syncAll.ts",
-      "type": "unit",
+      "file": "src/lib/auth.ts",
+      "type": "integration",
       "uncoveredLines": [],
       "uncoveredBranches": [],
-      "pct": 53.39,
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/defaults.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/diff.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/hexmap-utils.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/history.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/importMap.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/mapDb.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/mapIngest.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/mapSync.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/mapTools.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/mcp.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/storage-idb.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/storage.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/stores.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/sync.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/syncAll.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
+      "threshold": 80
+    },
+    {
+      "file": "src/lib/worldmap.ts",
+      "type": "integration",
+      "uncoveredLines": [],
+      "uncoveredBranches": [],
+      "pct": 0,
       "threshold": 80
     }
   ],
   "actionItems": [
     {
       "priority": "high",
-      "file": "src\\lib\\storage-idb.ts",
-      "message": "File has 58.33% coverage, 21.67% below unit threshold.",
-      "suggestedTest": "Add tests for uncovered lines: "
-    },
-    {
-      "priority": "high",
-      "file": "src\\lib\\syncAll.ts",
-      "message": "File has 53.39% coverage, 26.61% below unit threshold.",
+      "file": "src/lib/importMap.ts",
+      "message": "🟠 HIGH: src/lib/importMap.ts\n> File has 39.15% coverage, 40.85% below unit threshold.",
       "suggestedTest": "Add tests for uncovered lines: "
     },
     {
       "priority": "medium",
-      "file": "src\\lib\\storage.ts",
-      "message": "File at 73.17% coverage, just below 80% threshold.",
-      "suggestedTest": "Cover remaining 0 lines and 0 branches."
+      "file": "src/lib/storage.ts",
+      "message": "🟡 MEDIUM: src/lib/storage.ts\n> File has 64.38% coverage, 15.62% below unit threshold.",
+      "suggestedTest": "Add tests for uncovered lines: "
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/auth.ts",
+      "message": "🟠 HIGH: src/lib/auth.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/defaults.ts",
+      "message": "🟠 HIGH: src/lib/defaults.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/diff.ts",
+      "message": "🟠 HIGH: src/lib/diff.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/hexmap-utils.ts",
+      "message": "🟠 HIGH: src/lib/hexmap-utils.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/history.ts",
+      "message": "🟠 HIGH: src/lib/history.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/importMap.ts",
+      "message": "🟠 HIGH: src/lib/importMap.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/mapDb.ts",
+      "message": "🟠 HIGH: src/lib/mapDb.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/mapIngest.ts",
+      "message": "🟠 HIGH: src/lib/mapIngest.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/mapSync.ts",
+      "message": "🟠 HIGH: src/lib/mapSync.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/mapTools.ts",
+      "message": "🟠 HIGH: src/lib/mapTools.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/mcp.ts",
+      "message": "🟠 HIGH: src/lib/mcp.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/storage-idb.ts",
+      "message": "🟠 HIGH: src/lib/storage-idb.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/storage.ts",
+      "message": "🟠 HIGH: src/lib/storage.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/stores.ts",
+      "message": "🟠 HIGH: src/lib/stores.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/sync.ts",
+      "message": "🟠 HIGH: src/lib/sync.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/syncAll.ts",
+      "message": "🟠 HIGH: src/lib/syncAll.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
+    },
+    {
+      "priority": "high",
+      "file": "src/lib/worldmap.ts",
+      "message": "🟠 HIGH: src/lib/worldmap.ts\n> File has 0% coverage, 80% below integration threshold.",
+      "suggestedTest": "Add a integration test suite for this file."
     }
   ]
 }
