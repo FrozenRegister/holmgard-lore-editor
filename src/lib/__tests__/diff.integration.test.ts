@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { lineDiff, summarize } from '$lib/diff';
+import { lineDiff, summarize, type LineOp } from '$lib/diff';
 
 // diff.ts is pure logic — no mocks needed, no localStorage, no fetch.
 // Integration test: exercise the full diff/merge pipeline with realistic text.
+
+function filterMod(ops: LineOp[]) { return ops.filter(o => o.type === 'mod'); }
+function filterIns(ops: LineOp[]) { return ops.filter(o => o.type === 'ins'); }
+function filterDel(ops: LineOp[]) { return ops.filter(o => o.type === 'del'); }
 
 describe('diff integration', () => {
   it('should compute line diff between two texts', () => {
@@ -13,15 +17,15 @@ describe('diff integration', () => {
     expect(ops.length).toBeGreaterThan(0);
 
     // Should have a modification on line 2
-    const mod = ops.find((o: any) => o.type === 'mod');
-    expect(mod).toBeDefined();
-    expect(mod!.a).toBe('line 2');
-    expect(mod!.b).toBe('line 2 modified');
+    const mods = filterMod(ops);
+    expect(mods.length).toBeGreaterThan(0);
+    expect(mods[0].a).toBe('line 2');
+    expect(mods[0].b).toBe('line 2 modified');
 
     // Should have an insertion of line 4
-    const ins = ops.find((o: any) => o.type === 'ins');
-    expect(ins).toBeDefined();
-    expect(ins!.b).toBe('line 4');
+    const ins = filterIns(ops);
+    expect(ins.length).toBeGreaterThan(0);
+    expect(ins[0].b).toBe('line 4');
   });
 
   it('should return only eq ops for identical texts', () => {
@@ -37,9 +41,9 @@ describe('diff integration', () => {
     const b = 'keep\nkeep';
 
     const ops = lineDiff(a, b);
-    const del = ops.find((o: any) => o.type === 'del');
-    expect(del).toBeDefined();
-    expect(del!.a).toBe('remove');
+    const dels = filterDel(ops);
+    expect(dels.length).toBeGreaterThan(0);
+    expect(dels[0].a).toBe('remove');
   });
 
   it('should detect pure insertions', () => {
@@ -47,9 +51,9 @@ describe('diff integration', () => {
     const b = 'only one line\nadded line';
 
     const ops = lineDiff(a, b);
-    const ins = ops.find((o: any) => o.type === 'ins');
-    expect(ins).toBeDefined();
-    expect(ins!.b).toBe('added line');
+    const ins = filterIns(ops);
+    expect(ins.length).toBeGreaterThan(0);
+    expect(ins[0].b).toBe('added line');
   });
 
   it('should handle empty input', () => {
@@ -75,15 +79,15 @@ describe('diff integration', () => {
 
     // Diff between base and local should show insertion
     const baseVsLocal = lineDiff(base, local);
-    const ins = baseVsLocal.find((o: any) => o.type === 'ins');
-    expect(ins).toBeDefined();
-    expect(ins!.b).toBe('Map the uncharted.');
+    const localIns = filterIns(baseVsLocal);
+    expect(localIns.length).toBeGreaterThan(0);
+    expect(localIns[0].b).toBe('Map the uncharted.');
 
     // Diff between base and remote should show different insertion
     const baseVsRemote = lineDiff(base, remote);
-    const insRemote = baseVsRemote.find((o: any) => o.type === 'ins');
-    expect(insRemote).toBeDefined();
-    expect(insRemote!.b).toBe('Trade with locals.');
+    const remoteIns = filterIns(baseVsRemote);
+    expect(remoteIns.length).toBeGreaterThan(0);
+    expect(remoteIns[0].b).toBe('Trade with locals.');
   });
 
   it('should compute a diff summary', () => {
