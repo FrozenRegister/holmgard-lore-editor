@@ -775,6 +775,15 @@
     window.loadMapDataIntoState = function () {
       const res = orig.apply(this, arguments)
       setTimeout(function () {
+        var m = hm()
+        if (m) {
+          // Force-clear river state — ensureState will re-init from loaded data.
+          // Without this, a shallow merge / Object.assign on state.hexMap
+          // preserves the old riverEdges/rivers object references from the
+          // previous map.
+          delete m.riverEdges
+          delete m.rivers
+        }
         ensureState()
         refreshUI()
       }, 150)
