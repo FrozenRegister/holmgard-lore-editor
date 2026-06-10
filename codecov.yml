@@ -17,6 +17,7 @@ coverage:
 
 ignore:
   - "static/**"
+  - "vendor-src/**"
   - "test/**"
   - "*.config.*"
   - "wrangler.toml"

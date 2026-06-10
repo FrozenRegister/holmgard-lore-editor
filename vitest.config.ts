@@ -28,6 +28,7 @@ export default defineConfig({
         'src/lib/marked-config.ts',
         '.svelte-kit/**',
         'static/**',
+        'vendor-src/**',
         'scripts/**',
         '**/*.d.ts',
         '**/*.config.*',
