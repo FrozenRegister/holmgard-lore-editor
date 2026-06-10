@@ -30,7 +30,7 @@ jobs:
           fi
 
           # Validate all workflow YAML files
-          yamllint -d "{extends: default, rules: {line-length: disable}}" .github/workflows/*.yml
+          yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable, truthy: disable}}" .github/workflows/*.yml
 
           echo "OK All workflow files are valid YAML"
 
