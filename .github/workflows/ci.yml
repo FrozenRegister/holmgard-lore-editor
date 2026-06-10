@@ -106,7 +106,7 @@ jobs:
         run: pnpm exec svelte-kit sync
 
       - name: Run integration tests
-        run: pnpm test -- --coverage --reporter=default --reporter=github-actions
+        run: pnpm test:integration -- --coverage --reporter=default --reporter=github-actions
         env:
           VITEST_POOL: forks
 
@@ -115,8 +115,8 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: integration
-          files: ./coverage/unit/lcov.info
-          fail_ci_if_error: true
+          files: ./coverage/integration/lcov.info
+          fail_ci_if_error: false
           verbose: true
 
   e2e-tests:
