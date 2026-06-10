@@ -13,6 +13,17 @@ When asked to review changes and push, always split changes into multiple logica
 
 After all commits are made, push once. This is the default behavior — no need for the user to ask explicitly.
 
+### Pre-push quality gate (client-side)
+
+**Run `pnpm prepush` before every push.** This executes two local checks that mirror CI:
+
+1. `pnpm check-pr` — runs `scripts/check-pr-quality.mjs`, which verifies:
+   - `CHANGELOG.md` is in the diff (must have an entry)
+   - At least one `docs/` file is modified, OR the latest commit message contains `## Documentation`
+2. `pnpm precheck` — runs `scripts/check-vendor.mjs` (already existed)
+
+If `pnpm prepush` fails, fix the issue before pushing. Do NOT push with failing pre-checks. These are the same checks that will fail in CI as `check-changelog` and `check-docs`.
+
 ## GitHub tooling: MCP vs `gh` CLI
 
 A GitHub MCP server (`https://api.githubcopilot.com/mcp/`) is configured in `cline_mcp_settings.json`. **Prefer MCP over `gh` CLI for everything except Project V2 operations.**
