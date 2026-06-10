@@ -10,6 +10,8 @@
     "vendor:bundle": "node scripts/bundle-vendor.mjs",
     "vendor:build": "pnpm run vendor:fetch && pnpm run vendor:bundle",
     "precheck": "node scripts/check-vendor.mjs",
+    "check-pr": "node scripts/check-pr-quality.mjs",
+    "prepush": "pnpm run check-pr && pnpm run precheck",
     "build": "pnpm run vendor:build && vite build",
     "deploy": "pnpm run build && wrangler pages deploy build/ --project-name holmgard-lore-editor --branch main --commit-dirty",
     "preview": "vite preview",
