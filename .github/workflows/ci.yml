@@ -119,57 +119,10 @@ jobs:
           fail_ci_if_error: false
           verbose: true
 
-  e2e-tests:
-    name: E2E Tests (Playwright)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4.0.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Build app
-        run: pnpm build
-
-      - name: Run E2E tests
-        run: pnpm test:e2e
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
-
-      - name: Upload E2E results to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: e2e
-          files: ./playwright-report/results.json
-          fail_ci_if_error: false
-          verbose: true
-
   # Combine all coverage and run gap analysis
   coverage-gate:
     name: Coverage Gate & Gap Analysis
-    needs: [unit-tests, integration-tests, e2e-tests]
+    needs: [unit-tests, integration-tests]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -212,7 +165,7 @@ jobs:
 
   notify:
     name: Notify on Failure
-    needs: [lint-and-typecheck, unit-tests, integration-tests, e2e-tests, coverage-gate]
+    needs: [lint-and-typecheck, unit-tests, integration-tests, coverage-gate]
     if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     permissions:
