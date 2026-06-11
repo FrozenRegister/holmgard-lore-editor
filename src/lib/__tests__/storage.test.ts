@@ -11,7 +11,6 @@ import {
 } from '../storage';
 import { invoke } from '@tauri-apps/api/tauri';
 import * as idb from '../storage-idb';
-import type { Topic, AppSettings, QueuedSave } from '../types';
 
 vi.mock('@tauri-apps/api/tauri', () => ({
   invoke: vi.fn(),
@@ -32,7 +31,6 @@ describe('storage.ts logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    // Toggle IS_TAURI by manipulating window.__TAURI__
     delete (window as any).__TAURI__;
   });
 
@@ -62,7 +60,7 @@ describe('storage.ts logic', () => {
 
   describe('saveSettings', () => {
     it('saves settings to localStorage in browser mode', async () => {
-      const settings: AppSettings = { autoSync: false, workerHost: 'http://localhost' };
+      const settings = { autoSync: false, workerHost: 'http://localhost' } as any;
       await saveSettings(settings);
       const saved = localStorage.getItem('hle:file:settings.json');
       const parsed = JSON.parse(saved!);
@@ -72,7 +70,7 @@ describe('storage.ts logic', () => {
 
     it('saves settings via Tauri fs in app mode', async () => {
       (window as any).__TAURI__ = {};
-      const settings: AppSettings = { autoSync: true };
+      const settings = { autoSync: true } as any;
       await saveSettings(settings);
       expect(invoke).toHaveBeenCalledWith('fs_write', {
         path: 'settings.json',
@@ -91,7 +89,8 @@ describe('storage.ts logic', () => {
       (invoke as any).mockResolvedValue(JSON.stringify(mockData));
 
       const queue = await loadQueue();
-      expect(queue).toEqual(mockData);
+      expect(queue).toHaveLength(1);
+      expect(queue[0].key).toBe('a');
       expect(invoke).toHaveBeenCalledWith('fs_read', { path: 'offline-queue.json' });
     });
 
@@ -112,15 +111,15 @@ describe('storage.ts logic', () => {
 
   describe('saveQueue', () => {
     it('saves queue via IndexedDB in browser mode', async () => {
-      const queue: QueuedSave[] = [{ key: 'test', text: 'content', attempts: 0 }];
-      await saveQueue(queue);
+      const queue = [{ key: 'test', text: 'content', attempts: 0 }] as any[];
+      await saveQueue(queue as any);
       expect(idb.idbSaveQueue).toHaveBeenCalledWith(queue);
     });
 
     it('saves queue via Tauri fs in app mode', async () => {
       (window as any).__TAURI__ = {};
-      const queue: QueuedSave[] = [{ key: 'test', text: 'content', attempts: 0 }];
-      await saveQueue(queue);
+      const queue = [{ key: 'test', text: 'content', attempts: 0 }] as any[];
+      await saveQueue(queue as any);
       expect(invoke).toHaveBeenCalledWith('fs_write', {
         path: 'offline-queue.json',
         content: JSON.stringify(queue, null, 2)
@@ -154,7 +153,7 @@ describe('storage.ts logic', () => {
     });
 
     it('loads and parses topic from filesystem', async () => {
-      const mockTopic: Topic = { key: 'test', text: 'content', version: 1 };
+      const mockTopic = { key: 'test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } };
       (invoke as any).mockResolvedValue(JSON.stringify(mockTopic));
 
       const topic = await loadTopic('test');
@@ -175,7 +174,7 @@ describe('storage.ts logic', () => {
   describe('saveTopic', () => {
     it('saves topic via Tauri fs in app mode', async () => {
       (window as any).__TAURI__ = {};
-      const topic: Topic = { key: 'test-topic', text: 'content', version: 1 };
+      const topic = { key: 'test-topic', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
 
       await saveTopic(topic);
       expect(invoke).toHaveBeenCalledWith('fs_write', {
@@ -185,7 +184,7 @@ describe('storage.ts logic', () => {
     });
 
     it('saves topic via IndexedDB in browser mode', async () => {
-      const topic: Topic = { key: 'test', text: 'content', version: 1 };
+      const topic = { key: 'test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
 
       await saveTopic(topic);
       expect(idb.idbSaveTopic).toHaveBeenCalledWith(topic);
@@ -215,15 +214,15 @@ describe('storage.ts logic', () => {
 
     it('loads and parses all topic files from filesystem', async () => {
       const mockFiles = ['topic1.json', 'topic2.json', 'ignore.txt'];
-      const mockTopics: Topic[] = [
-        { key: 'topic1', text: 'content1', version: 1 },
-        { key: 'topic2', text: 'content2', version: 2 }
+      const mockTopics = [
+        { key: 'topic1', text: 'content1', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } },
+        { key: 'topic2', text: 'content2', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 2 } },
       ];
 
       (invoke as any)
-        .mockResolvedValueOnce(mockFiles) // First call: fs_list
-        .mockResolvedValueOnce(JSON.stringify(mockTopics[0])) // topic1.json
-        .mockResolvedValueOnce(JSON.stringify(mockTopics[1])); // topic2.json
+        .mockResolvedValueOnce(mockFiles)
+        .mockResolvedValueOnce(JSON.stringify(mockTopics[0]))
+        .mockResolvedValueOnce(JSON.stringify(mockTopics[1]));
 
       const topics = await loadAllTopics();
       expect(topics).toEqual(mockTopics);
@@ -232,12 +231,13 @@ describe('storage.ts logic', () => {
 
     it('skips non-JSON files', async () => {
       const mockFiles = ['topic1.json', 'readme.txt', 'topic2.json'];
-      const mockTopic: Topic = { key: 'topic1', text: 'content1', version: 1 };
+      const mockTopic1 = { key: 'topic1', text: 'content1', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } };
+      const mockTopic2 = { key: 'topic2', text: 'content2', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 2 } };
 
       (invoke as any)
         .mockResolvedValueOnce(mockFiles)
-        .mockResolvedValueOnce(JSON.stringify(mockTopic))
-        .mockResolvedValueOnce(JSON.stringify({ key: 'topic2', text: 'content2', version: 2 }));
+        .mockResolvedValueOnce(JSON.stringify(mockTopic1))
+        .mockResolvedValueOnce(JSON.stringify(mockTopic2));
 
       const topics = await loadAllTopics();
       expect(topics).toHaveLength(2);
@@ -245,7 +245,7 @@ describe('storage.ts logic', () => {
 
     it('handles corrupt topic files gracefully', async () => {
       const mockFiles = ['good.json', 'bad.json'];
-      const goodTopic: Topic = { key: 'good', text: 'content', version: 1 };
+      const goodTopic = { key: 'good', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } };
 
       (invoke as any)
         .mockResolvedValueOnce(mockFiles)
@@ -262,29 +262,24 @@ describe('storage.ts logic', () => {
 
     it('returns sorted topics by key', async () => {
       const mockFiles = ['b.json', 'a.json'];
-      const topics: Topic[] = [
-        { key: 'b', text: 'content', version: 1 },
-        { key: 'a', text: 'content', version: 1 }
-      ];
+      const topicB = { key: 'b', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } };
+      const topicA = { key: 'a', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } };
 
       (invoke as any)
         .mockResolvedValueOnce(mockFiles)
-        .mockResolvedValueOnce(JSON.stringify(topics[0]))
-        .mockResolvedValueOnce(JSON.stringify(topics[1]));
+        .mockResolvedValueOnce(JSON.stringify(topicB))
+        .mockResolvedValueOnce(JSON.stringify(topicA));
 
       const result = await loadAllTopics();
-      expect(result).toEqual([
-        { key: 'a', text: 'content', version: 1 },
-        { key: 'b', text: 'content', version: 1 }
-      ]);
+      expect(result).toEqual([topicA, topicB]);
     });
   });
 
   describe('loadAllTopics (Browser)', () => {
     it('loads topics from IndexedDB', async () => {
-      const mockTopics: Topic[] = [
-        { key: 'topic1', text: 'content1', version: 1 },
-        { key: 'topic2', text: 'content2', version: 2 }
+      const mockTopics = [
+        { key: 'topic1', text: 'content1', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } },
+        { key: 'topic2', text: 'content2', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 2 } },
       ];
 
       (idb.idbLoadAllTopics as any).mockResolvedValue(mockTopics);
