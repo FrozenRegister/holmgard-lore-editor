@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Remove CSP `<meta>` tag from `app.html`** — The `<meta http-equiv="Content-Security-Policy">` tag in `src/app.html` blocked SvelteKit's inline bootstrap script (`script-src 'self'` forbids inline), causing a blank screen in production. Removed the entire meta tag; the Cloudflare Pages `_headers` file still enforces CSP via an HTTP header (in Report-Only mode).
 - **Duplicate `--coverage` flag breaks integration tests in CI** (#97) — The integration-tests CI step passed `--coverage` on the CLI but `vitest.integration.config.ts` already enabled coverage via config, causing Vitest to throw `Expected a single value for option "--coverage", received [true, true]`. Removed the duplicate CLI flag.
 - **River data loss on map reload** (#43) — `applyRestoredMap()` never read `riverEdges` and `rivers` from IndexedDB, causing maps with painted rivers to lose all river data when reloaded from disk. Added 'rivers' IDB store to restoration pipeline and updated E2E seeded map loader. Maps now persist river data across save/load cycles.
 - **Race condition in `getTauriInvoke()` memoization** (#21, #74) — Added a promise-sentinel pattern (`_tauriInvokePromise`) so concurrent callers hitting the function before the first `await import()` resolves reuse the same in-flight promise instead of each starting a separate dynamic import.
