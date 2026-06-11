@@ -43,6 +43,10 @@ pnpm test:e2e:ui            # Run E2E tests with UI
 
 **Note**: E2E tests run against the built app, so you must `pnpm build` first if testing locally.
 
+## Coverage Quality Gate
+
+All source files in `src/lib/` must have at least **80% line coverage** in the unit test suite. Run `pnpm coverage:gaps` to check for files below threshold. The gap analysis report is written to `coverage-gap-report/gap-report.md`.
+
 ## Linting
 
 There is currently **no ESLint** setup in the editor repository. The code follows the style guide documented in `docs/style-guide.md`.
