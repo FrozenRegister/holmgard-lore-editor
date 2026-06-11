@@ -57,7 +57,7 @@ export function normalizeLoadedMapCollections(data: LoadableMapData): LoadableMa
   return data;
 }
 
-function hasLoadableMapContent(data: LoadableMapData): boolean {
+export function hasLoadableMapContent(data: LoadableMapData): boolean {
   const normalizedType = (typeof data.mapType === 'string' ? data.mapType : '').trim();
 
   if (normalizedType === 'dungeon' || normalizedType === 'settlement') {
