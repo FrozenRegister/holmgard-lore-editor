@@ -1,4 +1,20 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$d = [Console]::In.ReadToEnd() | ConvertFrom-Json; $f = $d.tool_input.file_path; if ($f -match '\\.md$') { Set-Location 'c:\\Users\\kyleb\\holmgard-lore-editor'; npx markdownlint-cli2 --fix $f 2>$null }",
+            "shell": "powershell",
+            "timeout": 15,
+            "statusMessage": "Linting markdown..."
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(pnpm test)",
