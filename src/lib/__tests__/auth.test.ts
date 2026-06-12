@@ -146,34 +146,28 @@ describe('auth', () => {
 			});
 
 			describe('localStorage unavailability (private browsing / security restrictions)', () => {
+				const securityError = () => { throw new DOMException('The operation is insecure.', 'SecurityError'); };
+
 				it('getAdminSecret returns null when localStorage.getItem throws', async () => {
-					vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
-						throw new DOMException('The operation is insecure.', 'SecurityError');
-					});
+					vi.stubGlobal('localStorage', { getItem: vi.fn(securityError), setItem: vi.fn(), removeItem: vi.fn(), clear: vi.fn() });
 					const { getAdminSecret } = await import('$lib/auth');
 					await expect(getAdminSecret()).resolves.toBeNull();
 				});
 
 				it('getMcpApiKey returns null when localStorage.getItem throws', async () => {
-					vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
-						throw new DOMException('The operation is insecure.', 'SecurityError');
-					});
+					vi.stubGlobal('localStorage', { getItem: vi.fn(securityError), setItem: vi.fn(), removeItem: vi.fn(), clear: vi.fn() });
 					const { getMcpApiKey } = await import('$lib/auth');
 					await expect(getMcpApiKey()).resolves.toBeNull();
 				});
 
 				it('setClaudeApiKey does not throw when localStorage.setItem throws', async () => {
-					vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
-						throw new DOMException('The operation is insecure.', 'SecurityError');
-					});
+					vi.stubGlobal('localStorage', { getItem: vi.fn(), setItem: vi.fn(securityError), removeItem: vi.fn(), clear: vi.fn() });
 					const { setClaudeApiKey } = await import('$lib/auth');
 					await expect(setClaudeApiKey('my-key')).resolves.toBeUndefined();
 				});
 
 				it('clearMcpApiKey does not throw when localStorage.removeItem throws', async () => {
-					vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
-						throw new DOMException('The operation is insecure.', 'SecurityError');
-					});
+					vi.stubGlobal('localStorage', { getItem: vi.fn(), setItem: vi.fn(), removeItem: vi.fn(securityError), clear: vi.fn() });
 					const { clearMcpApiKey } = await import('$lib/auth');
 					await expect(clearMcpApiKey()).resolves.toBeUndefined();
 				});
