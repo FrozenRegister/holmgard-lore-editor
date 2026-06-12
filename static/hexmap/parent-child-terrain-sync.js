@@ -162,7 +162,7 @@
         lastDetailSnapshot = newSnapshot
         scheduleAggregation()
       }
-    }, 100)
+    }, 500)
   }
 
   function init() {

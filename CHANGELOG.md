@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Hex map IDB perf: direct keyed lookups and cache-skip on repeated saves** (#40, #41) — `loadFromIdbKey` now uses `store.get(key)` (direct primary-key lookup) instead of `store.getAll()` + linear scan across all 7 IDB stores, cutting map-load I/O from O(records) to O(1). `saveLastOpenedDraftKey` skips the IDB scan entirely on repeated saves of the same draft once the key is cached in localStorage (was O(n) on every keystroke-triggered save). `startChangeMonitor` in `parent-child-terrain-sync.js` poll interval bumped from 100 ms to 500 ms, reducing constant CPU drain on idle maps by 5×.
 - **Extract shared `getTauriInvoke()` helper in `auth.ts`** (#21) — Replaced 7 duplicated Tauri-detection + dynamic-import blocks with a single memoized helper. All 7 public auth functions (`getAdminSecret`, `getClaudeApiKey`, `setClaudeApiKey`, `clearClaudeApiKey`, `getMcpApiKey`, `setMcpApiKey`, `clearMcpApiKey`) now delegate to `getTauriInvoke()`. This eliminates ~35 lines of duplication and ensures the Tauri dynamic import runs at most once per session.
 
 ### Added
