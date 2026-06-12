@@ -2,7 +2,7 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { topics, syncState, chatOpen, collapseSidebar } from '$lib/stores';
-  import { getClaudeApiKey } from '$lib/auth';
+  import { getClaudeApiKey, getMcpApiKey } from '$lib/auth';
   import { mcpOpen } from '$lib/stores';
 
   export let currentPath: string = '/';
@@ -12,8 +12,18 @@
   const dispatch = createEventDispatcher<{ close: void }>();
 
   let hasClaudeKey = false;
-  onMount(async () => {
+  let hasMcpKey = false;
+
+  async function checkKeys() {
     hasClaudeKey = !!(await getClaudeApiKey());
+    hasMcpKey = !!(await getMcpApiKey());
+  }
+
+  onMount(async () => {
+    await checkKeys();
+    // Re-check when page regains focus (e.g., after Settings modal closes)
+    window.addEventListener('focus', checkKeys);
+    return () => window.removeEventListener('focus', checkKeys);
   });
 
   const navItems = [
@@ -117,6 +127,15 @@
         {/if}
       </span>
     </div>
+    <button
+      class="mcp-badge"
+      class:badge-ok={hasMcpKey}
+      class:badge-warn={!hasMcpKey}
+      on:click={() => goto('/settings')}
+      title={hasMcpKey ? 'MCP API key configured' : 'MCP API key not configured — click to set'}
+    >
+      MCP Key: {hasMcpKey ? 'Set ✓' : 'Not set'}
+    </button>
     <span class="topic-count">{$topics.length} topics</span>
   </div>
 </nav>
@@ -299,6 +318,34 @@
     font-size: 0.7rem;
     color: var(--fg-muted);
     opacity: 0.6;
+  }
+
+  .mcp-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.12s, color 0.12s;
+  }
+
+  .mcp-badge.badge-ok {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+  }
+
+  .mcp-badge.badge-ok:hover {
+    background: rgba(76, 175, 80, 0.25);
+  }
+
+  .mcp-badge.badge-warn {
+    background: rgba(255, 183, 77, 0.15);
+    color: #ffb74d;
+  }
+
+  .mcp-badge.badge-warn:hover {
+    background: rgba(255, 183, 77, 0.25);
   }
 
   /* ── Mobile: sidebar becomes a fixed slide-in overlay ───────── */
