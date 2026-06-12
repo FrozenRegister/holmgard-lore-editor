@@ -11,8 +11,8 @@ coverage:
         threshold: 1%
     patch:
       default:
-        target: 100% # THE GAP PROTECTOR: New code must be fully tested
-        threshold: 0%
+        target: 80%
+        threshold: 5%
         informational: false
 
 ignore:

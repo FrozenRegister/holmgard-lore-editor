@@ -9,23 +9,6 @@ const JSON_RPC_VERSION = '2.0';
 let _reqId = 1;
 const nextId = () => _reqId++;
 
-// Handles both old (raw string) and new ({ text, meta }) KV formats
-function parseKvEntry(raw: string): { text: string; meta: TopicMeta } {
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed.text === 'string') {
-      return {
-        text: parsed.text,
-        meta: {
-          version:   typeof parsed.meta?.version   === 'number' ? parsed.meta.version   : 1,
-          updatedAt: typeof parsed.meta?.updatedAt === 'string' ? parsed.meta.updatedAt : new Date().toISOString(),
-        },
-      };
-    }
-  } catch {}
-  return { text: raw, meta: { version: 1, updatedAt: new Date().toISOString() } };
-}
-
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
 
 async function rpc<T>(
@@ -279,6 +262,10 @@ export interface ChangelogEntry {
  * Throws on network failure so callers can fall back to a full sync.
  */
 export async function getChanges(host: string, since: string, apiKey?: string): Promise<ChangelogEntry[]> {
+  if (!since || typeof since !== 'string' || isNaN(Date.parse(since))) {
+    console.warn('[sync] getChanges called with invalid since param:', since);
+    return [];
+  }
   const url = `${host}/changes?since=${encodeURIComponent(since)}`
   const headers: Record<string, string> = {};
   if (apiKey) {

@@ -62,7 +62,9 @@ function createFilterStore<T>(key: string, defaultValue: T) {
   const stored = typeof window !== 'undefined' ? localStorage.getItem(`lore:filter:${key}`) : null;
   const initial = stored ? JSON.parse(stored) : defaultValue;
   const store = writable<T>(initial);
+  let initialized = false;
   store.subscribe((value) => {
+    if (!initialized) { initialized = true; return; } // skip redundant write-back of the value just read
     if (typeof window !== 'undefined') {
       localStorage.setItem(`lore:filter:${key}`, JSON.stringify(value));
     }
