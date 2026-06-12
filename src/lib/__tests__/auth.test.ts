@@ -144,6 +144,40 @@ describe('auth', () => {
 					expect(result).toBe(longKey);
 				});
 			});
+
+			describe('localStorage unavailability (private browsing / security restrictions)', () => {
+				it('getAdminSecret returns null when localStorage.getItem throws', async () => {
+					vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+						throw new DOMException('The operation is insecure.', 'SecurityError');
+					});
+					const { getAdminSecret } = await import('$lib/auth');
+					await expect(getAdminSecret()).resolves.toBeNull();
+				});
+
+				it('getMcpApiKey returns null when localStorage.getItem throws', async () => {
+					vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+						throw new DOMException('The operation is insecure.', 'SecurityError');
+					});
+					const { getMcpApiKey } = await import('$lib/auth');
+					await expect(getMcpApiKey()).resolves.toBeNull();
+				});
+
+				it('setClaudeApiKey does not throw when localStorage.setItem throws', async () => {
+					vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+						throw new DOMException('The operation is insecure.', 'SecurityError');
+					});
+					const { setClaudeApiKey } = await import('$lib/auth');
+					await expect(setClaudeApiKey('my-key')).resolves.toBeUndefined();
+				});
+
+				it('clearMcpApiKey does not throw when localStorage.removeItem throws', async () => {
+					vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+						throw new DOMException('The operation is insecure.', 'SecurityError');
+					});
+					const { clearMcpApiKey } = await import('$lib/auth');
+					await expect(clearMcpApiKey()).resolves.toBeUndefined();
+				});
+			});
 		});
 	});
 
