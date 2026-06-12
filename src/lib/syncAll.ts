@@ -49,16 +49,18 @@ async function flushPendingDeletes(host: string): Promise<void> {
 
 export async function runSync(): Promise<void> {
   if (get(syncState).status === 'syncing') return
+
+  const apiKey = await getMcpApiKey()
+  if (!apiKey) {
+    showToast('MCP API key not configured — set it in Settings first', 'warning')
+    return
+  }
+
   syncState.set({ status: 'syncing' })
   try {
     const $settings = get(settings)
     await flushPendingDeletes($settings.workerHost)
-
-    const apiKey = await getMcpApiKey()
-    if (!apiKey) {
-      console.warn('[syncAll] No MCP API key found — set your MCP API key in Settings to authenticate with the Worker.')
-    }
-    const remote = await pullAll($settings.workerHost, apiKey ?? undefined)
+    const remote = await pullAll($settings.workerHost, apiKey)
     const localMap = new Map(get(topics).map((t) => [t.key, t]))
     const conflicts: ConflictInfo[] = []
     const newTopics: Topic[] = []
@@ -127,15 +129,17 @@ export async function runSync(): Promise<void> {
 // Returns false if it had to abort and the caller should trigger a full sync.
 
 export async function runSmartSync(since: string): Promise<boolean> {
-  const $settings = get(settings)
   const apiKey = await getMcpApiKey()
   if (!apiKey) {
-    console.warn('[syncAll] No MCP API key found — set your MCP API key in Settings to authenticate with the Worker.')
+    showToast('MCP API key not configured — set it in Settings first', 'warning')
+    return false
   }
+
+  const $settings = get(settings)
 
   let changes: ChangelogEntry[]
   try {
-    changes = await getChanges($settings.workerHost, since, apiKey ?? undefined)
+    changes = await getChanges($settings.workerHost, since, apiKey)
   } catch (err) {
     console.warn('Smart sync: changelog fetch failed, falling back to full sync', err)
     return false // caller will do runSync()
@@ -178,7 +182,7 @@ export async function runSmartSync(since: string): Promise<boolean> {
     .filter(([, c]) => c.op !== 'delete')
     .map(([key]) => key)
 
-  const remoteMap = await batchGetTopicsRemote($settings.workerHost, writeKeys, apiKey ?? undefined)
+  const remoteMap = await batchGetTopicsRemote($settings.workerHost, writeKeys, apiKey)
 
   for (const [key, remote] of remoteMap) {
     const local = localMap.get(key)
