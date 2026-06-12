@@ -472,6 +472,35 @@ describe('runSmartSync', () => {
   });
 });
 
+// ── API Key Guard ─────────────────────────────────────────────────────────────
+describe('syncAll — API key guard', () => {
+  it('returns early and shows toast when runSync is called without API key', async () => {
+    mocks.getMcpApiKeyMock.mockResolvedValue(null);
+
+    await runSync();
+
+    expect(mocks.showToastMock).toHaveBeenCalledWith(
+      'MCP API key not configured — set it in Settings first',
+      'warning',
+    );
+    expect(mocks.pullAllMock).not.toHaveBeenCalled();
+    expect(mocks.syncStateStore.val.status).toBe('idle');
+  });
+
+  it('returns false and shows toast when runSmartSync is called without API key', async () => {
+    mocks.getMcpApiKeyMock.mockResolvedValue(null);
+
+    const result = await runSmartSync('2026-01-01T00:00:00Z');
+
+    expect(result).toBe(false);
+    expect(mocks.showToastMock).toHaveBeenCalledWith(
+      'MCP API key not configured — set it in Settings first',
+      'warning',
+    );
+    expect(mocks.getChangesMock).not.toHaveBeenCalled();
+  });
+});
+
 // ── Error Handling ────────────────────────────────────────────────────────────
 describe('syncAll — errors', () => {
   it('sets syncState to error and shows toast on runSync failure', async () => {
