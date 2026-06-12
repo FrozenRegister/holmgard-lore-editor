@@ -118,7 +118,7 @@ beforeEach(() => {
   mocks.pullAllMock.mockResolvedValue(new Map());
   mocks.detectConflictMock.mockReturnValue(null);
   mocks.getAdminSecretMock.mockResolvedValue(null);
-  mocks.getMcpApiKeyMock.mockResolvedValue(null);
+  mocks.getMcpApiKeyMock.mockResolvedValue('test-api-key');
 
   // Reset trackers AFTER initialization so they only capture test execution events
   mocks.conflictEvents.length = 0;
@@ -377,7 +377,7 @@ describe('runSmartSync', () => {
     await runSmartSync(since);
 
     // Should only call batch-fetch once for the single key
-    expect(mocks.batchGetTopicsRemoteMock).toHaveBeenCalledWith(expect.any(String), ['dup'], undefined);
+    expect(mocks.batchGetTopicsRemoteMock).toHaveBeenCalledWith(expect.any(String), ['dup'], 'test-api-key');
   });
 
   it('saves new topics discovered via changelog', async () => {

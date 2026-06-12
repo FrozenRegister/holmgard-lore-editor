@@ -19,8 +19,8 @@
     hasMcpKey = !!(await getMcpApiKey());
   }
 
-  onMount(async () => {
-    await checkKeys();
+  onMount(() => {
+    checkKeys();
     // Re-check when page regains focus (e.g., after Settings modal closes)
     window.addEventListener('focus', checkKeys);
     return () => window.removeEventListener('focus', checkKeys);
