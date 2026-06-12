@@ -4,6 +4,11 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   preprocess: vitePreprocess(),
+  onwarn: (warning, handler) => {
+    // css-unused-selector fires frequently on scoped Svelte styles and is not actionable globally
+    if (warning.code === 'css-unused-selector') return;
+    handler(warning);
+  },
   kit: {
     adapter: adapter({
       pages: 'build',
