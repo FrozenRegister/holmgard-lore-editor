@@ -22,7 +22,11 @@ function parseKvEntry(raw: string): { text: string; meta: TopicMeta } {
         },
       };
     }
-  } catch {}
+  } catch {
+    if (raw.trim().startsWith('{')) {
+      console.warn('[sync] parseKvEntry: failed to parse JSON-like KV entry — possible remote corruption:', raw.slice(0, 120));
+    }
+  }
   return { text: raw, meta: { version: 1, updatedAt: new Date().toISOString() } };
 }
 
@@ -279,6 +283,10 @@ export interface ChangelogEntry {
  * Throws on network failure so callers can fall back to a full sync.
  */
 export async function getChanges(host: string, since: string, apiKey?: string): Promise<ChangelogEntry[]> {
+  if (!since || typeof since !== 'string' || isNaN(Date.parse(since))) {
+    console.warn('[sync] getChanges called with invalid since param:', since);
+    return [];
+  }
   const url = `${host}/changes?since=${encodeURIComponent(since)}`
   const headers: Record<string, string> = {};
   if (apiKey) {
