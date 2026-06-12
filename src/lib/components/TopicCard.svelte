@@ -94,6 +94,8 @@
       box-shadow 0.15s,
       transform 0.1s;
     outline: none;
+    height: 100%;
+    min-height: 180px;
   }
 
   .topic-card:hover,
@@ -154,9 +156,11 @@
     color: var(--fg-muted);
     margin: 0;
     line-height: 1.5;
-    max-height: calc(1.5em * 3);
-    overflow-y: auto;
-    white-space: pre-wrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .card-footer {

@@ -479,9 +479,13 @@
     var draftId = new URLSearchParams(window.location.search).get('draftId');
     if (!draftId) return;
 
+    var prevDraftId = localStorage.getItem('hexmap_last_draft_id');
     localStorage.setItem('hexmap_last_draft_id', draftId);
 
-    // Single IDB read (optimized: one transaction instead of separate open)
+    // Skip IDB scan when the key is already cached for this same draft (common case on repeated saves)
+    if (draftId === prevDraftId && localStorage.getItem('hexmap_last_draft_key')) return;
+
+    // One-time scan per draft to find and cache the IDB primary key
     try {
       var req = indexedDB.open(HEXMAP_DB);
       req.onsuccess = function(e) {
@@ -546,9 +550,7 @@
     loadFromIdbKey(fullKey);
   }
 
-  // ---- Optimized IDB read: single transaction with getAll per store ---------
-  // Previously: N sequential store.get(key) calls.
-  // Now: parallel getAll across all stores in one transaction.
+  // ---- IDB read: direct keyed lookup per store in a single transaction ------
   function loadFromIdbKey(fullKey) {
     console.log('[Game UI Bindings] Restoring map from IDB key:', fullKey);
     try {
@@ -561,23 +563,14 @@
 
         function storeDone(name) {
           return function(ev) {
-            // Scan the store for our key
-            var records = ev.target.result;
-            if (records && records.length) {
-              for (var i = 0; i < records.length; i++) {
-                if (records[i].id === fullKey || records[i].draftId === fullKey) {
-                  data[name] = records[i];
-                  break;
-                }
-              }
-            }
+            if (ev.target.result) data[name] = ev.target.result;
             if (--pending === 0) { db.close(); applyRestoredMap(data, fullKey); }
           };
         }
 
         for (var s = 0; s < IDB_STORES.length; s++) {
           var storeName = IDB_STORES[s];
-          var r = tx.objectStore(storeName).getAll();
+          var r = tx.objectStore(storeName).get(fullKey);
           r.onsuccess = storeDone(storeName);
           r.onerror = (function(sn) {
             return function() {

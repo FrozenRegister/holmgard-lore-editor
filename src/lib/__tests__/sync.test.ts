@@ -464,11 +464,21 @@ describe('getChanges', () => {
     expect(result).toEqual([]);
   });
 
-  it('URL encodes the since parameter', async () => {
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ changes: [] }) } as Response);
-    await getChanges('http://worker', '2026-01-01T00:00:00.000Z?inject');
-    const [url] = fetchMock.mock.calls[0];
-    expect(url).toContain('since=2026-01-01T00%3A00%3A00.000Z%3Finject');
+  it('returns empty array and does not fetch for invalid since param', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = await getChanges('http://worker', '2026-01-01T00:00:00.000Z?inject');
+    expect(result).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid since param'), expect.anything());
+    warnSpy.mockRestore();
+  });
+
+  it('returns empty array and does not fetch for empty since param', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = await getChanges('http://worker', '');
+    expect(result).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
   it('includes API key header when provided', async () => {
