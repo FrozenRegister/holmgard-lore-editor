@@ -31,11 +31,6 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'e2e',
-      use: { ...devices['Desktop Chrome'] },
-      testMatch: '**/*.spec.ts',
-    },
   ],
 
   webServer: {
