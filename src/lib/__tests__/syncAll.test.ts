@@ -118,7 +118,7 @@ beforeEach(() => {
   mocks.pullAllMock.mockResolvedValue(new Map());
   mocks.detectConflictMock.mockReturnValue(null);
   mocks.getAdminSecretMock.mockResolvedValue(null);
-  mocks.getMcpApiKeyMock.mockResolvedValue(null);
+  mocks.getMcpApiKeyMock.mockResolvedValue('test-api-key');
 
   // Reset trackers AFTER initialization so they only capture test execution events
   mocks.conflictEvents.length = 0;
@@ -377,7 +377,7 @@ describe('runSmartSync', () => {
     await runSmartSync(since);
 
     // Should only call batch-fetch once for the single key
-    expect(mocks.batchGetTopicsRemoteMock).toHaveBeenCalledWith(expect.any(String), ['dup'], undefined);
+    expect(mocks.batchGetTopicsRemoteMock).toHaveBeenCalledWith(expect.any(String), ['dup'], 'test-api-key');
   });
 
   it('saves new topics discovered via changelog', async () => {
@@ -469,6 +469,35 @@ describe('runSmartSync', () => {
       expect.stringContaining('2 conflicts'),
       'warning',
     );
+  });
+});
+
+// ── API Key Guard ─────────────────────────────────────────────────────────────
+describe('syncAll — API key guard', () => {
+  it('returns early and shows toast when runSync is called without API key', async () => {
+    mocks.getMcpApiKeyMock.mockResolvedValue(null);
+
+    await runSync();
+
+    expect(mocks.showToastMock).toHaveBeenCalledWith(
+      'MCP API key not configured — set it in Settings first',
+      'warning',
+    );
+    expect(mocks.pullAllMock).not.toHaveBeenCalled();
+    expect(mocks.syncStateStore.val.status).toBe('idle');
+  });
+
+  it('returns false and shows toast when runSmartSync is called without API key', async () => {
+    mocks.getMcpApiKeyMock.mockResolvedValue(null);
+
+    const result = await runSmartSync('2026-01-01T00:00:00Z');
+
+    expect(result).toBe(false);
+    expect(mocks.showToastMock).toHaveBeenCalledWith(
+      'MCP API key not configured — set it in Settings first',
+      'warning',
+    );
+    expect(mocks.getChangesMock).not.toHaveBeenCalled();
   });
 });
 

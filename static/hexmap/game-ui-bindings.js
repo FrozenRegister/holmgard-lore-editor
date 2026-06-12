@@ -362,7 +362,6 @@
 
   // Check for seeded E2E map data and load it directly (for testing)
   function loadE2ESeededMap() {
-    var HEXMAP_DB = 'HexAtlasDB';
     try {
       var req = indexedDB.open(HEXMAP_DB);
       req.onsuccess = function(e) {
