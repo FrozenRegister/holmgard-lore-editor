@@ -70,7 +70,7 @@ The MCP Worker lives at `https://holmgard-lore-mcp.frozenregister.workers.dev` (
 
 The hex map editor uses the external `game.js` library (`static/hexmap/game.js`) for rendering and manipulation. Supporting patch/extension files (e.g., `game-ui-bindings.js`, `worker-patch.js`) provide UI integration and address library limitations.
 
-**⚠️ External JS Files:** Do not edit the `.js` files in `static/hexmap/` that are in `.gitignore` (e.g., `game.js`, `auth.js`, `cloud-storage.js`). These are generated/maintained externally in the sibling `external-hex-map-library` project. Our custom patches (e.g., `game-ui-bindings.js`) are the only editor-maintained JS files in that directory.
+**⚠️ External JS Files:** Do not edit the `.js` files in `static/hexmap/` that are in `.gitignore` (e.g., `game.js`, `auth.js`, `cloud-storage.js`). These are pulled from external public URLs and are not controlled by this project. Checksums and last-verified dates are tracked in `static/hexmap/EXTERNAL_FILES.md`. Our custom patches (e.g., `game-ui-bindings.js`) are the only editor-maintained JS files in that directory.
 
 ### Testing
 

@@ -220,7 +220,6 @@ All rights reserved. This project is not licensed for redistribution.
 ## Related Projects
 
 - **holmgard-lore-mcp** — Cloudflare Worker MCP backend
-- **external-hex-map-library** — External hex map library source (`game.js`)
 
 ## Support
 
