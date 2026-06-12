@@ -4,18 +4,27 @@
 [![E2E](https://github.com/FrozenRegister/holmgard-lore-editor/actions/workflows/e2e-ci.yml/badge.svg)](https://github.com/FrozenRegister/holmgard-lore-editor/actions/workflows/e2e-ci.yml)
 [![codecov](https://codecov.io/gh/FrozenRegister/holmgard-lore-editor/branch/main/graph/badge.svg)](https://codecov.io/gh/FrozenRegister/holmgard-lore-editor)
 
-A SvelteKit + Tauri v1 desktop application for editing world-building lore with integrated hex map support.
+A SvelteKit + Tauri v1 desktop application for editing world-building lore with AI-assisted writing, remote sync, and integrated hex map support.
 
 ## Overview
 
-**TODO:** Add project description, goals, and features here.
+Holmgard Lore Editor is an offline-first desktop app for managing a world-building wiki. Lore topics (characters, places, factions, etc.) are stored locally and synced to a Cloudflare Worker backend. The built-in Claude AI chat can read, create, and update topics via an agentic tool-call loop. A hex map editor (powered by an external `game.js` library) lets you paint and annotate geographic regions.
+
+**Key capabilities:**
+
+- Create and edit Markdown lore topics with a Monaco-based editor and live preview
+- Sync topics to/from the Cloudflare Worker MCP backend with conflict detection and resolution
+- Chat with Claude (streaming, tool-use) to browse and draft lore hands-free
+- Offline queue with exponential backoff — edits persist locally until a connection is available
+- Hex map editor for geographic world-building (requires vendor files from R2, see below)
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (or npm)
+- pnpm 11+
+- Rust toolchain (for Tauri desktop builds only)
 
 ### Installation
 
@@ -31,7 +40,7 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Open [http://localhost:5173](http://localhost:5173) in your browser. Storage falls back to IndexedDB and `localStorage`; secrets are stored in `localStorage` instead of the OS keyring.
 
 **Desktop app mode (Tauri with hot reload):**
 
@@ -42,146 +51,111 @@ pnpm tauri:dev
 **Production build:**
 
 ```bash
-pnpm build         # Web build
-pnpm tauri:build   # Desktop binary
+pnpm build          # Web build (Cloudflare Pages)
+pnpm tauri:build    # Desktop binary
 ```
 
 ### Deployment
 
-**Deploy to Cloudflare Workers:**
+**Cloudflare Pages** hosts the web version. Deploy via Wrangler:
 
 ```bash
 pnpm deploy
 ```
 
-This runs the complete deployment pipeline:
-
-1. `npm run vendor:build` — Fetch vendor JS/CSS from Cloudflare R2, minify via esbuild
-2. `vite build` — Build the SvelteKit app
-3. `wrangler deploy` — Deploy to Cloudflare Workers
+This runs `vendor:build` (fetch + minify vendor JS/CSS from R2), then `vite build`, then `wrangler pages deploy`.
 
 **Requirements:**
 
-- Cloudflare Workers project with authentication token
-- `VENDOR_MANIFEST` environment variable set in Cloudflare Build & Deploy settings
-
-**Local testing (without deploying):**
-
-```bash
-pnpm build         # Runs vendor:build + vite build (no wrangler)
-```
+- Cloudflare Pages project with a valid `wrangler.jsonc`
+- Vendor files accessible from the R2 bucket (configured via `VENDOR_MANIFEST` in `.env` or Cloudflare build settings)
 
 ## Architecture
 
 ### Dual-Environment Pattern
 
-Every storage/filesystem call checks `IS_TAURI` (`'__TAURI__' in window`). In Tauri it calls `invoke('fs_*')` or `invoke('keyring_*')`; in the browser (`pnpm dev`) it falls back to `localStorage` with an `hle:file:` prefix.
+Every storage/filesystem call checks `IS_TAURI` (`'__TAURI__' in window`). In Tauri it calls `invoke('fs_*')` or `invoke('keyring_*')`; in the browser (`pnpm dev`) it falls back to IndexedDB (via Dexie) for topics and `localStorage` for settings and secrets.
 
 ### Key Files
 
 - **`src/lib/types.ts`** — Canonical TypeScript types (`Topic`, `AppSettings`, etc.)
-- **`src/lib/storage.ts`** — CRUD for topics, settings, and the offline queue
-- **`src/lib/sync.ts`** — JSON-RPC calls to the Cloudflare Worker MCP backend
-- **`src/lib/stores.ts`** — Svelte writable stores (single source of truth)
-- **`src/lib/claude.ts`** — Anthropic API streaming chat with agentic tool-call loop
-- **`src/lib/auth.ts`** — Secrets stored in OS keyring (Tauri) or `localStorage` (browser)
-- **`src-tauri/src/main.rs`** — Rust backend exposing filesystem and keyring commands
+- **`src/lib/storage.ts`** — CRUD for topics (IndexedDB/Tauri), settings, and offline queue
+- **`src/lib/sync.ts`** — JSON-RPC calls to the Cloudflare Worker MCP backend, conflict detection, exponential backoff queue (max 8 attempts, capped at 5 min)
+- **`src/lib/stores.ts`** — Svelte writable stores (single source of truth for topics, syncState, conflictQueue, chat)
+- **`src/lib/claude.ts`** — Anthropic API streaming chat with agentic tool-call loop (`list_topics`, `get_topic`, `update_topic`, `create_topic`)
+- **`src/lib/auth.ts`** — Secrets (admin secret, Claude API key) in OS keyring (Tauri) or `localStorage` (browser)
+- **`src-tauri/src/main.rs`** — Rust backend: `keyring_get/set/delete`, `fs_read/write/list/delete`
 
 ### Remote Backend
 
-The MCP Worker lives at `https://holmgard-lore-mcp.frozenregister.workers.dev` (sibling project `holmgard-lore-mcp/`). Admin writes go to `/admin/set-lore` and `/admin/delete-lore` with a secret; reads use JSON-RPC at `/mcp`.
+The MCP Worker lives at `https://holmgard-lore-mcp.frozenregister.workers.dev` (sibling project `holmgard-lore-mcp/`). Admin writes go to `/admin/set-lore` and `/admin/delete-lore`; reads use JSON-RPC at `/mcp`.
+
+### Sync & Conflict Model
+
+Topics carry `{ version, updatedAt, syncedAt }` in their `meta`. Conflict detection compares local text vs. remote text vs. the stored `base` (the last known remote value). Conflicts are queued in `conflictQueue` and resolved via `ConflictResolver.svelte`.
+
+### Hex Map Editor
+
+The hex map editor uses the external `game.js` library (`static/hexmap/game.js`) for rendering. This file is in `.gitignore` and is fetched from Cloudflare R2 during the vendor build step — the hex map will not function in a fresh clone until vendor files are fetched via `pnpm vendor:build`. The `game-ui-bindings.js` patch (tracked in git) exposes the functions the SvelteKit UI needs.
 
 ## Testing
 
-### Unit Tests (Vitest)
+See [docs/testing-and-linting-guide.md](docs/testing-and-linting-guide.md) for the full testing reference.
 
-Run all unit tests:
-
-```bash
-pnpm test
-```
-
-Run in watch mode:
+### Unit & Integration Tests (Vitest)
 
 ```bash
-pnpm test:watch
+pnpm test                   # Unit tests (jsdom)
+pnpm test:integration       # Integration tests (fake-indexeddb + real fetch mocks)
+pnpm test:coverage          # Unit tests with coverage report
 ```
 
-Run a specific file:
-
-```bash
-pnpm vitest run src/lib/__tests__/game-ui-bindings.test.ts
-```
-
-**Test coverage:** 211 tests across 11 test suites including:
-
-- **game-ui-bindings.test.ts** (13 tests) — Hex map editor function exposure, zoom controls, stubs, auth
-- Storage, sync, import/export, worldmap, MCP integration, and more
+21 unit test suites and 9 integration test suites covering storage, sync, auth, history, stores, diff, MCP, and more.
 
 ### E2E Tests (Playwright)
 
-Install Playwright browsers (one time):
-
 ```bash
-pnpm exec playwright install
+pnpm exec playwright install   # One-time browser install
+pnpm test:e2e                  # Run all 52 tests headlessly
+pnpm test:e2e:ui               # Interactive UI mode (recommended for development)
+pnpm test:e2e:debug            # Step-through debugger
 ```
 
-Run E2E tests:
-
-```bash
-pnpm test:e2e              # Run all tests headlessly
-pnpm test:e2e:ui           # Interactive UI mode (recommended for development)
-pnpm test:e2e:debug        # Step-through debugger
-```
-
-**Test Scope:** Full-browser validation of the hex map editor, ensuring:
-
-- **Interface Integrity:** Function exposure to window and console error detection.
-- **Workflows:** Menu interactions (File, Settings, Export) and Modal operations.
-- **User Experience:** Zoom performance, viewport scaling, and Undo/Redo system integrity.
-
-**Details:** See [TESTING.md](TESTING.md) for full test documentation, workflows, and troubleshooting.
+Five spec files cover the home topic list, navigation, settings, import/export, and the topic editor. Playwright auto-starts the Vite dev server — no separate build step required.
 
 ## File Structure
 
-```bash
+```text
 .
 ├── src/
 │   ├── lib/
 │   │   ├── components/          # Svelte components
-│   │   ├── __tests__/           # Unit tests (Vitest)
+│   │   ├── __tests__/           # Unit + integration tests (Vitest)
 │   │   ├── types.ts             # TypeScript types
-│   │   ├── storage.ts           # Storage layer (localStorage/Tauri)
+│   │   ├── storage.ts           # Storage layer (IndexedDB/Tauri)
 │   │   ├── sync.ts              # Network sync & conflict detection
 │   │   ├── stores.ts            # Svelte stores
 │   │   ├── claude.ts            # Anthropic API integration
 │   │   └── auth.ts              # Authentication & secrets
 │   ├── routes/
+│   │   ├── +layout.svelte       # App shell, demo data seeding
+│   │   ├── editor/[key]/        # Topic editor page
 │   │   ├── world-editor/        # Hex map editor page
-│   │   └── ...
+│   │   ├── import-export/       # Import/export page
+│   │   └── settings/            # Settings page
 │   └── app.html
 ├── src-tauri/                   # Rust backend
 ├── e2e/                         # Playwright E2E tests
+├── docs/                        # Extended documentation
 ├── static/
-│   ├── hexmap/                  # Hex map editor
-│   │   ├── game.js              # Vendor (gitignored, fetched from R2)
-│   │   ├── auth.js              # Vendor (gitignored, fetched from R2)
-│   │   ├── cloud-storage.js     # Vendor (gitignored, fetched from R2)
-│   │   ├── game-ui-bindings.js  # Custom: Function exposure for game.js
-│   │   ├── worker-patch.js      # Custom: Worker path resolution
-│   │   └── ...
-│   └── ...
-├── scripts/
-│   ├── fetch-deps.mjs           # Fetch vendor files from URLs
-│   ├── bundle-vendor.mjs        # Minify vendor files via esbuild
-│   ├── check-vendor.mjs         # Verify vendor files exist
-│   ├── load-env.mjs             # Utility: Parse .env file
-│   └── ...
-├── CLAUDE.md                    # Development instructions
-├── TESTING.md                   # Test documentation
-├── .env.example                 # Vendor pipeline config template
-├── vitest.config.ts             # Vitest configuration
-├── playwright.config.ts         # Playwright configuration
+│   └── hexmap/
+│       ├── game.js              # Vendor — gitignored, fetched from R2
+│       ├── game-ui-bindings.js  # Custom patch: function exposure for game.js
+│       └── worker-patch.js      # Custom patch: worker path resolution
+├── scripts/                     # Build & CI utilities
+├── CLAUDE.md                    # AI agent development guidance
+├── playwright.config.ts
+├── vitest.config.ts
 └── package.json
 ```
 
@@ -189,21 +163,20 @@ pnpm test:e2e:debug        # Step-through debugger
 
 ### Environment Variables
 
-**Local development (`.env` file):**
+**Local development (`.env` file — see `.env.example`):**
 
-- `VENDOR_MANIFEST` — JSON array of vendor files to fetch from Cloudflare R2 (see `.env.example`)
-- `VENDOR_TOKEN` — Optional Bearer token for authenticating vendor file downloads
+- `VENDOR_MANIFEST` — JSON array of vendor files to fetch from Cloudflare R2
+- `VENDOR_TOKEN` — Optional Bearer token for authenticated R2 downloads
 
-**Cloudflare deployment:**
+**Cloudflare Pages build:**
 
-Set `VENDOR_MANIFEST` in Cloudflare Workers → **Settings** → **Build & Deploy** → **Environment variables**. This tells the build process where to fetch the vendor JS/CSS files.
+Set `VENDOR_MANIFEST` in the Cloudflare Pages dashboard under **Settings → Environment variables** so the build pipeline can fetch vendor files.
 
 ### Build Configuration
 
-- **Vite:** `vite.config.ts` (SvelteKit + Svelte plugin)
-- **Type checking:** `svelte-check` via `pnpm check`
-- **SvelteKit sync:** Required before type checking: `pnpm svelte-kit sync`
-- **Vendor pipeline:** `scripts/fetch-deps.mjs` and `scripts/bundle-vendor.mjs` handle vendor file management
+- **Vite:** `vite.config.ts`
+- **Type checking:** `pnpm check` (runs `svelte-kit sync` + `svelte-check`)
+- **Vendor pipeline:** `scripts/fetch-deps.mjs` + `scripts/bundle-vendor.mjs`
 
 ## Scripts
 
@@ -213,7 +186,7 @@ Set `VENDOR_MANIFEST` in Cloudflare Workers → **Settings** → **Build & Deplo
 | `pnpm tauri:dev` | Start Tauri desktop app with hot reload |
 | `pnpm build` | Production web build (runs vendor:build first) |
 | `pnpm tauri:build` | Production desktop build |
-| `pnpm deploy` | Deploy to Cloudflare Workers (runs vendor:build + build + wrangler deploy) |
+| `pnpm deploy` | Deploy to Cloudflare Pages |
 | `pnpm vendor:fetch` | Fetch vendor files from Cloudflare R2 |
 | `pnpm vendor:bundle` | Minify vendor files via esbuild |
 | `pnpm vendor:build` | Fetch + bundle vendor files |
@@ -221,38 +194,37 @@ Set `VENDOR_MANIFEST` in Cloudflare Workers → **Settings** → **Build & Deplo
 | `pnpm check:watch` | Type check in watch mode |
 | `pnpm test` | Run unit tests once |
 | `pnpm test:watch` | Run unit tests in watch mode |
+| `pnpm test:integration` | Run integration tests |
 | `pnpm test:e2e` | Run E2E tests |
 | `pnpm test:e2e:ui` | Run E2E tests with interactive UI |
 | `pnpm test:e2e:debug` | Run E2E tests with step debugger |
-
-## Sync & Conflict Model
-
-The editor uses a **Local-First with Remote Sync** model. Every lore topic maintains metadata containing a `version`, `updatedAt` timestamp, and `syncedAt` status.
-
-1. **Conflict Detection:** When syncing, the application compares the local version against the remote version. If both have changed since the last known common "base" version, a conflict is triggered.
-2. **Resolution:** Conflicts are pushed to a `conflictQueue` Svelte store. Users are presented with a diff view (`ConflictResolver.svelte`) to pick the local version, the remote version, or a manual merge.
-3. **Offline Queue:** Mutations made while offline are stored in a persistent queue with exponential backoff (up to 8 attempts) to ensure eventually consistent synchronization with the Cloudflare Worker backend.
+| `pnpm prepush` | Local mirror of CI PR quality checks |
 
 ## Known Issues & Limitations
 
-**TODO:** List known issues, browser compatibility notes, performance limitations, etc.
+- **Hex map requires vendor files** — `game.js` and related files are fetched from a private R2 bucket and are not included in the repository. The hex map editor shows a blank canvas without them. Run `pnpm vendor:build` with a valid `VENDOR_MANIFEST` to fetch them.
+- **Browser mode limitations** — IndexedDB storage in the browser has no OS keyring; Claude API key and admin secret are stored in `localStorage` (plaintext). Use Tauri mode for production workflows with sensitive keys.
+- **No ESLint** — The project uses `svelte-check` for type safety and `markdownlint-cli2` for docs, but has no JavaScript/TypeScript linter configured.
 
 ## Contributing
 
-**TODO:** Add contribution guidelines here.
+1. Fork the repo and create a feature branch
+2. Follow [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, etc.)
+3. Update `CHANGELOG.md` under `## [Unreleased]` and include a `## Documentation` section in your PR body (required by CI)
+4. Run `pnpm prepush` before pushing to catch CI failures locally
 
 ## License
 
-**TODO:** Add license information here.
+All rights reserved. This project is not licensed for redistribution.
 
 ## Related Projects
 
 - **holmgard-lore-mcp** — Cloudflare Worker MCP backend
-- **external-hex-map-library** — External hex map library (game.js)
+- **external-hex-map-library** — External hex map library source (`game.js`)
 
 ## Support
 
-**TODO:** Add support/contact information here.
+Open an issue at [github.com/FrozenRegister/holmgard-lore-editor/issues](https://github.com/FrozenRegister/holmgard-lore-editor/issues).
 
 ---
 

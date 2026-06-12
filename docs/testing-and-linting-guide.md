@@ -14,6 +14,7 @@ pnpm test:e2e:ui            # Run E2E tests with UI
 ## Test Suite Status
 
 ### ✅ Unit Tests (vitest)
+
 - **Status**: Tests configured with SvelteKit and jsdom
 - **Tool**: Vitest + jsdom + @testing-library/svelte
 - **Coverage**: Tests use path aliases ($lib, $app) remapped in vitest.config.ts
@@ -22,11 +23,13 @@ pnpm test:e2e:ui            # Run E2E tests with UI
 - **Coverage**: `pnpm test:coverage`
 
 **Setup Notes:**
+
 - SvelteKit path aliases are remapped in `vitest.config.ts`
 - `$app` points to `src/app-mock/` which stubs SvelteKit navigation/stores
 - Run `svelte-kit sync` before tests if you hit import errors on generated types
 
 ### ✅ Type Checking (svelte-check)
+
 - **Status**: SvelteKit type checking
 - **Tool**: SvelteKit with TypeScript
 - **Command**: `pnpm check`
@@ -35,13 +38,26 @@ pnpm test:e2e:ui            # Run E2E tests with UI
 **Important**: Run `svelte-kit sync` first if tests fail with generated type errors.
 
 ### ✅ E2E Tests (Playwright)
+
 - **Status**: Browser-based end-to-end tests
 - **Tool**: Playwright with Chromium
 - **Command**: `pnpm test:e2e`
 - **UI Mode**: `pnpm test:e2e:ui` (interactive test runner)
 - **Debug**: `pnpm test:e2e:debug` (step through with inspector)
 
-**Note**: E2E tests run against the built app, so you must `pnpm build` first if testing locally.
+**Note**: Playwright auto-starts the Vite dev server (`pnpm dev`) before running tests — no separate build step required.
+
+**Spec files (52 tests total):**
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `e2e/home.spec.ts` | 13 | Topic list, search, filter chips, sort, count badge, action buttons |
+| `e2e/navigation.spec.ts` | 7 | Sidebar links, `aria-current`, cross-route navigation |
+| `e2e/settings.spec.ts` | 11 | All 5 form sections, show/hide toggle, save button |
+| `e2e/import-export.spec.ts` | 9 | Cards, export filenames, file input attributes, import-updates-count |
+| `e2e/editor.spec.ts` | 10 | Card → editor navigation, preview toggle, history panel, direct URL |
+
+Tests use the app's built-in demo data seeding — each fresh Playwright context starts empty, causing `loadDemoData()` to run automatically in `+layout.svelte`, so no manual seeding is needed.
 
 ## Coverage Quality Gate
 
@@ -52,6 +68,7 @@ All source files in `src/lib/` must have at least **80% line coverage** in the u
 There is currently **no ESLint** setup in the editor repository. The code follows the style guide documented in `docs/style-guide.md`.
 
 For type safety, use:
+
 - `pnpm check` (svelte-check with TypeScript)
 - `pnpm test` (vitest catches type issues at runtime)
 
@@ -75,6 +92,7 @@ For type safety, use:
    - Requires documentation changes (or docs section in PR body)
 
 ### CI Status on Main
+
 - **Test requirements**: Must pass on PR
 - **Type-check**: Must pass (`pnpm check`)
 - **E2E**: Must pass
@@ -84,12 +102,14 @@ For type safety, use:
 ### When Adding New Code
 
 1. **Create component/logic**
+
    ```bash
    # Create the feature
    # Write accompanying tests
    ```
 
 2. **Run tests locally**
+
    ```bash
    pnpm test               # Unit tests
    pnpm check              # Type checking
@@ -97,6 +117,7 @@ For type safety, use:
    ```
 
 3. **Check type safety**
+
    ```bash
    # svelte-check runs as part of pnpm check
    # It checks:
@@ -106,6 +127,7 @@ For type safety, use:
    ```
 
 4. **Before committing**
+
    ```bash
    pnpm test && pnpm check && pnpm test:e2e
    ```
@@ -113,11 +135,13 @@ For type safety, use:
 ### When Adding Tests
 
 Tests should cover:
+
 - **Unit tests** for utilities, stores, sync logic (vitest + jsdom)
 - **Component tests** using @testing-library/svelte
 - **E2E tests** for critical user flows (Playwright)
 
 Example test locations:
+
 - `src/lib/__tests__/` — utility and store tests
 - `src/lib/components/__tests__/` — component tests
 - `e2e/` — end-to-end tests
@@ -127,10 +151,12 @@ Example test locations:
 ### Path Aliases
 
 Tests use SvelteKit path aliases. Ensure your IDE recognizes:
+
 - `$lib` → `src/lib`
 - `$app` → `src/app-mock` (for tests, not browser)
 
 These are configured in:
+
 - `vitest.config.ts` — test resolution
 - `svelte.config.js` — build resolution
 - `tsconfig.json` — TypeScript resolution
