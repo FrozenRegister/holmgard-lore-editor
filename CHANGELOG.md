@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] — Unreleased
 
+### CI
+
+- **Codecov config comment fix** — Fixed copy-paste error: `codecov.yml` header incorrectly said "holmgard-lore-mcp". Added rationale comments explaining 80% patch target (frontend UI code) and cross-reference to `holmgard-lore-mcp` (100% patch for backend). Both repos pin `codecov/codecov-action@v5`; update both CI files together when upgrading.
+
 ### Changed
 
 - **Hex map IDB perf: direct keyed lookups and cache-skip on repeated saves** (#40, #41) — `loadFromIdbKey` now uses `store.get(key)` (direct primary-key lookup) instead of `store.getAll()` + linear scan across all 7 IDB stores, cutting map-load I/O from O(records) to O(1). `saveLastOpenedDraftKey` skips the IDB scan entirely on repeated saves of the same draft once the key is cached in localStorage (was O(n) on every keystroke-triggered save). `startChangeMonitor` in `parent-child-terrain-sync.js` poll interval bumped from 100 ms to 500 ms, reducing constant CPU drain on idle maps by 5×.

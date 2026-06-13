@@ -1,4 +1,10 @@
-# codecov.yml for holmgard-lore-mcp
+# codecov.yml for holmgard-lore-editor
+#
+# Coverage policy: 80% patch target — this is a SvelteKit frontend.
+# UI code (Svelte components, event handlers) is harder to achieve 100% coverage; 80% is practical.
+#
+# Sister repo: holmgard-lore-mcp uses 100% patch (backend Worker, stricter).
+# Both repos pin codecov/codecov-action@v5 — update both CI files together when upgrading.
 coverage:
   precision: 2
   round: down
