@@ -23,7 +23,7 @@ if (r2Bucket) {
   for (const { filename, sha256 } of hashManifest) {
     const outPath = `${vendorDir}/${filename}`;
     try {
-      execSync(`npx wrangler r2 object get "${filename}" --bucket "${r2Bucket}" --file "${outPath}"`, {
+      execSync(`npx wrangler r2 object get "${r2Bucket}/${filename}" --remote --file "${outPath}"`, {
         stdio: ['ignore', 'ignore', 'inherit'],
         env: process.env,
       });
