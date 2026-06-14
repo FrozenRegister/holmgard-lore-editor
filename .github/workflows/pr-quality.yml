@@ -48,8 +48,16 @@ jobs:
               pull_number: context.payload.pull_request.number,
             })
 
+            // Fetch fresh PR body from API instead of using event payload
+            // This ensures the check always sees the current PR body even if it was edited after the initial trigger
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            })
+
             const hasDocs = files.some(f => f.filename.startsWith('docs/'))
-            const prBody = context.payload.pull_request.body || ''
+            const prBody = pr.data.body || ''
             const hasDocsSection = prBody.includes('## Documentation')
 
             if (!hasDocs && !hasDocsSection) {
