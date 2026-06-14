@@ -1,90 +1,106 @@
 #!/usr/bin/env node
 
 import { mkdir, writeFile, readFile } from 'fs/promises';
-import { existsSync } from 'fs';
-import { dirname } from 'path';
+import { createHash } from 'crypto';
+import { execSync } from 'child_process';
 import { loadEnv } from './load-env.mjs';
 
 loadEnv();
 
-const DEFAULT_MANIFEST = [
-  { filename: 'auth.js',              url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/auth.js' },
-  { filename: 'cloud-storage.js',     url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/cloud-storage.js' },
-  { filename: 'compendium.js',        url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/compendium.js' },
-  { filename: 'game.js',              url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/game.js' },
-  { filename: 'map-worker.js',        url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/map-worker.js' },
-  { filename: 'mobile-companion.js',  url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/mobile-companion.js' },
-  { filename: 'style.css',            url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/style.css' },
-  { filename: 'mobile-companion.css', url: 'https://pub-ace11385e34e407d98492e19fd3fac06.r2.dev/mobile-companion.css' },
-];
-
-const vendorManifestEnv = process.env.VENDOR_MANIFEST;
-
-let manifest;
-if (vendorManifestEnv) {
-  // Env var present — use it (supports local overrides and staging)
-  console.log('✓ VENDOR_MANIFEST env var found — using explicit manifest');
-  try {
-    manifest = JSON.parse(vendorManifestEnv);
-  } catch (e) {
-    console.error('Error: VENDOR_MANIFEST is not valid JSON. See .env.example.');
-    process.exit(1);
-  }
-} else {
-  // CI / Cloudflare Pages: env var not injected into npm scripts — use baked-in default
-  console.log('⊘ VENDOR_MANIFEST not set — using baked-in default manifest (public R2 URLs)');
-  manifest = DEFAULT_MANIFEST;
-}
-
-if (!Array.isArray(manifest) || manifest.length === 0) {
-  console.error('Error: VENDOR_MANIFEST resolved to an empty list — nothing to fetch.');
-  process.exit(1);
-}
+// Hashes only — no URLs. URLs come from env vars or R2.
+const hashManifest = JSON.parse(await readFile('vendor-manifest.json', 'utf-8'));
+const sha256Map = Object.fromEntries(hashManifest.map(e => [e.filename, e.sha256]));
 
 const vendorDir = 'vendor-src';
 await mkdir(vendorDir, { recursive: true });
 
-const vendorToken = process.env.VENDOR_TOKEN;
+const r2Bucket = process.env.R2_BUCKET_NAME;
 
-for (const entry of manifest) {
-  const { filename, url } = entry;
+if (r2Bucket) {
+  // Build mode: fetch from private R2 via wrangler
+  console.log(`Fetching ${hashManifest.length} files from private R2 (${r2Bucket})...`);
 
-  let content;
-
-  // Support local file:// paths for development/testing
-  if (url.startsWith('file://')) {
-    const filePath = url.slice(7).replace(/^\/([a-zA-Z]:)/, '$1');
+  for (const { filename, sha256 } of hashManifest) {
+    const outPath = `${vendorDir}/${filename}`;
     try {
-      content = await readFile(filePath, 'utf-8');
+      execSync(`npx wrangler r2 object get "${r2Bucket}/${filename}" --file "${outPath}"`, {
+        stdio: ['ignore', 'ignore', 'inherit'],
+        env: process.env,
+      });
     } catch (e) {
-      console.error(`Error: Failed to read ${filename} from ${filePath}: ${e.message}`);
-      process.exit(1);
-    }
-  } else {
-    const headers = {};
-    if (vendorToken) {
-      headers['Authorization'] = `Bearer ${vendorToken}`;
-    }
-
-    let response;
-    try {
-      response = await fetch(url, { headers });
-    } catch (e) {
-      console.error(`Error: Failed to fetch ${filename}: ${e.message}`);
+      console.error(`Error: Failed to fetch ${filename} from R2: ${e.message}`);
       process.exit(1);
     }
 
-    if (!response.ok) {
-      console.error(`Error: Failed to fetch ${filename}: HTTP ${response.status}`);
-      process.exit(1);
+    const content = await readFile(outPath);
+    const actual = createHash('sha256').update(content).digest('hex').toUpperCase();
+    if (actual !== sha256) {
+      console.warn(`  ⚠  ${filename} — CHECKSUM MISMATCH (R2 has a newer version than manifest)`);
+      console.warn(`     expected: ${sha256}`);
+      console.warn(`     actual:   ${actual}`);
+      console.warn(`     Run pnpm vendor:sync to update vendor-manifest.json.`);
+    } else {
+      console.log(`  ✓  ${filename}`);
     }
+  }
+} else {
+  // URL mode: fetch from URLs supplied via env var
+  const vendorManifestEnv = process.env.VENDOR_MANIFEST || process.env.VENDOR_SOURCE_MANIFEST;
 
-    content = await response.text();
+  if (!vendorManifestEnv) {
+    console.error('Error: No fetch source configured.');
+    console.error('  Set R2_BUCKET_NAME (+ CLOUDFLARE_API_TOKEN) to fetch from private R2, or');
+    console.error('  set VENDOR_MANIFEST / VENDOR_SOURCE_MANIFEST to a JSON array of {filename, url}.');
+    console.error('  See .env.example for details.');
+    process.exit(1);
   }
 
-  const outPath = `${vendorDir}/${filename}`;
-  await writeFile(outPath, content, 'utf-8');
-  console.log(`  fetched  ${filename}`);
+  let urlManifest;
+  try {
+    urlManifest = JSON.parse(vendorManifestEnv);
+  } catch {
+    console.error('Error: VENDOR_MANIFEST / VENDOR_SOURCE_MANIFEST is not valid JSON.');
+    process.exit(1);
+  }
+
+  console.log(`Fetching ${urlManifest.length} files from URLs...`);
+  const vendorToken = process.env.VENDOR_TOKEN;
+
+  for (const { filename, url } of urlManifest) {
+    const outPath = `${vendorDir}/${filename}`;
+    let content;
+
+    if (url.startsWith('file://')) {
+      const filePath = url.slice(7).replace(/^\/([a-zA-Z]:)/, '$1');
+      content = await readFile(filePath);
+    } else {
+      const headers = vendorToken ? { Authorization: `Bearer ${vendorToken}` } : {};
+      let response;
+      try {
+        response = await fetch(url, { headers });
+      } catch (e) {
+        console.error(`Error: Failed to fetch ${filename}: ${e.message}`);
+        process.exit(1);
+      }
+      if (!response.ok) {
+        console.error(`Error: Failed to fetch ${filename}: HTTP ${response.status}`);
+        process.exit(1);
+      }
+      content = Buffer.from(await response.arrayBuffer());
+    }
+
+    await writeFile(outPath, content);
+
+    const actual = createHash('sha256').update(content).digest('hex').toUpperCase();
+    const expected = sha256Map[filename];
+    if (expected && actual !== expected) {
+      console.log(`  ⚠  ${filename} — CHECKSUM MISMATCH (upstream may have updated)`);
+      console.log(`     expected: ${expected}`);
+      console.log(`     actual:   ${actual}`);
+    } else {
+      console.log(`  ✓  ${filename}`);
+    }
+  }
 }
 
-console.log(`Fetched ${manifest.length}/${manifest.length} files.`);
+console.log(`\nFetched ${hashManifest.length} files.`);
