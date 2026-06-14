@@ -87,36 +87,31 @@
     // ========================================================================
     // FILE OPERATIONS (newMap, quickCloudSave, shareMap, etc.)
     // ========================================================================
-    if (typeof w.newMap !== 'function') {
-      w.newMap = function() {
-        if (confirm('Create a new map? Any unsaved changes will be lost.')) {
-          if (w.state && w.state.hexMap) {
-            var m = w.state.hexMap;
-            // -- core collections --
-            m.hexes = [];
-            m.landmarks = [];
-            // -- detail/sub-hex data (settlement layer) --
-            m.detailHexes = new Map();
-            m.subHexes = [];
-            m.subHexLandmarks = [];
-            m.subHexTokens = [];
-            // -- river state --
-            m.riverEdges = {};
-            m.rivers = {};
-            // -- tokens, paths, fog --
-            m.tokens = [];
-            m.paths = [];
-            m.fogOfWar = [];
-            // -- text labels and image overlays --
-            m.textLabels = [];
-            m.imageOverlays = [];
-            // -- re-render --
-            if (typeof w.renderHex === 'function') w.renderHex();
-          }
-          w.showNotification?.('New map created', 'success');
-        }
-      };
+if (typeof w.newMap !== 'function') {
+  w.newMap = function() {
+    if (confirm('Create a new map? Any unsaved changes will be lost.')) {
+      if (w.state && w.state.hexMap) {
+        w.state.hexMap.hexes = [];
+        w.state.hexMap.detailHexes = [];
+        w.state.hexMap.subHexes = [];
+        w.state.hexMap.subHexLandmarks = [];
+        w.state.hexMap.subHexTokens = [];
+        w.state.hexMap.landmarks = [];
+        w.state.hexMap.textLabels = [];
+        w.state.hexMap.imageOverlays = [];
+        w.state.hexMap.tokens = [];
+        w.state.hexMap.paths = [];
+        w.state.hexMap.fogOfWar = [];
+        delete w.state.hexMap.riverEdges;
+        delete w.state.hexMap.rivers;
+        w.state.hexMap.mapInstanceId = undefined;
+        w.state.hexMap.mapName = 'Untitled Map';
+        if (typeof w.renderHex === 'function') w.renderHex();
+      }
+      w.showNotification?.('New map created', 'success');
     }
+  };
+}
 
     if (typeof w.quickCloudSave !== 'function') {
       w.quickCloudSave = function() {

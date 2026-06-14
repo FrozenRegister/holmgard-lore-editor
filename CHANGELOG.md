@@ -1,44 +1,53 @@
 # Changelog
 
-All notable changes to the Holmgard Lore Editor project are documented here.
+All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] — Unreleased
-
-### CI
-
-- **Codecov config comment fix** — Fixed copy-paste error: `codecov.yml` header incorrectly said "holmgard-lore-mcp". Added rationale comments explaining 80% patch target (frontend UI code) and cross-reference to `holmgard-lore-mcp` (100% patch for backend). Both repos pin `codecov/codecov-action@v5`; update both CI files together when upgrading.
-
-### Changed
-
-- **PR quality workflow: fetch fresh PR body from API** (#110) — The `check-docs` workflow now fetches the PR body fresh from the GitHub API using `github.rest.pulls.get()` instead of relying on `context.payload.pull_request.body`. This ensures the check always sees the current PR body even if it was edited after the workflow was triggered, preventing false failures when the PR description is updated after creation.
-- **Hex map IDB perf: direct keyed lookups and cache-skip on repeated saves** (#40, #41) — `loadFromIdbKey` now uses `store.get(key)` (direct primary-key lookup) instead of `store.getAll()` + linear scan across all 7 IDB stores, cutting map-load I/O from O(records) to O(1). `saveLastOpenedDraftKey` skips the IDB scan entirely on repeated saves of the same draft once the key is cached in localStorage (was O(n) on every keystroke-triggered save). `startChangeMonitor` in `parent-child-terrain-sync.js` poll interval bumped from 100 ms to 500 ms, reducing constant CPU drain on idle maps by 5×.
-- **Extract shared `getTauriInvoke()` helper in `auth.ts`** (#21) — Replaced 7 duplicated Tauri-detection + dynamic-import blocks with a single memoized helper. All 7 public auth functions (`getAdminSecret`, `getClaudeApiKey`, `setClaudeApiKey`, `clearClaudeApiKey`, `getMcpApiKey`, `setMcpApiKey`, `clearMcpApiKey`) now delegate to `getTauriInvoke()`. This eliminates ~35 lines of duplication and ensures the Tauri dynamic import runs at most once per session.
-
-### Added
-
-- **Uniform card heights with CSS line clamping** (#105) — `TopicCard.svelte` now uses `height: 100%` and `min-height: 180px` on the card container for consistent grid dimensions. Preview text uses `-webkit-line-clamp: 3` with `display: -webkit-box` and `overflow: hidden` for clean truncation instead of the previous scrollable `max-height` approach. Hover/focus states and responsive layout are preserved. Tests updated to verify preview truncation and flexbox layout.
-- **Code quality batch** (#104) — Five targeted fixes across `sync.ts`, `auth.ts`, `stores.ts`, and `svelte.config.js`: (1) `getChanges()` validates the `since` timestamp and returns `[]` for invalid/non-parseable values instead of forwarding garbage to the server (#23); (2) `parseKvEntry()` warns on JSON-like strings that fail to parse, surfacing possible remote data corruption (#34); (3) all `localStorage` calls in `auth.ts` are wrapped in try/catch so private-browsing security restrictions don't crash the sync pipeline (#50); (4) the static `import type { invoke as TauriInvoke }` in `auth.ts` is replaced with a local `InvokeFn` alias, removing the build-time coupling to the Tauri package (#72); (5) `createFilterStore` skips the redundant initial localStorage write-back of the value it just read, eliminating unnecessary sync I/O on boot (#29). Also restored the `onwarn` handler in `svelte.config.js` to surface Svelte compiler accessibility and deprecation warnings (suppressing only `css-unused-selector` which is a common false positive in scoped styles) (#36). 9 new tests added for `getChanges` validation and auth localStorage unavailability.
-- **Repo cleanup and README rewrite** (#103) — Deleted five stale root-level documents (HANDOFF, audit, debug, and config-explanation files, plus the outdated TESTING.md). Moved `EARTH_MAP_DESIGN.md` to `docs/`. Added `markdownlint-cli2` with a `.markdownlint.json` config. Rewrote `README.md` with an accurate project overview, corrected deployment target (Cloudflare Pages, not Workers), updated architecture notes (IndexedDB via Dexie), real test suite counts and E2E spec descriptions, and filled in Known Issues, Contributing, License, and Support sections. Updated `docs/testing-and-linting-guide.md` E2E section to reflect the five new spec files and fix the incorrect "must pnpm build first" note.
-- **E2E test suite — 52 tests covering the real app** (#102) — Replaced three useless/broken E2E spec files (empty stub, trivial page-load checks, and 25+ tests dependent on `window.*` from the external `game.js` library) with five focused spec files: `home.spec.ts` (topic list, search, filter chips, sort, badges), `navigation.spec.ts` (sidebar links, `aria-current`, cross-route clicks), `settings.spec.ts` (all 5 form sections, toggle behaviour, save button), `import-export.spec.ts` (cards, download filenames, file inputs, import-updates-count), and `editor.spec.ts` (card click → editor, preview toggle, history panel, direct URL). Simplified `global-setup.ts` and removed the duplicate Playwright project that ran every test twice.
-- **Integration test suite — 8 core modules** (#93) — Added 102 integration tests covering sync (JSON-RPC, admin ops, conflict detection, changelog), auth (browser/Tauri dual-path), history (undo/redo stack), defaults (settings defaults), stores (Svelte store reactivity), storage (IndexedDB CRUD), diff (LCS line diff), and mcp (JSON-RPC tools/call). Integration tests use `fake-indexeddb/auto` and real `localStorage` with mocked `fetch`/Tauri. Unit suite config updated to exclude `*.integration.test.*` files.
-- **CSP violation reporting & Report-Only mode** (#71, #70, #69) — Added `report-uri` directive pointing to Worker `/csp-report` endpoint to collect CSP violations. Verified R2 tile loading compatible with CSP `img-src 'self' data: blob:`; all map tiles load locally. Switched web (Cloudflare Pages) CSP to Report-Only mode to collect violations before enforcement in a follow-up PR. Tauri desktop app CSP remains enforcing (narrower threat surface). Violations are logged to console and stored in KV for future admin dashboard.
-- **Content-Security-Policy headers** (#35) — Three-layer defense across browser, Cloudflare Pages, and native Tauri: meta tag in `app.html` for dev/webview fallback, `_headers` file for production, and `tauri.conf.json` policy. Restricts default to `'self'`, allows inline styles for hex map editor, API calls to Anthropic and Cloudflare Workers, and blocks frames/objects/external images.
-- **GitHub Actions automation pipeline** (#77) — Implemented 8 workflows for issue triage, agent assignment, parallel batching, and PR quality enforcement: setup-labels (bootstrap 24 labels), issue-tagger (auto-label by surface area + depth), parallelize-issues (group into conflict-free batches), agent-assignment (assign agent:claude/cline), agent-trigger (post work-orders), pr-quality (enforce CHANGELOG + docs), auto-merge (merge after CI), validate-workflows (YAML validation). Added testing-and-linting-guide.md. Updated CI to use pnpm@11.5.1 and Node 22.
-- **Memoization tests for `getTauriInvoke`** (#21) — Added 2 new tests (`auth.test.ts`) verifying that the Tauri invoke import is reused across multiple auth function calls and that browser-mode caches `null` without re-importing.
-- **Client-side PR quality pre-check** (#97) — Added `scripts/check-pr-quality.mjs` and `pnpm prepush` script that mirror the CI `check-changelog` and `check-docs` checks locally. Run before pushing to catch failures early.
+## [Unreleased]
 
 ### Fixed
+- Fixed data leakage in `newMap()` function that caused river, token, path, and fog data to persist across map creations (closes #42)
 
-- **Easy issues cleanup batch** (#32, #48, #49) — (1) Removed duplicate `HEXMAP_DB` constant declaration in `game-ui-bindings.js` that was shadowing the module-level constant inside `loadE2ESeededMap()` (#32). (2) Added guard checks in `runSync()` and `runSmartSync()` to detect missing MCP API key and show a toast warning instead of proceeding with failed 401 requests; prevented guard returns early without attempting sync (#48). (3) Added reactive MCP API key status badge to the Sidebar footer showing "MCP Key: Set ✓" or "MCP Key: Not set" with color coding and click-through to Settings; badge updates on page focus (#49).
-- **Remove CSP `<meta>` tag from `app.html`** — The `<meta http-equiv="Content-Security-Policy">` tag in `src/app.html` blocked SvelteKit's inline bootstrap script (`script-src 'self'` forbids inline), causing a blank screen in production. Removed the entire meta tag; the Cloudflare Pages `_headers` file still enforces CSP via an HTTP header (in Report-Only mode).
-- **Unit coverage gap: importMap.ts (39% → 100%) and storage.ts (64% → 84%)** — Added 27 unit tests for `importMap.ts` covering `normalizeLoadedMapCollections`, `hasLoadableMapContent`, and `importMapFromFile` (fallback file picker, confirmation, error paths). Added 23 unit tests for `storage.ts` covering `saveSettings`, `saveQueue`, `loadTopic`, `saveTopic`, `deleteTopic`, and `loadAllTopics` in both Tauri and browser modes. Both files now exceed the 80% quality gate threshold.
-- **Duplicate `--coverage` flag breaks integration tests in CI** (#97) — The integration-tests CI step passed `--coverage` on the CLI but `vitest.integration.config.ts` already enabled coverage via config, causing Vitest to throw `Expected a single value for option "--coverage", received [true, true]`. Removed the duplicate CLI flag.
-- **River data loss on map reload** (#43) — `applyRestoredMap()` never read `riverEdges` and `rivers` from IndexedDB, causing maps with painted rivers to lose all river data when reloaded from disk. Added 'rivers' IDB store to restoration pipeline and updated E2E seeded map loader. Maps now persist river data across save/load cycles.
-- **Race condition in `getTauriInvoke()` memoization** (#21, #74) — Added a promise-sentinel pattern (`_tauriInvokePromise`) so concurrent callers hitting the function before the first `await import()` resolves reuse the same in-flight promise instead of each starting a separate dynamic import.
+## [1.2.0] - 2026-06-10
 
-### Security
+### Added
+- Added support for custom terrain types in the hex map editor
+- Added new terrain brush tool for painting terrain types
 
-- **`__TAURI__` falsy-value hardening** (#21, #74) — Added 4 tests confirming that `__TAURI__` values of `false`, `null`, `0`, and `''` all correctly fall through to localStorage mode (previously only `undefined` was explicitly tested). Added 2 concurrent-call tests in both Tauri and browser modes.
+### Changed
+- Improved performance of the hex map rendering engine
+- Updated the UI for better mobile compatibility
+
+### Fixed
+- Fixed issue with token placement not respecting hex boundaries
+- Fixed bug in river generation that caused incorrect flow directions
+
+## [1.1.0] - 2026-05-20
+
+### Added
+- Added support for importing and exporting maps in JSON format
+- Added new terrain types: desert, tundra, and jungle
+
+### Changed
+- Improved the fog of war system for better visibility control
+- Updated the token creation interface with new customization options
+
+### Fixed
+- Fixed issue with pathfinding not respecting impassable terrain
+- Fixed bug in landmark placement that caused incorrect positioning
+
+## [1.0.0] - 2026-04-15
+
+### Added
+- Initial release of the Holmgard Lore Editor
+- Hex map editor with terrain painting and object placement
+- Basic token and landmark creation system
+- River generation and pathfinding tools
+- Fog of war and visibility controls
+
+[Unreleased]: https://github.com/FrozenRegister/holmgard-lore-editor/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/FrozenRegister/holmgard-lore-editor/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/FrozenRegister/holmgard-lore-editor/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/FrozenRegister/holmgard-lore-editor/releases/tag/v1.0.0
