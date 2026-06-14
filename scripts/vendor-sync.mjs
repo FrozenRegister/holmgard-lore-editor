@@ -77,7 +77,7 @@ for (const { filename, url } of sourceManifest) {
     console.log(`    Uploading to R2: ${r2Bucket}/${filename}`);
     try {
       execSync(
-        `npx wrangler r2 object put "${r2Bucket}/${filename}" --file "${outPath}"`,
+        `npx wrangler r2 object put "${r2Bucket}/${filename}" --remote --file "${outPath}"`,
         { stdio: ['ignore', 'inherit', 'inherit'], env: process.env }
       );
     } catch (e) {
