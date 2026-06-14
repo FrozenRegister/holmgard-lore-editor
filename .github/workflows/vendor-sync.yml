@@ -1,0 +1,54 @@
+name: Vendor Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'  # Mondays 6am UTC
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-quality-checks') }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm and dependencies
+        run: npm install -g pnpm && pnpm install --frozen-lockfile
+
+      - name: Check upstream for changes and sync to R2
+        id: sync
+        env:
+          VENDOR_SOURCE_MANIFEST: ${{ secrets.VENDOR_SOURCE_MANIFEST }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          R2_BUCKET_NAME: holmgard-vendor-files
+        run: node scripts/vendor-sync.mjs
+
+      - name: Open PR with updated manifest
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          BRANCH="chore/vendor-update-${DATE}"
+          CHANGED_FILES="${{ steps.sync.outputs.files }}"
+
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git checkout -b "$BRANCH"
+          git add vendor-manifest.json
+          git commit -m "chore: upstream vendor update (hexatlas ${DATE})"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --title "chore: upstream vendor update (hexatlas ${DATE})" \
+            --body "$(printf '## Upstream Vendor Update\n\nOne or more vendor files changed at hexatlas.net. New versions have been uploaded to the private R2 bucket and checksums updated in \`vendor-manifest.json\`.\n\n**Changed files:** %s\n\n## Before merging\n- Pull this branch and run \`pnpm vendor:fetch\` to download the new files locally\n- Verify adapted files (\`mcp-auth.js\`, \`mcp-storage.js\`, \`game-ui-bindings.js\`, etc.) still work correctly\n- Run \`pnpm dev\` and smoke-test the hex map editor\n\n## Documentation\nNo documentation changes — vendor checksum update only.' "$CHANGED_FILES")" \
+            --base main
