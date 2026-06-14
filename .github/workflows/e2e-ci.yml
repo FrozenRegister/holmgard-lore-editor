@@ -38,6 +38,8 @@ jobs:
 
       - name: Build app
         run: pnpm build
+        env:
+          VENDOR_SOURCE_MANIFEST: ${{ secrets.VENDOR_SOURCE_MANIFEST }}
 
       - name: Run E2E tests
         run: pnpm test:e2e
