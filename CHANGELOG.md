@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] — Unreleased
 
+### CI
+
+- **Codecov config comment fix** — Fixed copy-paste error: `codecov.yml` header incorrectly said "holmgard-lore-mcp". Added rationale comments explaining 80% patch target (frontend UI code) and cross-reference to `holmgard-lore-mcp` (100% patch for backend). Both repos pin `codecov/codecov-action@v5`; update both CI files together when upgrading.
+
 ### Changed
 
 - **PR quality workflow: fetch fresh PR body from API** (#110) — The `check-docs` workflow now fetches the PR body fresh from the GitHub API using `github.rest.pulls.get()` instead of relying on `context.payload.pull_request.body`. This ensures the check always sees the current PR body even if it was edited after the workflow was triggered, preventing false failures when the PR description is updated after creation.
