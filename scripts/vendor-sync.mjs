@@ -34,9 +34,14 @@ try {
 mkdirSync('vendor-src', { recursive: true });
 
 const r2Bucket = process.env.R2_BUCKET_NAME;
+const forceUpload = process.env.VENDOR_FORCE_UPLOAD === '1';
 const changed = [];
 
-console.log(`Checking ${sourceManifest.length} files against upstream...`);
+if (forceUpload) {
+  console.log(`Checking ${sourceManifest.length} files against upstream (force-upload mode)...`);
+} else {
+  console.log(`Checking ${sourceManifest.length} files against upstream...`);
+}
 
 for (const { filename, url } of sourceManifest) {
   let bytes;
@@ -52,14 +57,18 @@ for (const { filename, url } of sourceManifest) {
   const actual = createHash('sha256').update(bytes).digest('hex').toUpperCase();
   const expected = manifestMap[filename];
 
-  if (actual === expected) {
+  if (actual === expected && !forceUpload) {
     console.log(`  ✓ unchanged  ${filename}`);
     continue;
   }
 
-  console.log(`  ⚠ CHANGED    ${filename}`);
-  console.log(`    old: ${expected ?? '(not in manifest)'}`);
-  console.log(`    new: ${actual}`);
+  if (actual !== expected) {
+    console.log(`  ⚠ CHANGED    ${filename}`);
+    console.log(`    old: ${expected ?? '(not in manifest)'}`);
+    console.log(`    new: ${actual}`);
+  } else {
+    console.log(`  ↑ force-uploading  ${filename}`);
+  }
 
   const outPath = `vendor-src/${filename}`;
   writeFileSync(outPath, bytes);
@@ -77,8 +86,10 @@ for (const { filename, url } of sourceManifest) {
     }
   }
 
-  manifestMap[filename] = actual;
-  changed.push(filename);
+  if (actual !== expected) {
+    manifestMap[filename] = actual;
+    changed.push(filename);
+  }
 }
 
 console.log('');
