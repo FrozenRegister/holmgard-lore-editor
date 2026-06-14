@@ -768,28 +768,27 @@
   // automatically with the map JSON. We only hook loadMapDataIntoState to
   // re-initialize the fields for old maps that pre-date this feature.
 
-  function hookLoadMap() {
-    if (!window.loadMapDataIntoState || window.__riverEdgesLoadHooked) return
-    window.__riverEdgesLoadHooked = true
-    const orig = window.loadMapDataIntoState
-    window.loadMapDataIntoState = function () {
-      const res = orig.apply(this, arguments)
-      setTimeout(function () {
-        var m = hm()
-        if (m) {
-          // Force-clear river state — ensureState will re-init from loaded data.
-          // Without this, a shallow merge / Object.assign on state.hexMap
-          // preserves the old riverEdges/rivers object references from the
-          // previous map.
-          delete m.riverEdges
-          delete m.rivers
-        }
-        ensureState()
-        refreshUI()
-      }, 150)
-      return res
-    }
+function hookLoadMap() {
+  if (!window.loadMapDataIntoState || window.__riverEdgesLoadHooked) return
+  window.__riverEdgesLoadHooked = true
+  const orig = window.loadMapDataIntoState
+  window.loadMapDataIntoState._orig = orig
+  window.loadMapDataIntoState = function () {
+    var origFn = window.loadMapDataIntoState._orig
+    var res = origFn.apply(this, arguments)
+    setTimeout(function () {
+      var m = hm()
+      if (m) {
+        // Force-clear river state — ensureState will re-init from loaded data
+        delete m.riverEdges
+        delete m.rivers
+      }
+      ensureState()
+      refreshUI()
+    }, 150)
+    return res
   }
+}
 
   // ── Init ────────────────────────────────────────────────────────────────────
 
