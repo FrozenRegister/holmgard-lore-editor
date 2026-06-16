@@ -88,6 +88,53 @@ function biome(lat, lon) {
 
 const allFeatures = JSON.parse(fs.readFileSync(FEATURES, 'utf8')).features;
 
+// --- Detail hex generation (DetailHex zoom layer) -----------------------------
+// For each parent hex, generate 7 detail hexes in a cluster (game.js density 7)
+// edgeFactor = 2 for density 7; detail hexes cluster around (parentQ * 2, parentR * 2)
+function generateDetailHexes(parentHexes) {
+  const EDGE_FACTOR = 2;  // game.js DETAIL_GRID_EDGE_FACTORS[7]
+  const detailHexes = [];
+  const detailHexSet = new Set();
+
+  for (const parent of parentHexes) {
+    const { q, r, terrain } = parent;
+    const centerQ = q * EDGE_FACTOR;
+    const centerR = r * EDGE_FACTOR;
+
+    // 7-hex cluster pattern (game.js cluster math):
+    // Center at (centerQ, centerR), radius 1 in detail space
+    const clusterOffsets = [
+      { dq: 0, dr: 0 },   // Center
+      { dq: 1, dr: 0 },   // East
+      { dq: 0, dr: 1 },   // Southeast
+      { dq: -1, dr: 1 },  // Southwest
+      { dq: -1, dr: 0 },  // West
+      { dq: 0, dr: -1 },  // Northwest
+      { dq: 1, dr: -1 },  // Northeast
+    ];
+
+    for (const { dq, dr } of clusterOffsets) {
+      const dq_final = centerQ + dq;
+      const dr_final = centerR + dr;
+      const key = `${dq_final},${dr_final}`;
+
+      // Avoid duplicates at cluster boundaries
+      if (!detailHexSet.has(key)) {
+        detailHexSet.add(key);
+        detailHexes.push({
+          q: dq_final,
+          r: dr_final,
+          terrain,  // Inherit parent terrain
+          name: '',
+          description: '',
+        });
+      }
+    }
+  }
+
+  return detailHexes;
+}
+
 // --- Build one region -------------------------------------------------------
 function buildRegion(id) {
   const R = REGIONS[id];
@@ -147,6 +194,9 @@ function buildRegion(id) {
     }
   }
 
+  // Generate detail hexes (settlement-level layer)
+  const detailHexes = generateDetailHexes(hexes);
+
   const mapInstanceId = `earth-996-${id}`;
   const map = {
     version: '1.0', year: 996, mapName: `Earth 996 AD — ${R.name}`,
@@ -157,18 +207,18 @@ function buildRegion(id) {
     canvasBackground: '#1a3a4a',
     showHexCoordinates: false,
     showSubHexCoordinates: false,
-    // Hybrid zoom: CONTINENT overview aggregates from this PARENT grid when
-    // zoomed out. DETAIL ("settlement") sub-hexes are added per-region later.
+    // DetailHex zoom: Two-level hex grid via game.js cluster math (edgeFactor 2 for density 7)
+    // Parent hexes (continents/regions); detail hexes (settlements/local) appear on zoom
     continentGridEnabled: true,
     continentGridDensity: 7,
-    detailGridEnabled: false,
+    detailGridEnabled: true,
     detailGridDensity: 7,
-    detailHexes: [],
+    detailHexes,
     subHexes: [],
     subHexLandmarks: [],
     subHexTokens: [],
     viewport: { scale: 1, offsetX: 0, offsetY: 0 },
-    metadata: { totalHexes: hexes.length },
+    metadata: { totalHexes: hexes.length, totalDetailHexes: detailHexes.length },
     exportMetadata: { exportType: 'naturalearth-rasterizer', region: id, exportedAt: new Date().toISOString() },
   };
 
@@ -176,7 +226,7 @@ function buildRegion(id) {
   fs.writeFileSync(outPath, JSON.stringify(map), 'utf8');
   const mb = (fs.statSync(outPath).size / 1024 / 1024).toFixed(2);
   console.log(`  ${id.padEnd(9)} ${COLS}x${ROWS} -> ${hexes.length} hexes (land ${land}/water ${water}), ` +
-    `cities ${stamped}/${inRegion}, cosLat ${cosC.toFixed(2)}, ${mb} MB`);
+    `${detailHexes.length} detail hexes, cities ${stamped}/${inRegion}, cosLat ${cosC.toFixed(2)}, ${mb} MB`);
 
   return { id, name: R.name, mapInstanceId, file: `earth-996-${id}.json`,
     bounds: { lon: R.lon, lat: R.lat }, hexes: hexes.length, isDefault: id === 'world',
