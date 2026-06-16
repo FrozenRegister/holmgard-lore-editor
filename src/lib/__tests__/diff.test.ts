@@ -6,6 +6,7 @@ import {
   summarize,
   mergeFromPicks,
   hunkLabel,
+  hunkCounts,
   similarity,
 } from '../diff';
 
@@ -55,6 +56,12 @@ describe('lineDiff', () => {
   it('does not collapse del+ins of unrelated lines', () => {
     const ops = lineDiff('apple', 'totally unrelated content');
     expect(ops.some(o => o.type === 'mod')).toBe(false);
+  });
+
+  it('handles multiple consecutive deletions with no insertions', () => {
+    const ops = lineDiff('a\nb\nc\nd', 'a\nd');
+    const dels = ops.filter(o => o.type === 'del');
+    expect(dels).toHaveLength(2);
   });
 });
 
@@ -129,6 +136,12 @@ describe('mergeFromPicks', () => {
     expect(mergeFromPicks(ops, hunks, ['local'])).toBe(L);
     expect(mergeFromPicks(ops, hunks, ['remote'])).toBe(R);
   });
+
+  it('throws when hunks and picks lengths differ', () => {
+    const ops = lineDiff('a\nb', 'a\nX');
+    const hunks = toHunks(ops, 0);
+    expect(() => mergeFromPicks(ops, hunks, [])).toThrow('length mismatch');
+  });
 });
 
 describe('hunkLabel', () => {
@@ -143,11 +156,46 @@ describe('hunkLabel', () => {
     const [h] = toHunks(ops, 0);
     expect(hunkLabel(h)).toMatch(/^§/);
   });
+
+  it('reads the label from a pure insertion op', () => {
+    // 'a\nc' → 'a\n**Status:** new\nc': the new line is an `ins` op
+    const ops = lineDiff('a\nc', 'a\n**Status:** new\nc');
+    const [h] = toHunks(ops, 0);
+    expect(hunkLabel(h)).toBe('Status');
+  });
+
+  it('skips eq context ops when scanning for a label', () => {
+    // context=1 includes an eq line in the hunk; the loop must skip it via `continue`
+    const ops = lineDiff('context\n**Status:** A', 'context\n**Status:** B');
+    const [h] = toHunks(ops, 1);
+    expect(hunkLabel(h)).toBe('Status');
+  });
+
+  it('returns List item for list-item hunks', () => {
+    const ops = lineDiff('- first item', '- second item');
+    const [h] = toHunks(ops, 0);
+    expect(hunkLabel(h)).toBe('List item');
+  });
+
+  it('returns Changes when no pattern matches', () => {
+    const ops = lineDiff('plain text here', 'completely different');
+    const [h] = toHunks(ops, 0);
+    expect(hunkLabel(h)).toBe('Changes');
+  });
 });
 
 describe('summarize', () => {
   it('counts ops by type', () => {
     const ops = lineDiff('a\nb\nc', 'a\nX\nc'); // 1 del + 1 ins (too dissimilar to be a mod)
     expect(summarize(ops)).toMatchObject({ mod: 0, add: 1, del: 1 });
+  });
+});
+
+describe('hunkCounts', () => {
+  it('returns summarize of hunk ops', () => {
+    const ops = lineDiff('a\nb\nc', 'a\nX\nc');
+    const [h] = toHunks(ops, 0);
+    expect(hunkCounts(h)).toMatchObject({ total: expect.any(Number) });
+    expect(hunkCounts(h).total).toBeGreaterThan(0);
   });
 });

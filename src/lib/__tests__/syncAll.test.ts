@@ -201,6 +201,27 @@ describe('runSync — true conflict', () => {
     expect(mocks.conflictEvents.at(-1)).toContainEqual(conflict);
   });
 
+  it('pluralizes the conflict count in toast when multiple conflicts (runSync)', async () => {
+    const conflict1 = { key: 'a', local: 'a1', remote: 'a2', base: '', remoteMeta: {} };
+    const conflict2 = { key: 'b', local: 'b1', remote: 'b2', base: '', remoteMeta: {} };
+    mocks.topicsStore.set([makeTopic('a', 'a1', 1), makeTopic('b', 'b1', 1)]);
+    mocks.pullAllMock.mockResolvedValue(new Map([
+      ['a', makeTopic('a', 'a2', 1)],
+      ['b', makeTopic('b', 'b2', 1)],
+    ]));
+    mocks.detectConflictMock
+      .mockReturnValueOnce(conflict1)
+      .mockReturnValueOnce(conflict2);
+    mocks.showToastMock.mockClear();
+
+    await runSync();
+
+    expect(mocks.showToastMock).toHaveBeenCalledWith(
+      expect.stringContaining('2 conflicts'),
+      'warning',
+    );
+  });
+
   it('does not auto-save a conflicted topic', async () => {
     const conflict = { key: 'orcs', local: 'local', remote: 'remote', base: '', remoteMeta: {} };
     mocks.topicsStore.set([makeTopic('orcs', 'local version', 3)]);
@@ -313,11 +334,25 @@ describe('runSync — local ghosts', () => {
     await runSync();
 
     expect(mocks.saveTopicMock).toHaveBeenCalledWith(
-      expect.objectContaining({ 
-        key: 'ghost', 
-        meta: expect.objectContaining({ removedFromRemote: true }) 
+      expect.objectContaining({
+        key: 'ghost',
+        meta: expect.objectContaining({ removedFromRemote: true })
       })
     );
+  });
+
+  it('does not re-flag a ghost already marked removedFromRemote', async () => {
+    const ghost: Topic = {
+      key: 'already-gone',
+      text: '',
+      meta: { version: 1, updatedAt: '...', removedFromRemote: true },
+    };
+    mocks.topicsStore.set([ghost]);
+    mocks.pullAllMock.mockResolvedValue(new Map()); // Not in remote
+
+    await runSync();
+
+    expect(mocks.saveTopicMock).not.toHaveBeenCalled();
   });
 });
 
@@ -358,7 +393,8 @@ describe('runSmartSync', () => {
 
   it('processes remote deletes by flagging local topics', async () => {
     const local = makeTopic('delete-me', 'text', 1);
-    mocks.topicsStore.set([local]);
+    const bystander = makeTopic('keep-me', 'safe', 1);
+    mocks.topicsStore.set([local, bystander]);
     mocks.getChangesMock.mockResolvedValue([{ key: 'delete-me', op: 'delete', updatedAt: '...', version: 2 }]);
 
     await runSmartSync(since);
@@ -388,6 +424,40 @@ describe('runSmartSync', () => {
     await runSmartSync(since);
 
     expect(mocks.saveTopicMock).toHaveBeenCalledWith(expect.objectContaining({ key: 'new', text: 'new content' }));
+  });
+
+  it('calls pushHistory for new remote topics when syncHistory is true (smart sync)', async () => {
+    mocks.settingsStore.set({ workerHost: 'http://worker', autoSyncIntervalSecs: 0, syncHistory: true });
+    const remote: RemoteTopic = { key: 'brand-new', text: 'content', meta: { version: 1, updatedAt: '...' } };
+    mocks.getChangesMock.mockResolvedValue([{ key: 'brand-new', op: 'write', updatedAt: '...', version: 1 }]);
+    mocks.batchGetTopicsRemoteMock.mockResolvedValue(new Map([['brand-new', remote]]));
+
+    await runSmartSync(since);
+
+    expect(mocks.pushHistoryMock).toHaveBeenCalledWith('brand-new', 'content', 1, 'remote');
+  });
+
+  it('ignores delete changelog entries for topics not in local store', async () => {
+    mocks.topicsStore.set([]);
+    mocks.getChangesMock.mockResolvedValue([{ key: 'never-local', op: 'delete', updatedAt: '...', version: 1 }]);
+
+    await runSmartSync(since);
+
+    expect(mocks.saveTopicMock).not.toHaveBeenCalled();
+  });
+
+  it('skips delete flagging when topic is already marked removedFromRemote', async () => {
+    const already: Topic = {
+      key: 'gone',
+      text: '',
+      meta: { version: 1, updatedAt: '...', removedFromRemote: true },
+    };
+    mocks.topicsStore.set([already]);
+    mocks.getChangesMock.mockResolvedValue([{ key: 'gone', op: 'delete', updatedAt: '...', version: 1 }]);
+
+    await runSmartSync(since);
+
+    expect(mocks.saveTopicMock).not.toHaveBeenCalled();
   });
 
   it('updates local topics when remote version is higher', async () => {
@@ -420,9 +490,24 @@ describe('runSmartSync', () => {
     expect(mocks.syncStateStore.val.status).toBe('conflict');
   });
 
-  it('maintains conflict status if already in conflict', async () => {
+  it('maintains conflict status if already in conflict with no changes', async () => {
     mocks.syncStateStore.set({ status: 'conflict' });
     mocks.getChangesMock.mockResolvedValue([]);
+
+    await runSmartSync(since);
+
+    expect(mocks.syncStateUpdateEvents.at(-1).status).toBe('conflict');
+  });
+
+  it('preserves conflict status when a non-conflicting update arrives during conflict state', async () => {
+    mocks.syncStateStore.set({ status: 'conflict' });
+    const local = makeTopic('update', 'old', 1);
+    const remote: RemoteTopic = { key: 'update', text: 'new', meta: { version: 2, updatedAt: '...' } };
+
+    mocks.topicsStore.set([local]);
+    mocks.getChangesMock.mockResolvedValue([{ key: 'update', op: 'write', updatedAt: '...', version: 2 }]);
+    mocks.batchGetTopicsRemoteMock.mockResolvedValue(new Map([['update', remote]]));
+    mocks.detectConflictMock.mockReturnValue(null);
 
     await runSmartSync(since);
 

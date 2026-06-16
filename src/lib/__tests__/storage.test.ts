@@ -77,6 +77,29 @@ describe('storage.ts logic', () => {
         content: JSON.stringify(settings, null, 2)
       });
     });
+
+    it('wraps localStorage QuotaExceededError with a readable message', async () => {
+      const quotaErr = new DOMException('quota exceeded', 'QuotaExceededError');
+      const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => { throw quotaErr; });
+      const settings = { autoSync: false } as any;
+
+      try {
+        await expect(saveSettings(settings)).rejects.toThrow('Storage quota exceeded. Please clear some data.');
+      } finally {
+        spy.mockRestore();
+      }
+    });
+  });
+
+  describe('loadQueue (Browser)', () => {
+    it('loads queue from IndexedDB', async () => {
+      const mockQueue = [{ key: 'test', text: 'content', attempts: 0 }];
+      (idb.idbLoadQueue as any).mockResolvedValue(mockQueue);
+
+      const queue = await loadQueue();
+      expect(queue).toEqual(mockQueue);
+      expect(idb.idbLoadQueue).toHaveBeenCalled();
+    });
   });
 
   describe('loadQueue (Tauri)', () => {
@@ -188,6 +211,29 @@ describe('storage.ts logic', () => {
 
       await saveTopic(topic);
       expect(idb.idbSaveTopic).toHaveBeenCalledWith(topic);
+    });
+
+    it('re-throws Tauri fs_write errors', async () => {
+      (window as any).__TAURI__ = {};
+      (invoke as any).mockRejectedValueOnce(new Error('disk full'));
+      const topic = { key: 'test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
+
+      await expect(saveTopic(topic)).rejects.toThrow('disk full');
+    });
+
+    it('wraps IDB QuotaExceededError with a readable message', async () => {
+      const quotaErr = new DOMException('quota', 'QuotaExceededError');
+      (idb.idbSaveTopic as any).mockRejectedValueOnce(quotaErr);
+      const topic = { key: 'test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
+
+      await expect(saveTopic(topic)).rejects.toThrow('Storage quota exceeded.');
+    });
+
+    it('re-throws non-quota IDB errors', async () => {
+      (idb.idbSaveTopic as any).mockRejectedValueOnce(new Error('constraint error'));
+      const topic = { key: 'test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
+
+      await expect(saveTopic(topic)).rejects.toThrow('constraint error');
     });
   });
 
