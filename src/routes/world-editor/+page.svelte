@@ -324,6 +324,11 @@
   }
   @keyframes ldSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
   @keyframes ldPulse { 0%,100%{opacity:.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
+
+  :global(.back-to-lore:hover) {
+    background: rgba(160, 174, 192, 0.1) !important;
+    color: #cbd5e1 !important;
+  }
 </style>
 
 <div id="tooltip-container"></div>
@@ -351,6 +356,12 @@
   <!-- Topbar with file menu, save, etc. - this is populated by game.js -->
   <div class="topbar" style="display: flex !important; align-items: center !important;">
     <div class="topbar-left" style="display: flex !important; align-items: center !important; flex: 1 !important;">
+      <a href="/" class="back-to-lore" aria-label="Back to Lore" style="display: flex !important; align-items: center !important; gap: 6px !important; padding: 8px 12px !important; margin-right: 8px !important; text-decoration: none !important; color: #a0aec0 !important; font-size: 14px !important; border-radius: 6px !important; transition: all 0.2s !important; cursor: pointer !important;">
+        <svg style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        <span>Lore</span>
+      </a>
       <a href="/world-editor" class="logo" aria-label="HexMap home" style="display: flex !important; align-items: center !important; gap: 12px !important; text-decoration: none !important; color: inherit !important;">
         <img src="/hexmap/small_logo.svg" alt="TbdHEX" class="logo-icon" style="width: 40px; height: 40px;" />
         <span class="logo-text" style="display: flex !important; gap: 2px !important;"><span class="logo-hex-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Hex</span><span class="logo-atlas-text" style="color: #f0f4f8;">Map</span></span>

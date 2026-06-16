@@ -314,6 +314,62 @@ if (typeof w.newMap !== 'function') {
     console.log('[Game UI Bindings] Initialization complete - menu system ready');
   }
 
+  // ========================================================================
+  // MOBILE BACK BUTTON INJECTION (for hex editor on mobile)
+  // ========================================================================
+  function injectMobileBackButton() {
+    const hdrLeft = document.querySelector('.mc-hdr-left');
+    if (!hdrLeft || document.getElementById('holmgardBackBtn')) return;
+
+    const btn = document.createElement('a');
+    btn.id = 'holmgardBackBtn';
+    btn.href = '/';
+    btn.setAttribute('aria-label', 'Back to Lore');
+    btn.innerHTML = '← Lore';
+    btn.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      margin-right: 8px;
+      text-decoration: none;
+      color: #a0aec0;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: all 0.2s;
+      cursor: pointer;
+    `;
+    btn.addEventListener('mouseenter', () => {
+      btn.style.background = 'rgba(160, 174, 192, 0.1)';
+      btn.style.color = '#cbd5e1';
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.background = 'transparent';
+      btn.style.color = '#a0aec0';
+    });
+
+    hdrLeft.prepend(btn);
+  }
+
+  // Watch for mobile companion header to appear
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('.mc-hdr-left')) {
+        injectMobileBackButton();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    // Timeout fallback in case observer doesn't catch it
+    setTimeout(() => {
+      if (!document.getElementById('holmgardBackBtn')) {
+        injectMobileBackButton();
+        observer.disconnect();
+      }
+    }, 5000);
+  }
+
   // Try to expose functions once game.js has loaded.
   // Use a try-catch to prevent initialization errors from breaking the page
   try {
