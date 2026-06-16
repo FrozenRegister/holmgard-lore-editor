@@ -438,10 +438,11 @@ if (typeof w.newMap !== 'function') {
             return;
           }
 
-          // Now fetch the related data
-          var tx = db.transaction(['regionTerrain', 'items', 'detailTerrain', 'fog', 'layersSettings', 'rivers'], 'readonly');
+          // Now fetch the related data. Rivers are not a separate store — they
+          // live inside the layersSettings record (see performAutosave).
+          var tx = db.transaction(['regionTerrain', 'items', 'detailTerrain', 'fog', 'layersSettings'], 'readonly');
           var data = { mapMeta: mapEntry };
-          var pending = 6;
+          var pending = 5;
 
           function checkAllLoaded() {
             if (--pending === 0) {
@@ -485,13 +486,6 @@ if (typeof w.newMap !== 'function') {
             checkAllLoaded();
           };
           layersReq.onerror = checkAllLoaded;
-
-          var riversReq = tx.objectStore('rivers').get(mapEntry.id);
-          riversReq.onsuccess = function() {
-            data.rivers = riversReq.result;
-            checkAllLoaded();
-          };
-          riversReq.onerror = checkAllLoaded;
         };
 
         metaReq.onerror = function() {
@@ -527,7 +521,9 @@ if (typeof w.newMap !== 'function') {
   var HEXMAP_DB = 'HexAtlasDB';
   // Game.js IDB schema (game.js onupgradeneeded): mapMeta, regionTerrain, detailTerrain,
   // items, fog, layersSettings, mapJournal, simpleHexCache.
-  // Rivers are stored in-memory only (window.state.hexMap.rivers), not in IDB.
+  // Rivers (our feature) have no dedicated store — game.js doesn't model them and we
+  // don't edit its schema. We persist riverEdges/rivers inside the layersSettings
+  // record (see performAutosave / applyRestoredMap).
   var IDB_STORES = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings'];
   var AUTOSAVE_STORES = IDB_STORES; // autosave uses the same set
 
@@ -696,10 +692,14 @@ if (typeof w.newMap !== 'function') {
         tx.objectStore('layersSettings').put({
           id: AUTOSAVE_KEY, detailGridEnabled: hm.detailGridEnabled, detailGridDensity: hm.detailGridDensity,
           showHexCoordinates: hm.showHexCoordinates, layers: hm.layers || [],
-          customTerrains: hm.customTerrains || {}, customDungeonTiles: hm.customDungeonTiles || {}
+          customTerrains: hm.customTerrains || {}, customDungeonTiles: hm.customDungeonTiles || {},
+          // Rivers (riverEdges/rivers) are our own feature — game.js has no store for
+          // them, and we don't edit its schema. They're plain objects on state.hexMap,
+          // so we persist them alongside our other game.js-unknown data (customTerrains,
+          // customDungeonTiles) in this same record. This survives a full page reload,
+          // not just SPA navigation via the canvas portal.
+          riverEdges: hm.riverEdges || {}, rivers: hm.rivers || {}
         });
-        // Note: rivers are in-memory only (no IDB store in game.js schema).
-        // They survive SPA navigation via canvas portal; only lost on full page reload.
         tx.oncomplete = function() {
           db.close();
           localStorage.setItem('hexmap_autosave_available', '1');
@@ -751,7 +751,9 @@ if (typeof w.newMap !== 'function') {
     var items = data.items || {};
     var fog = data.fog || {};
     var layers = data.layersSettings || {};
-    var riverData = data.rivers || {};
+    // Rivers are persisted inside the layersSettings record (see performAutosave).
+    // Fall back to a legacy top-level data.rivers blob if one is ever present.
+    var riverData = data.rivers || layers || {};
 
     var state = Object.assign({},
       { version: meta.version, name: meta.name || meta.mapName, mapName: meta.mapName, mapType: meta.mapType,
