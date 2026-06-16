@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { beforeNavigate } from '$app/navigation';
   import { showToast } from '$lib/stores';
   import { exposeAggregationAPI } from '$lib/terrain-aggregation';
   import '$lib/importMap';
@@ -188,9 +189,17 @@
     // Set document title
     document.title = 'TbdHEX App - Hex Map Editor for Tabletop RPGs';
 
-    // Check if scripts are already loaded (to avoid duplicate loading in SPA)
+    // Return visit: scripts already loaded, canvas was preserved in holder by onDestroy.
+    // Move it back into .canvas-container and dismiss the loading screen.
     if ((window as any).__hexMapScriptsLoaded) {
-      console.log('Hex map scripts already loaded, skipping reload');
+      const holder = document.getElementById('hexmap-canvas-holder');
+      const canvas = holder?.querySelector('#hexCanvas') as HTMLElement | null;
+      const container = document.querySelector('.canvas-container') as HTMLElement | null;
+      if (canvas && container) {
+        container.insertBefore(canvas, container.firstChild);
+      }
+      // Dismiss loading screen and trigger re-render via game.js's resizeCanvas
+      (window as any).__dismissLoading?.();
       isLoaded = true;
       return;
     }
@@ -203,6 +212,16 @@
         resolve(null);
       }
     });
+
+    // Create #hexCanvas programmatically so it is NOT owned by Svelte.
+    // Svelte can only destroy nodes it created — a programmatic element survives onDestroy
+    // and can be moved to the holder for canvas-portal navigation.
+    const canvasContainer = document.querySelector('.canvas-container');
+    if (canvasContainer && !document.getElementById('hexCanvas')) {
+      const canvas = document.createElement('canvas');
+      canvas.id = 'hexCanvas';
+      canvasContainer.insertBefore(canvas, canvasContainer.firstChild);
+    }
 
     // Initialize the hex editor scripts in the correct order
     // These scripts are loaded as static assets and expect certain DOM structures
@@ -225,7 +244,7 @@
     for (const src of scriptOrder) {
       await new Promise<void>((resolve) => {
         const script = document.createElement('script');
-        script.src = `${src}?v=2026-05-13-2`;
+        script.src = `${src}?v=2026-06-15`;
         script.onload = () => {
           console.log(`Loaded: ${src}`);
           resolve();
@@ -243,16 +262,37 @@
     isLoaded = true;
   });
 
+  // Initiate autosave before SPA navigation (async IDB write completes in background)
+  beforeNavigate(() => {
+    (window as any).holmgardAutosave?.save();
+  });
+
   onDestroy(() => {
-    // Clean up if needed
+    // game.js stores canvas/ctx as module-level constants — it cannot re-run safely
+    // (re-running would throw SyntaxError on let/const re-declarations).
+    // Instead, move #hexCanvas to a persistent holder div before Svelte tears down the
+    // DOM. On remount, we move it back and call resizeCanvas() to re-render.
+    const canvas = document.getElementById('hexCanvas');
+    if (canvas) {
+      let holder = document.getElementById('hexmap-canvas-holder') as HTMLElement | null;
+      if (!holder) {
+        holder = document.createElement('div');
+        holder.id = 'hexmap-canvas-holder';
+        // Hidden but still attached to DOM so game.js canvas ref stays valid
+        holder.style.cssText = 'position:fixed;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;';
+        document.body.appendChild(holder);
+      }
+      holder.appendChild(canvas);
+    }
+    (window as any).holmgardAutosave?.save();
   });
 </script>
 
 <svelte:head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/hexmap/style.css?v=2026-05-13-2" />
-  <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-05-13-2" />
+  <link rel="stylesheet" href="/hexmap/style.css?v=2026-06-15" />
+  <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-06-15" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link
@@ -897,8 +937,10 @@
     </div>
 
     <!-- Canvas container -->
+    <!-- #hexCanvas is created programmatically in onMount and preserved across navigations
+         via the canvas portal (#hexmap-canvas-holder). Do not add <canvas> here or Svelte
+         would recreate it on remount, shadowing game.js's stored module-level reference. -->
     <div class="canvas-container">
-      <canvas id="hexCanvas"></canvas>
       <div id="inlineTextEdit" class="inline-text-edit" contenteditable="true" spellcheck="false" style="display: none;"></div>
       <div id="inlineNameEdit" class="inline-name-edit" style="display: none;">
         <div class="inline-name-preview" id="inlineNamePreview"></div>
