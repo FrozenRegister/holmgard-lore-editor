@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.2.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4.0.0
+        with:
+          version: '11.5.1'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bump package.json version
+        run: npm version ${{ inputs.version }} --no-git-tag-version
+
+      - name: Bump tauri.conf.json version
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'src-tauri/tauri.conf.json';
+            const conf = JSON.parse(fs.readFileSync(path, 'utf8'));
+            conf.package.version = '${{ inputs.version }}';
+            fs.writeFileSync(path, JSON.stringify(conf, null, 2) + '\n');
+          "
+
+      - name: Generate CHANGELOG.md
+        run: pnpm changelog
+
+      - name: Commit and tag release
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add package.json src-tauri/tauri.conf.json CHANGELOG.md
+          git commit -m "chore: release v${{ inputs.version }}"
+          git tag "v${{ inputs.version }}"
+          git push origin main --follow-tags
+
+      - name: Extract release notes
+        id: notes
+        run: |
+          node -e "
+            const fs = require('fs');
+            const log = fs.readFileSync('CHANGELOG.md', 'utf8');
+            const version = '${{ inputs.version }}';
+            const match = log.match(new RegExp('## \\\\[' + version.replace(/\./g, '\\\\.') + '\\\\][^\\n]*\\n([\\s\\S]*?)(?=\\n## \\\\[|\$)'));
+            const notes = match ? match[1].trim() : 'See CHANGELOG.md for details.';
+            fs.writeFileSync('/tmp/release-notes.txt', notes);
+          "
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ inputs.version }}" \
+            --title "v${{ inputs.version }}" \
+            --notes-file /tmp/release-notes.txt

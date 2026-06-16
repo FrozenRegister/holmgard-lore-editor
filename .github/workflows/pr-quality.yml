@@ -8,32 +8,6 @@ permissions:
   pull-requests: read
 
 jobs:
-  check-changelog:
-    runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-quality-checks') }}
-
-    steps:
-      - uses: actions/github-script@v7
-        with:
-          script: |
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-            })
-
-            const hasChangelog = files.some(f => f.filename === 'CHANGELOG.md')
-
-            if (!hasChangelog) {
-              core.setFailed(
-                'ERROR **CHANGELOG.md required**\n\n' +
-                'Every PR must include a CHANGELOG entry under `[Unreleased]`.\n\n' +
-                'If you are skipping this check for an emergency hotfix, apply the `skip-quality-checks` label.'
-              )
-            } else {
-              console.log('OK CHANGELOG.md found in PR')
-            }
-
   check-vendor-integrity:
     runs-on: ubuntu-latest
     continue-on-error: true
