@@ -509,6 +509,46 @@ describe('getChanges', () => {
   });
 });
 
+// ── rpc JSON-level errors (line 45) ───────────────────────────────────────────
+describe('rpc JSON-level errors', () => {
+  it('throws with error.message when RPC response contains error with message field', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1, error: { message: 'topic not found' } }),
+    } as Response);
+    await expect(listTopicsRemote('http://worker', 'key')).rejects.toThrow('topic not found');
+  });
+
+  it('throws JSON.stringify(error) when error has no message field', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1, error: { code: -32600 } }),
+    } as Response);
+    await expect(listTopicsRemote('http://worker', 'key')).rejects.toThrow('-32600');
+  });
+});
+
+// ── getTopicRemote null result (line 67) ──────────────────────────────────────
+describe('getTopicRemote null result', () => {
+  it('returns null when RPC result is null', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ jsonrpc: '2.0', id: 1, result: null }),
+    } as Response);
+    const topic = await getTopicRemote('http://worker', 'missing', 'key');
+    expect(topic).toBeNull();
+  });
+});
+
+// ── getTopicHistories null snapshots (line 266) ───────────────────────────────
+describe('getTopicHistories null snapshots', () => {
+  it('treats null snapshots as empty array', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({ 'topic1': null }));
+    const map = await getTopicHistories('http://worker', ['topic1'], 'key');
+    expect(map.get('topic1')).toEqual([]);
+  });
+});
+
 // ── parseKvEntry edge cases ────────────────────────────────────────────────────
 // Note: parseKvEntry is internal but we can test it through getTopicRemote behavior
 describe('parseKvEntry behavior', () => {

@@ -191,19 +191,39 @@ export async function flushQueue(
   if (!queue.length) return;
 
   const remaining: QueuedSave[] = [];
+  const BATCH_SIZE = 5;
 
-  for (const item of queue) {
-    if (item.attempts >= MAX_ATTEMPTS) continue; // drop after max attempts
+  for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+    const batch = queue.slice(i, i + BATCH_SIZE).filter((item) => item.attempts < MAX_ATTEMPTS);
+    if (!batch.length) continue;
 
-    await new Promise((r) => setTimeout(r, backoffDelay(item.attempts)));
+    // Apply backoff once per batch (to the first item's attempt count)
+    const maxAttempts = Math.max(...batch.map((item) => item.attempts));
+    await new Promise((r) => setTimeout(r, backoffDelay(maxAttempts)));
 
-    try {
-      await adminSave(settings.workerHost, item.key, item.text, secret);
-    } catch (err) {
-      console.warn(`Queue flush failed for "${item.key}" (attempt ${item.attempts + 1}):`, err);
-      remaining.push({ ...item, attempts: item.attempts + 1 });
+    // Process all items in batch in parallel
+    const results = await Promise.allSettled(
+      batch.map((item) => adminSave(settings.workerHost, item.key, item.text, secret))
+    );
+
+    // Handle results per-item
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      const item = batch[j];
+
+      if (result.status === 'rejected') {
+        console.warn(`Queue flush failed for "${item.key}" (attempt ${item.attempts + 1}):`, result.reason);
+        remaining.push({ ...item, attempts: item.attempts + 1 });
+      }
     }
   }
+
+  // Drop items that exceeded max attempts
+  queue.forEach((item) => {
+    if (item.attempts >= MAX_ATTEMPTS && !remaining.find((r) => r.key === item.key)) {
+      console.warn(`Dropping queue item "${item.key}" after ${MAX_ATTEMPTS} attempts`);
+    }
+  });
 
   await saveQueue(remaining);
 }
