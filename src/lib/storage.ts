@@ -130,16 +130,21 @@ export async function loadTopic(key: string): Promise<Topic | null> {
       raw = await invoke<string>('fs_read', { path });
     } catch (err) {
       // Check if file genuinely doesn't exist (ENOENT / code 2)
-      const errorCode = (err as any)?.code ?? (err as any)?.kind;
+      const errorObj = err as any;
+      const errorCode = errorObj?.code ?? errorObj?.kind;
       const errorMsg = String(err).toLowerCase();
       const isNotFound =
         errorCode === 'ENOENT' ||
         errorCode === 'notFound' ||
+        errorCode === 'NotFound' ||
         errorCode === 2 ||
-        errorMsg.includes('os error 2');
+        errorMsg.includes('os error 2') ||
+        errorMsg.includes('not found') ||
+        errorMsg.includes('code: 2') ||
+        errorMsg.includes('kind: notfound');
 
       if (!isNotFound) {
-        console.error(`[storage] Failed to read topic file "${key}" (possible filesystem issue):`, err);
+        console.warn(`Unexpected error loading topic "${key}" at ${path}:`, err);
       }
       return null;
     }
@@ -148,11 +153,11 @@ export async function loadTopic(key: string): Promise<Topic | null> {
     try {
       const topic = safeParseJson<Topic>(raw, undefined);
       if (!topic) {
-        console.error(`[storage] Topic file "${key}" is invalid JSON (corrupted):`, raw);
+        console.warn(`Failed to parse topic file "${key}" (corrupted JSON):`, raw);
       }
       return topic;
     } catch (parseErr) {
-      console.error(`[storage] Failed to parse topic file "${key}" (corrupted):`, parseErr);
+      console.warn(`Failed to parse topic file "${key}" (corrupted JSON):`, parseErr);
       return null;
     }
   }
