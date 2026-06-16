@@ -213,12 +213,39 @@ describe('storage.ts logic', () => {
       expect(idb.idbSaveTopic).toHaveBeenCalledWith(topic);
     });
 
-    it('re-throws Tauri fs_write errors', async () => {
+    it('debounces multiple saves for the same topic', async () => {
+      vi.useFakeTimers();
       (window as any).__TAURI__ = {};
-      (invoke as any).mockRejectedValueOnce(new Error('disk full'));
-      const topic = { key: 'test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
+      const topic = { key: 'debounce-test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
 
-      await expect(saveTopic(topic)).rejects.toThrow('disk full');
+      saveTopic(topic);
+      saveTopic(topic);
+      saveTopic(topic);
+
+      expect(invoke).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(300);
+      await vi.runAllTimersAsync();
+
+      expect(invoke).toHaveBeenCalledTimes(1);
+      expect(invoke).toHaveBeenCalledWith('fs_write', expect.objectContaining({
+        path: expect.stringContaining('debounce-test'),
+      }));
+      vi.useRealTimers();
+    });
+
+    it('rejects on Tauri save error', async () => {
+      vi.useFakeTimers();
+      (window as any).__TAURI__ = {};
+      const topic = { key: 'error-test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
+      (invoke as any).mockRejectedValueOnce(new Error('Write failed'));
+
+      const promise = saveTopic(topic);
+      // Attach rejection handler before advancing timers so Node never sees an unhandled rejection
+      const assertion = expect(promise).rejects.toThrow('Write failed');
+      await vi.runAllTimersAsync();
+      await assertion;
+      vi.useRealTimers();
     });
 
     it('wraps IDB QuotaExceededError with a readable message', async () => {
@@ -304,6 +331,27 @@ describe('storage.ts logic', () => {
       expect(topics).toHaveLength(1);
       expect(topics[0].key).toBe('good');
       expect(spy).toHaveBeenCalled();
+    });
+
+    it('skips files that fail to read and logs a warning', async () => {
+      const mockFiles = ['good.json', 'unreadable.json'];
+      const goodTopic = { key: 'good', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } };
+
+      (invoke as any)
+        .mockResolvedValueOnce(mockFiles)
+        .mockResolvedValueOnce(JSON.stringify(goodTopic))
+        .mockRejectedValueOnce(new Error('Permission denied'));
+
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const topics = await loadAllTopics();
+
+      expect(topics).toHaveLength(1);
+      expect(topics[0].key).toBe('good');
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to read topic file'),
+        expect.any(Error),
+      );
+      spy.mockRestore();
     });
 
     it('returns sorted topics by key', async () => {
