@@ -303,10 +303,16 @@
   @media (max-width: 768px) {
     .topic-list-page { padding: 1rem; gap: 0.85rem; }
     h1 { font-size: 1.35rem; }
-    .topic-grid { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column; align-items: stretch; }
+    .header-actions { width: 100%; flex-direction: column; }
+    .header-actions .btn { width: 100%; min-height: 44px; }
+    .topic-grid { grid-template-columns: 1fr; gap: 0.75rem; }
     .search-bar { grid-template-columns: 1fr; }
     .sort-label { display: none; }
-    .sort-select { width: 100%; }
+    .sort-select { width: 100%; min-height: 44px; padding: 0.6rem; }
+    .search-input { min-height: 44px; padding: 0.65rem 0.85rem; }
+    .filter-bar { gap: 0.5rem; }
+    .chip { padding: 0.35rem 0.75rem; min-height: 40px; display: flex; align-items: center; }
   }
 
   .page-header {

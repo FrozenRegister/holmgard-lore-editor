@@ -314,6 +314,62 @@ if (typeof w.newMap !== 'function') {
     console.log('[Game UI Bindings] Initialization complete - menu system ready');
   }
 
+  // ========================================================================
+  // MOBILE BACK BUTTON INJECTION (for hex editor on mobile)
+  // ========================================================================
+  function injectMobileBackButton() {
+    const hdrLeft = document.querySelector('.mc-hdr-left');
+    if (!hdrLeft || document.getElementById('holmgardBackBtn')) return;
+
+    const btn = document.createElement('a');
+    btn.id = 'holmgardBackBtn';
+    btn.href = '/';
+    btn.setAttribute('aria-label', 'Back to Lore');
+    btn.innerHTML = '← Lore';
+    btn.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      margin-right: 8px;
+      text-decoration: none;
+      color: #a0aec0;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: all 0.2s;
+      cursor: pointer;
+    `;
+    btn.addEventListener('mouseenter', () => {
+      btn.style.background = 'rgba(160, 174, 192, 0.1)';
+      btn.style.color = '#cbd5e1';
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.background = 'transparent';
+      btn.style.color = '#a0aec0';
+    });
+
+    hdrLeft.prepend(btn);
+  }
+
+  // Watch for mobile companion header to appear
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('.mc-hdr-left')) {
+        injectMobileBackButton();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    // Timeout fallback in case observer doesn't catch it
+    setTimeout(() => {
+      if (!document.getElementById('holmgardBackBtn')) {
+        injectMobileBackButton();
+        observer.disconnect();
+      }
+    }, 5000);
+  }
+
   // Try to expose functions once game.js has loaded.
   // Use a try-catch to prevent initialization errors from breaking the page
   try {
@@ -338,7 +394,12 @@ if (typeof w.newMap !== 'function') {
       var mapId = window.state && window.state.hexMap && window.state.hexMap.mapInstanceId;
       var isEarth = !mapId || String(mapId).indexOf('earth-') === 0;
       if (isEarth) {
-        restoreLastOpenedMap();
+        var hasDraftKey = !!(localStorage.getItem('hexmap_last_draft_key') || localStorage.getItem('hexmap_last_draft_id'));
+        if (hasDraftKey) {
+          restoreLastOpenedMap();
+        } else {
+          restoreAutosave();
+        }
       } else {
         saveLastOpenedDraftKey();
       }
@@ -464,7 +525,11 @@ if (typeof w.newMap !== 'function') {
 
   // ---- IndexedDB helpers ---------------------------------------------------
   var HEXMAP_DB = 'HexAtlasDB';
-  var IDB_STORES = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings', 'rivers'];
+  // Game.js IDB schema (game.js onupgradeneeded): mapMeta, regionTerrain, detailTerrain,
+  // items, fog, layersSettings, mapJournal, simpleHexCache.
+  // Rivers are stored in-memory only (window.state.hexMap.rivers), not in IDB.
+  var IDB_STORES = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings'];
+  var AUTOSAVE_STORES = IDB_STORES; // autosave uses the same set
 
   function saveLastOpenedDraftKey() {
     var mapId = window.state && window.state.hexMap && window.state.hexMap.mapInstanceId;
@@ -577,6 +642,102 @@ if (typeof w.newMap !== 'function') {
       console.warn('[Game UI Bindings] IDB loadFromIdbKey failed:', err);
     }
   }
+
+  // ---- Autosave draft to IDB -----------------------------------------------
+  // Saves current canvas state as a draft so it survives SPA navigation.
+  // SvelteKit recreates the DOM (including the canvas) on each route change, which
+  // stales game.js's module-level canvas reference. The fix: clear __hexMapScriptsLoaded
+  // in onDestroy so game.js re-runs with the fresh canvas; restore from this autosave
+  // on re-init so the user's work comes back.
+  var AUTOSAVE_KEY = 'holmgard-autosave';
+  var _autosaveTimer = null;
+  var _autosaveInProgress = false;
+
+  function _toArray(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val.values === 'function') return Array.from(val.values());
+    return Object.values(val);
+  }
+
+  function performAutosave() {
+    if (_autosaveInProgress) return;
+    var hm = window.state && window.state.hexMap;
+    if (!hm) return;
+    var mapId = hm.mapInstanceId;
+    if (mapId && String(mapId).indexOf('earth-') === 0) return; // earth maps are loaded from files
+    var hexesArr = _toArray(hm.hexes);
+    var detailArr = _toArray(hm.detailHexes);
+    if (!hexesArr.length && !detailArr.length) return; // nothing to save
+    _autosaveInProgress = true;
+    try {
+      var req = indexedDB.open(HEXMAP_DB);
+      req.onsuccess = function(e) {
+        var db = e.target.result;
+        var tx = db.transaction(IDB_STORES, 'readwrite');
+        tx.objectStore('mapMeta').put({
+          id: AUTOSAVE_KEY, name: hm.mapName || 'Autosave', mapName: hm.mapName || 'Autosave',
+          mapType: hm.mapType, mapInstanceId: hm.mapInstanceId, canvasBackground: hm.canvasBackground,
+          orientation: hm.orientation, hexSize: hm.hexSize, viewport: hm.viewport,
+          nextLandmarkId: hm.nextLandmarkId, nextTextLabelId: hm.nextTextLabelId,
+          nextImageOverlayId: hm.nextImageOverlayId, nextTokenId: hm.nextTokenId,
+          nextPathId: hm.nextPathId, dungeonLayout: hm.dungeonLayout, settlementLayout: hm.settlementLayout
+        });
+        tx.objectStore('regionTerrain').put({ id: AUTOSAVE_KEY, hexes: hexesArr });
+        tx.objectStore('detailTerrain').put({
+          id: AUTOSAVE_KEY, detailHexes: detailArr, subHexes: hm.subHexes || [],
+          subHexLandmarks: hm.subHexLandmarks || [], subHexTokens: hm.subHexTokens || []
+        });
+        tx.objectStore('items').put({
+          id: AUTOSAVE_KEY, landmarks: hm.landmarks || [], textLabels: hm.textLabels || [],
+          imageOverlays: hm.imageOverlays || [], tokens: hm.tokens || [], paths: hm.paths || []
+        });
+        tx.objectStore('fog').put({ id: AUTOSAVE_KEY, fogOfWar: hm.fogOfWar || [], fogSettings: hm.fogSettings || {} });
+        tx.objectStore('layersSettings').put({
+          id: AUTOSAVE_KEY, detailGridEnabled: hm.detailGridEnabled, detailGridDensity: hm.detailGridDensity,
+          showHexCoordinates: hm.showHexCoordinates, layers: hm.layers || [],
+          customTerrains: hm.customTerrains || {}, customDungeonTiles: hm.customDungeonTiles || {}
+        });
+        // Note: rivers are in-memory only (no IDB store in game.js schema).
+        // They survive SPA navigation via canvas portal; only lost on full page reload.
+        tx.oncomplete = function() {
+          db.close();
+          localStorage.setItem('hexmap_autosave_available', '1');
+          _autosaveInProgress = false;
+          console.log('[Game UI Bindings] Autosaved (' + hexesArr.length + ' hexes)');
+        };
+        tx.onerror = function(ev) {
+          db.close(); _autosaveInProgress = false;
+          console.warn('[Game UI Bindings] Autosave tx error:', ev.target && ev.target.error);
+        };
+      };
+      req.onerror = function() { _autosaveInProgress = false; };
+    } catch (err) {
+      _autosaveInProgress = false;
+      console.warn('[Game UI Bindings] Autosave error:', err);
+    }
+  }
+
+  function scheduleAutosave() {
+    if (_autosaveTimer) clearTimeout(_autosaveTimer);
+    _autosaveTimer = setTimeout(performAutosave, 2000);
+  }
+
+  function restoreAutosave() {
+    if (!localStorage.getItem('hexmap_autosave_available')) return;
+    console.log('[Game UI Bindings] Restoring autosave from IDB');
+    loadFromIdbKey(AUTOSAVE_KEY);
+  }
+
+  function hookCanvasForAutosave() {
+    var canvas = document.getElementById('hexCanvas');
+    if (!canvas) { setTimeout(hookCanvasForAutosave, 500); return; }
+    canvas.addEventListener('mouseup', scheduleAutosave, { passive: true });
+    canvas.addEventListener('touchend', scheduleAutosave, { passive: true });
+  }
+  hookCanvasForAutosave();
+
+  window.holmgardAutosave = { save: performAutosave, restore: restoreAutosave, schedule: scheduleAutosave };
 
   function applyRestoredMap(data, fullKey) {
     var meta = data.mapMeta;

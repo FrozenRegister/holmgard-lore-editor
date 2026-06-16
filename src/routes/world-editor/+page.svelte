@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { beforeNavigate } from '$app/navigation';
   import { showToast } from '$lib/stores';
   import { exposeAggregationAPI } from '$lib/terrain-aggregation';
   import '$lib/importMap';
@@ -188,9 +189,17 @@
     // Set document title
     document.title = 'TbdHEX App - Hex Map Editor for Tabletop RPGs';
 
-    // Check if scripts are already loaded (to avoid duplicate loading in SPA)
+    // Return visit: scripts already loaded, canvas was preserved in holder by onDestroy.
+    // Move it back into .canvas-container and dismiss the loading screen.
     if ((window as any).__hexMapScriptsLoaded) {
-      console.log('Hex map scripts already loaded, skipping reload');
+      const holder = document.getElementById('hexmap-canvas-holder');
+      const canvas = holder?.querySelector('#hexCanvas') as HTMLElement | null;
+      const container = document.querySelector('.canvas-container') as HTMLElement | null;
+      if (canvas && container) {
+        container.insertBefore(canvas, container.firstChild);
+      }
+      // Dismiss loading screen and trigger re-render via game.js's resizeCanvas
+      (window as any).__dismissLoading?.();
       isLoaded = true;
       return;
     }
@@ -203,6 +212,16 @@
         resolve(null);
       }
     });
+
+    // Create #hexCanvas programmatically so it is NOT owned by Svelte.
+    // Svelte can only destroy nodes it created — a programmatic element survives onDestroy
+    // and can be moved to the holder for canvas-portal navigation.
+    const canvasContainer = document.querySelector('.canvas-container');
+    if (canvasContainer && !document.getElementById('hexCanvas')) {
+      const canvas = document.createElement('canvas');
+      canvas.id = 'hexCanvas';
+      canvasContainer.insertBefore(canvas, canvasContainer.firstChild);
+    }
 
     // Initialize the hex editor scripts in the correct order
     // These scripts are loaded as static assets and expect certain DOM structures
@@ -225,7 +244,7 @@
     for (const src of scriptOrder) {
       await new Promise<void>((resolve) => {
         const script = document.createElement('script');
-        script.src = `${src}?v=2026-05-13-2`;
+        script.src = `${src}?v=2026-06-15`;
         script.onload = () => {
           console.log(`Loaded: ${src}`);
           resolve();
@@ -243,16 +262,37 @@
     isLoaded = true;
   });
 
+  // Initiate autosave before SPA navigation (async IDB write completes in background)
+  beforeNavigate(() => {
+    (window as any).holmgardAutosave?.save();
+  });
+
   onDestroy(() => {
-    // Clean up if needed
+    // game.js stores canvas/ctx as module-level constants — it cannot re-run safely
+    // (re-running would throw SyntaxError on let/const re-declarations).
+    // Instead, move #hexCanvas to a persistent holder div before Svelte tears down the
+    // DOM. On remount, we move it back and call resizeCanvas() to re-render.
+    const canvas = document.getElementById('hexCanvas');
+    if (canvas) {
+      let holder = document.getElementById('hexmap-canvas-holder') as HTMLElement | null;
+      if (!holder) {
+        holder = document.createElement('div');
+        holder.id = 'hexmap-canvas-holder';
+        // Hidden but still attached to DOM so game.js canvas ref stays valid
+        holder.style.cssText = 'position:fixed;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;';
+        document.body.appendChild(holder);
+      }
+      holder.appendChild(canvas);
+    }
+    (window as any).holmgardAutosave?.save();
   });
 </script>
 
 <svelte:head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/hexmap/style.css?v=2026-05-13-2" />
-  <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-05-13-2" />
+  <link rel="stylesheet" href="/hexmap/style.css?v=2026-06-15" />
+  <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-06-15" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link
@@ -324,6 +364,11 @@
   }
   @keyframes ldSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
   @keyframes ldPulse { 0%,100%{opacity:.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
+
+  :global(.back-to-lore:hover) {
+    background: rgba(160, 174, 192, 0.1) !important;
+    color: #cbd5e1 !important;
+  }
 </style>
 
 <div id="tooltip-container"></div>
@@ -351,6 +396,12 @@
   <!-- Topbar with file menu, save, etc. - this is populated by game.js -->
   <div class="topbar" style="display: flex !important; align-items: center !important;">
     <div class="topbar-left" style="display: flex !important; align-items: center !important; flex: 1 !important;">
+      <a href="/" class="back-to-lore" aria-label="Back to Lore" style="display: flex !important; align-items: center !important; gap: 6px !important; padding: 8px 12px !important; margin-right: 8px !important; text-decoration: none !important; color: #a0aec0 !important; font-size: 14px !important; border-radius: 6px !important; transition: all 0.2s !important; cursor: pointer !important;">
+        <svg style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        <span>Lore</span>
+      </a>
       <a href="/world-editor" class="logo" aria-label="HexMap home" style="display: flex !important; align-items: center !important; gap: 12px !important; text-decoration: none !important; color: inherit !important;">
         <img src="/hexmap/small_logo.svg" alt="TbdHEX" class="logo-icon" style="width: 40px; height: 40px;" />
         <span class="logo-text" style="display: flex !important; gap: 2px !important;"><span class="logo-hex-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Hex</span><span class="logo-atlas-text" style="color: #f0f4f8;">Map</span></span>
@@ -415,6 +466,10 @@
             </svg>
             Share Link
           </div>
+          <!-- TODO: Update Example Maps to include Earth 996 AD regions
+               (world overview, europe, americas, east-asia, africa)
+               Use RegionSwitcher class from static/hexmap/region-switcher.js
+               to dynamically load earth-996-*.json files when user selects them -->
           <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.openExamplesModal?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.openExamplesModal?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
@@ -882,8 +937,10 @@
     </div>
 
     <!-- Canvas container -->
+    <!-- #hexCanvas is created programmatically in onMount and preserved across navigations
+         via the canvas portal (#hexmap-canvas-holder). Do not add <canvas> here or Svelte
+         would recreate it on remount, shadowing game.js's stored module-level reference. -->
     <div class="canvas-container">
-      <canvas id="hexCanvas"></canvas>
       <div id="inlineTextEdit" class="inline-text-edit" contenteditable="true" spellcheck="false" style="display: none;"></div>
       <div id="inlineNameEdit" class="inline-name-edit" style="display: none;">
         <div class="inline-name-preview" id="inlineNamePreview"></div>
