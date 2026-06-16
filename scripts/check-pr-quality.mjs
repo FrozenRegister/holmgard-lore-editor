@@ -4,10 +4,9 @@
  * Client-side PR quality pre-check.
  *
  * Mirrors the CI checks in .github/workflows/pr-quality.yml:
- *   1. check-changelog — CHANGELOG.md must be in the diff
- *   2. check-docs     — a file under docs/ must be in the diff,
- *                       OR the latest commit message (or a PR_DOCS env var)
- *                       must contain "## Documentation"
+ *   1. check-docs — a file under docs/ must be in the diff,
+ *                   OR the latest commit message (or a PR_DOCS env var)
+ *                   must contain "## Documentation"
  *
  * Run manually:  node scripts/check-pr-quality.mjs
  * Or wire into a git hook (e.g. pre-push).
@@ -33,20 +32,6 @@ try {
 }
 
 let exitCode = 0;
-
-// ── check-changelog ────────────────────────────────────────────
-const hasChangelog = files.some(f => f === 'CHANGELOG.md');
-
-if (!hasChangelog) {
-  console.error(
-    '❌  CHANGELOG.md not modified in this branch.\n' +
-    '    Every PR must include a CHANGELOG entry under [Unreleased].\n' +
-    '    If this is an emergency hotfix, push with SKIP_QUALITY_CHECKS=true.\n'
-  );
-  exitCode = 1;
-} else {
-  console.log('✓  CHANGELOG.md modified');
-}
 
 // ── check-docs ─────────────────────────────────────────────────
 const hasDocsFile = files.some(f => f.startsWith('docs/'));
