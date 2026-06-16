@@ -213,12 +213,39 @@ describe('storage.ts logic', () => {
       expect(idb.idbSaveTopic).toHaveBeenCalledWith(topic);
     });
 
-    it('re-throws Tauri fs_write errors', async () => {
+    it('debounces multiple saves for the same topic', async () => {
+      vi.useFakeTimers();
       (window as any).__TAURI__ = {};
-      (invoke as any).mockRejectedValueOnce(new Error('disk full'));
-      const topic = { key: 'test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
+      const topic = { key: 'debounce-test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
 
-      await expect(saveTopic(topic)).rejects.toThrow('disk full');
+      saveTopic(topic);
+      saveTopic(topic);
+      saveTopic(topic);
+
+      expect(invoke).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(300);
+      await vi.runAllTimersAsync();
+
+      expect(invoke).toHaveBeenCalledTimes(1);
+      expect(invoke).toHaveBeenCalledWith('fs_write', expect.objectContaining({
+        path: expect.stringContaining('debounce-test'),
+      }));
+      vi.useRealTimers();
+    });
+
+    it('rejects on Tauri save error', async () => {
+      vi.useFakeTimers();
+      (window as any).__TAURI__ = {};
+      const topic = { key: 'error-test', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } } as any;
+      (invoke as any).mockRejectedValueOnce(new Error('Write failed'));
+
+      const promise = saveTopic(topic);
+      vi.advanceTimersByTime(300);
+      await vi.runAllTimersAsync();
+
+      await expect(promise).rejects.toThrow('Write failed');
+      vi.useRealTimers();
     });
 
     it('wraps IDB QuotaExceededError with a readable message', async () => {
