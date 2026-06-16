@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Hex editor: canvas now sizes correctly on first paint — a ResizeObserver on `.canvas-container` drives game.js's `resizeCanvas` when the container gets its real layout box, replacing the fragile timing guess that left hexes squished/elongated until a manual window resize
 - Hex editor: painted maps now persist when navigating to Lore and back — debounced IndexedDB autosave + game.js re-init on remount (closes #118)
 - Rivers now properly clear between map loads to prevent cross-contamination (fixes #39)
 - River edges now sync bidirectionally across parent and detail grid levels (fixes #37)

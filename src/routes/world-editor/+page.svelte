@@ -107,10 +107,9 @@
           ls?.remove();
         }, 500);
       }
-      setTimeout(function () {
-        if (typeof (window as any).resizeCanvas === 'function')
-          (window as any).resizeCanvas();
-      }, 50);
+      // Canvas re-layout is handled by the ResizeObserver on .canvas-container
+      // (see attachCanvasResizeObserver). It fires when the container gets its
+      // real layout box, so we no longer guess the timing with rAF/setTimeout.
     };
 
     (window as any).__loadingProgress = function (pct: number, msg?: string) {
@@ -145,6 +144,39 @@
       checkMobileDevice();
     });
   })();
+
+  // Robust canvas sizing. game.js sizes its canvas *buffer* (canvas.width/height)
+  // from the parent's offsetWidth/Height, but only inside init() and on the
+  // window 'resize' event. Timing a synthetic resize by hand (setTimeout/rAF)
+  // races the browser's layout pass and loses on first paint — the buffer ends
+  // up out of sync with the CSS display size, so hexes render squished/elongated
+  // until the user happens to resize the window. A ResizeObserver on
+  // .canvas-container fires exactly when the container gets or changes its real
+  // layout box (first paint, sidebar toggles, window resize, return-from-Lore
+  // remount), so we forward each genuine size change to game.js's private
+  // resizeCanvas via the 'resize' event. No feedback loop: resizeCanvas changes
+  // the canvas buffer, not the container's box.
+  let canvasResizeObserver: ResizeObserver | null = null;
+  function attachCanvasResizeObserver() {
+    if (typeof ResizeObserver === 'undefined') return;
+    const container = document.querySelector('.canvas-container') as HTMLElement | null;
+    if (!container) return;
+    canvasResizeObserver?.disconnect();
+    let lastW = 0;
+    let lastH = 0;
+    canvasResizeObserver = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (!rect) return;
+      const w = Math.round(rect.width);
+      const h = Math.round(rect.height);
+      if (w === 0 || h === 0) return;        // not laid out yet — wait for real box
+      if (w === lastW && h === lastH) return; // no genuine change — avoid churn
+      lastW = w;
+      lastH = h;
+      window.dispatchEvent(new Event('resize'));
+    });
+    canvasResizeObserver.observe(container);
+  }
 
   onMount(async () => {
     // The hex editor requires a full page structure with specific IDs and classes
@@ -190,15 +222,19 @@
     document.title = 'TbdHEX App - Hex Map Editor for Tabletop RPGs';
 
     // Return visit: scripts already loaded, canvas was preserved in holder by onDestroy.
-    // Move it back into .canvas-container and dismiss the loading screen.
+    // Svelte will have rendered a fresh <canvas id="hexCanvas"> from the template —
+    // remove it and put back the preserved one (game.js's module-level `canvas` const
+    // still points to the preserved element).
     if ((window as any).__hexMapScriptsLoaded) {
       const holder = document.getElementById('hexmap-canvas-holder');
-      const canvas = holder?.querySelector('#hexCanvas') as HTMLElement | null;
+      const preservedCanvas = holder?.querySelector('canvas') as HTMLElement | null;
       const container = document.querySelector('.canvas-container') as HTMLElement | null;
-      if (canvas && container) {
-        container.insertBefore(canvas, container.firstChild);
+      if (preservedCanvas && container) {
+        const freshCanvas = document.getElementById('hexCanvas');
+        if (freshCanvas && freshCanvas !== preservedCanvas) freshCanvas.remove();
+        container.insertBefore(preservedCanvas, container.firstChild);
       }
-      // Dismiss loading screen and trigger re-render via game.js's resizeCanvas
+      attachCanvasResizeObserver();
       (window as any).__dismissLoading?.();
       isLoaded = true;
       return;
@@ -212,16 +248,6 @@
         resolve(null);
       }
     });
-
-    // Create #hexCanvas programmatically so it is NOT owned by Svelte.
-    // Svelte can only destroy nodes it created — a programmatic element survives onDestroy
-    // and can be moved to the holder for canvas-portal navigation.
-    const canvasContainer = document.querySelector('.canvas-container');
-    if (canvasContainer && !document.getElementById('hexCanvas')) {
-      const canvas = document.createElement('canvas');
-      canvas.id = 'hexCanvas';
-      canvasContainer.insertBefore(canvas, canvasContainer.firstChild);
-    }
 
     // Initialize the hex editor scripts in the correct order
     // These scripts are loaded as static assets and expect certain DOM structures
@@ -259,6 +285,7 @@
 
     // Mark scripts as loaded
     (window as any).__hexMapScriptsLoaded = true;
+    attachCanvasResizeObserver();
     isLoaded = true;
   });
 
@@ -268,6 +295,10 @@
   });
 
   onDestroy(() => {
+    // Stop observing — the next mount re-attaches against the fresh container.
+    canvasResizeObserver?.disconnect();
+    canvasResizeObserver = null;
+
     // game.js stores canvas/ctx as module-level constants — it cannot re-run safely
     // (re-running would throw SyntaxError on let/const re-declarations).
     // Instead, move #hexCanvas to a persistent holder div before Svelte tears down the
@@ -937,10 +968,8 @@
     </div>
 
     <!-- Canvas container -->
-    <!-- #hexCanvas is created programmatically in onMount and preserved across navigations
-         via the canvas portal (#hexmap-canvas-holder). Do not add <canvas> here or Svelte
-         would recreate it on remount, shadowing game.js's stored module-level reference. -->
     <div class="canvas-container">
+      <canvas id="hexCanvas"></canvas>
       <div id="inlineTextEdit" class="inline-text-edit" contenteditable="true" spellcheck="false" style="display: none;"></div>
       <div id="inlineNameEdit" class="inline-name-edit" style="display: none;">
         <div class="inline-name-preview" id="inlineNamePreview"></div>
