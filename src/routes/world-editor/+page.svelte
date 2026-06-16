@@ -426,6 +426,10 @@
             </svg>
             Share Link
           </div>
+          <!-- TODO: Update Example Maps to include Earth 996 AD regions
+               (world overview, europe, americas, east-asia, africa)
+               Use RegionSwitcher class from static/hexmap/region-switcher.js
+               to dynamically load earth-996-*.json files when user selects them -->
           <div class="dropdown-item" role="button" tabindex="0" on:click={() => window.openExamplesModal?.()} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.openExamplesModal?.(); } }}>
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
               <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
