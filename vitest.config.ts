@@ -22,6 +22,7 @@ export default defineConfig({
         'src/app-mock/**',
         'src/lib/components/**',
         'src/lib/**/*.svelte',
+        'src/lib/__tests__/gamejs-contract.test.ts',
         'src/lib/claude.ts',
         'src/lib/crypto.ts',
         'src/lib/demo-data.ts',
