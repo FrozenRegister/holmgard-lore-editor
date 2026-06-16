@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Hex editor: painted maps now persist when navigating to Lore and back — debounced IndexedDB autosave + game.js re-init on remount (closes #118)
 - Rivers now properly clear between map loads to prevent cross-contamination (fixes #39)
+- River edges now sync bidirectionally across parent and detail grid levels (fixes #37)
 
 ## [0.1.0] - 2026-06-10
 
