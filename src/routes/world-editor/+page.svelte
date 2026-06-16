@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { beforeNavigate } from '$app/navigation';
   import { showToast } from '$lib/stores';
   import { exposeAggregationAPI } from '$lib/terrain-aggregation';
   import '$lib/importMap';
@@ -225,7 +226,7 @@
     for (const src of scriptOrder) {
       await new Promise<void>((resolve) => {
         const script = document.createElement('script');
-        script.src = `${src}?v=2026-05-13-2`;
+        script.src = `${src}?v=2026-06-15`;
         script.onload = () => {
           console.log(`Loaded: ${src}`);
           resolve();
@@ -243,16 +244,24 @@
     isLoaded = true;
   });
 
+  // Initiate autosave before SPA navigation (async write completes in background)
+  beforeNavigate(() => {
+    (window as any).holmgardAutosave?.save();
+  });
+
   onDestroy(() => {
-    // Clean up if needed
+    // Clear the scripts-loaded flag so game.js re-initializes on remount with the
+    // fresh canvas element SvelteKit creates. Without this, game.js's module-level
+    // canvas ref points to the old detached element and all renders are invisible.
+    delete (window as any).__hexMapScriptsLoaded;
   });
 </script>
 
 <svelte:head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/hexmap/style.css?v=2026-05-13-2" />
-  <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-05-13-2" />
+  <link rel="stylesheet" href="/hexmap/style.css?v=2026-06-15" />
+  <link rel="stylesheet" href="/hexmap/mobile-companion.css?v=2026-06-15" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link
