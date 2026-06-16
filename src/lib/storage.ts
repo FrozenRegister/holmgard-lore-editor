@@ -151,10 +151,14 @@ export async function loadTopic(key: string): Promise<Topic | null> {
 
 export async function saveTopic(topic: Topic): Promise<void> {
   if (isTauri()) {
-    await invoke('fs_write', {
-      path: `topics/${encodeURIComponent(topic.key)}.json`,
-      content: JSON.stringify(topic, null, 2),
-    });
+    try {
+      await invoke('fs_write', {
+        path: `topics/${encodeURIComponent(topic.key)}.json`,
+        content: JSON.stringify(topic, null, 2),
+      });
+    } catch (err) {
+      throw err;
+    }
   } else {
     // Browser: use IndexedDB
     await ensureMigrationDone();
