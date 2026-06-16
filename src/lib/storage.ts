@@ -125,21 +125,34 @@ export async function loadAllTopics(): Promise<Topic[]> {
 export async function loadTopic(key: string): Promise<Topic | null> {
   if (isTauri()) {
     const path = `topics/${encodeURIComponent(key)}.json`;
+    let raw: string;
     try {
-      const raw = await invoke<string>('fs_read', { path });
-      return safeParseJson<Topic>(raw, `Failed to parse topic file "${key}":`);
+      raw = await invoke<string>('fs_read', { path });
     } catch (err) {
-      // File not found is common for unsaved topics; other errors (like corruption) should be logged.
+      // Check if file genuinely doesn't exist (ENOENT / code 2)
+      const errorCode = (err as any)?.code ?? (err as any)?.kind;
       const errorMsg = String(err).toLowerCase();
-      const isNotFound = 
-        errorMsg.includes('not found') || 
-        errorMsg.includes('notfound') || 
-        errorMsg.includes('code: 2') || 
+      const isNotFound =
+        errorCode === 'ENOENT' ||
+        errorCode === 'notFound' ||
+        errorCode === 2 ||
         errorMsg.includes('os error 2');
 
       if (!isNotFound) {
-        console.warn(`Unexpected error loading topic "${key}" at ${path}:`, err);
+        console.error(`[storage] Failed to read topic file "${key}" (possible filesystem issue):`, err);
       }
+      return null;
+    }
+
+    // Parse JSON separately to distinguish corruption from missing files
+    try {
+      const topic = safeParseJson<Topic>(raw, undefined);
+      if (!topic) {
+        console.error(`[storage] Topic file "${key}" is invalid JSON (corrupted):`, raw);
+      }
+      return topic;
+    } catch (parseErr) {
+      console.error(`[storage] Failed to parse topic file "${key}" (corrupted):`, parseErr);
       return null;
     }
   }
@@ -149,7 +162,10 @@ export async function loadTopic(key: string): Promise<Topic | null> {
   return idbLoadTopic(key);
 }
 
-export async function saveTopic(topic: Topic): Promise<void> {
+// Debounce timers for each topic key
+const _saveTimers = new Map<string, NodeJS.Timeout>();
+
+async function saveTopicImmediate(topic: Topic): Promise<void> {
   if (isTauri()) {
     try {
       await invoke('fs_write', {
@@ -171,6 +187,27 @@ export async function saveTopic(topic: Topic): Promise<void> {
       throw err;
     }
   }
+}
+
+export async function saveTopic(topic: Topic): Promise<void> {
+  const key = topic.key;
+  const existingTimer = _saveTimers.get(key);
+  if (existingTimer) clearTimeout(existingTimer);
+
+  return new Promise((resolve, reject) => {
+    _saveTimers.set(
+      key,
+      setTimeout(async () => {
+        _saveTimers.delete(key);
+        try {
+          await saveTopicImmediate(topic);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      }, 300)
+    );
+  });
 }
 
 export async function deleteTopic(key: string): Promise<void> {

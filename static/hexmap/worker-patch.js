@@ -21,12 +21,14 @@
       console.log('[Worker Patch] Resolved worker path from "' + scriptURL + '" to "' + resolvedURL + '"');
     }
 
-    // Call original Worker with resolved path
-    return new OriginalWorker(resolvedURL, options);
+    // Call original Worker with resolved path and set prototype on instance
+    const worker = new OriginalWorker(resolvedURL, options);
+    Object.setPrototypeOf(worker, OriginalWorker.prototype);
+    return worker;
   };
 
-  // Preserve Worker prototype
-  window.Worker.prototype = OriginalWorker.prototype;
+  // Forward constructor's static properties
+  Object.setPrototypeOf(window.Worker, OriginalWorker);
 
   console.log('[Worker Patch] Initialized - will redirect relative worker paths to /hexmap/');
 })();

@@ -85,12 +85,20 @@
     return parentR / getEdgeFactor()
   }
 
-  // Auto-detect the right grid level based on current zoom.
-  // Detail hexes are usable once their screen radius exceeds ~18 px.
+  // Auto-detect the right grid level based on current zoom with hysteresis to prevent flicker.
+  // Detail hexes are usable once their screen radius exceeds ~20 px; hysteresis band is 16–20 px.
   function autoGridLevel() {
-    try { return screenRadius('detail') >= 18 ? 'detail' : 'parent' }
-    catch (e) { return 'parent' }
+    try {
+      const r = screenRadius('detail')
+      if (r >= 20) return 'detail'
+      if (r <= 16) return 'parent'
+      // Hysteresis zone: stay at previous level to prevent flicker
+      return autoGridLevel._last || 'parent'
+    } catch (e) {
+      return 'parent'
+    }
   }
+  autoGridLevel._last = null
 
   // Canvas-center helper (CSS pixels).
   function canvasCenter() {
@@ -395,9 +403,11 @@
       if (parseEdgeKey(key).gridLevel === currentLevel) effectiveEdges[key] = data
     }
 
-    // Pass 2 (parent view only): project detail edges onto their parent borders so
-    // rivers painted while zoomed in remain visible when zoomed out.
+    // Pass 1b: project edges from the complementary grid level for visual continuity.
+    // When zoomed out (parent view), show parent-level detail edges projected upward.
+    // When zoomed in (detail view), show parent-level edges projected downward.
     if (currentLevel === 'parent') {
+      // Parent view: project detail edges onto their parent borders
       for (const [key, data] of Object.entries(edges)) {
         const { q, r, dir, gridLevel } = parseEdgeKey(key)
         if (gridLevel !== 'detail') continue
@@ -405,6 +415,16 @@
         if (!pe) continue
         const pKey = `${pe.q},${pe.r},${pe.dir},parent`
         if (!effectiveEdges[pKey]) effectiveEdges[pKey] = data
+      }
+    } else if (currentLevel === 'detail') {
+      // Detail view: project parent edges down for rendering at detail zoom
+      for (const [key, data] of Object.entries(edges)) {
+        const { q, r, dir, gridLevel } = parseEdgeKey(key)
+        if (gridLevel !== 'parent') continue
+        const dEdges = parentEdgeToDetails(key)
+        for (const dEdge of dEdges) {
+          if (!effectiveEdges[dEdge]) effectiveEdges[dEdge] = data
+        }
       }
     }
 
@@ -452,6 +472,9 @@
       ctx.stroke()
       ctx.restore()
     }
+
+    // Update hysteresis for next frame
+    autoGridLevel._last = currentLevel
   }
 
   // ── Canvas event overlay ────────────────────────────────────────────────────
