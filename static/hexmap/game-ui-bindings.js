@@ -525,7 +525,11 @@ if (typeof w.newMap !== 'function') {
 
   // ---- IndexedDB helpers ---------------------------------------------------
   var HEXMAP_DB = 'HexAtlasDB';
-  var IDB_STORES = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings', 'rivers'];
+  // Game.js IDB schema (game.js onupgradeneeded): mapMeta, regionTerrain, detailTerrain,
+  // items, fog, layersSettings, mapJournal, simpleHexCache.
+  // Rivers are stored in-memory only (window.state.hexMap.rivers), not in IDB.
+  var IDB_STORES = ['mapMeta', 'regionTerrain', 'detailTerrain', 'items', 'fog', 'layersSettings'];
+  var AUTOSAVE_STORES = IDB_STORES; // autosave uses the same set
 
   function saveLastOpenedDraftKey() {
     var mapId = window.state && window.state.hexMap && window.state.hexMap.mapInstanceId;
@@ -694,7 +698,8 @@ if (typeof w.newMap !== 'function') {
           showHexCoordinates: hm.showHexCoordinates, layers: hm.layers || [],
           customTerrains: hm.customTerrains || {}, customDungeonTiles: hm.customDungeonTiles || {}
         });
-        tx.objectStore('rivers').put({ id: AUTOSAVE_KEY, riverEdges: hm.riverEdges || {}, rivers: hm.rivers || {} });
+        // Note: rivers are in-memory only (no IDB store in game.js schema).
+        // They survive SPA navigation via canvas portal; only lost on full page reload.
         tx.oncomplete = function() {
           db.close();
           localStorage.setItem('hexmap_autosave_available', '1');
