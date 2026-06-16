@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // history.ts imports @tauri-apps/api/tauri at module level.
 // Mock it so the import doesn't crash — IS_TAURI stays false in jsdom
 // (no __TAURI__ on window), so all reads/writes go through localStorage.
 vi.mock('@tauri-apps/api/tauri', () => ({ invoke: vi.fn() }));
 
+import { invoke } from '@tauri-apps/api/tauri';
 import { loadHistory, pushHistory, clearHistory } from '../history';
 
 // localStorage key pattern used by history.ts when IS_TAURI is false
@@ -101,6 +102,36 @@ describe('pushHistory', () => {
     await pushHistory('keyB', 'text B', 1, 'local');
     expect((await loadHistory('keyA'))[0].text).toBe('text A');
     expect((await loadHistory('keyB'))[0].text).toBe('text B');
+  });
+});
+
+// ── Tauri mode ────────────────────────────────────────────────────────────────
+describe('Tauri mode', () => {
+  beforeEach(() => { (window as any).__TAURI__ = {}; });
+  afterEach(() => { delete (window as any).__TAURI__; });
+
+  it('loadHistory returns [] when invoke throws (readRaw error path)', async () => {
+    (invoke as any).mockRejectedValue(new Error('fs error'));
+    expect(await loadHistory('dragons')).toEqual([]);
+  });
+
+  it('pushHistory calls fs_write via invoke', async () => {
+    // First invoke = fs_read for loadHistory (no history yet)
+    // Second invoke = fs_write for writeRaw
+    (invoke as any)
+      .mockRejectedValueOnce(new Error('not found'))
+      .mockResolvedValueOnce(undefined);
+
+    await pushHistory('dragons', 'content', 1, 'local');
+
+    expect(invoke).toHaveBeenCalledWith('fs_write', expect.objectContaining({
+      path: 'history/dragons.json',
+    }));
+  });
+
+  it('clearHistory silences invoke errors (fs_delete catch)', async () => {
+    (invoke as any).mockRejectedValue(new Error('delete failed'));
+    await expect(clearHistory('dragons')).resolves.not.toThrow();
   });
 });
 
