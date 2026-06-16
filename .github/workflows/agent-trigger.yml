@@ -75,27 +75,23 @@ jobs:
               '13. Review code for clarity and consistency.\n' +
               '14. Ensure no dead code or poor naming.\n' +
               '15. Format consistently with the project.\n\n' +
-              '#### Phase 6: Documentation & Changelog\n' +
+              '#### Phase 6: Documentation\n' +
               '16. Update all relevant documentation:\n' +
               '    - README sections if applicable\n' +
               '    - API/interface documentation\n' +
               '    - Architecture notes\n' +
               '    - Any diagrams affected\n\n' +
-              '17. Update `CHANGELOG.md`:\n' +
-              '    - Add entry under `[Unreleased]`\n' +
-              '    - Include the issue number\n' +
-              '    - Provide a clear human-readable summary\n\n' +
-              '18. Update the GitHub Issue:\n' +
+              '17. Update the GitHub Issue:\n' +
               '    - Post a detailed comment with what was changed\n' +
               '    - Include links to relevant commits\n' +
               '    - Note tests added/updated\n' +
               '    - Document architectural considerations\n\n' +
               '#### Phase 7: Pull Request\n' +
-              '19. Create a clean commit history:\n' +
+              '18. Create a clean commit history:\n' +
               '    - Logical commits\n' +
               '    - Clear messages\n' +
               '    - No noise commits\n\n' +
-              '20. Open a Pull Request:\n' +
+              '19. Open a Pull Request:\n' +
               '    - Clear title\n' +
               '    - Summary of the issue\n' +
               '    - Explanation of the fix\n' +
@@ -105,7 +101,7 @@ jobs:
               '---\n\n' +
               '### Key Requirements\n\n' +
               'Testing: Write tests alongside any new tools or changes. Both vitest and Pester test suites must be updated.\n\n' +
-              'Documentation: Every PR must update CHANGELOG.md and relevant docs. These are enforced by PR quality checks.\n\n' +
+              'Documentation: Every PR must update relevant docs. This is enforced by the PR quality check.\n\n' +
               'CI Checks: TypeScript, linting, and tests must pass. CI failures block merges.\n\n' +
               'Architectural: Follow existing patterns in `src/`. Reuse utilities and helpers. Avoid premature abstraction.\n\n' +
               'Good luck!'
