@@ -15,6 +15,11 @@ pnpm test:e2e:ui            # Run E2E tests with UI
 
 ### ✅ Unit Tests (vitest)
 
+#### Recent Fixes
+
+- **2026-06-16**: Fixed unhandled rejection in `saveTopic` function when Tauri `fs_write` fails. The function now properly catches and propagates errors in Tauri mode, matching the error handling pattern used in browser mode.
+
+
 - **Status**: Tests configured with SvelteKit and jsdom
 - **Tool**: Vitest + jsdom + @testing-library/svelte
 - **Coverage**: Tests use path aliases ($lib, $app) remapped in vitest.config.ts
