@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release of Holmgard Lore Editor
 
 ### Fixed
+- Rivers now properly clear between map loads to prevent cross-contamination (fixes #39)
+
+## [0.1.0] - 2026-06-10
+### Added
+- Initial release of Holmgard Lore Editor
+
+### Fixed
 - Fixed data leakage in `newMap()` function that caused river, token, path, and fog data to persist across map creations (closes #42)
 
 ## [1.2.0] - 2026-06-10
