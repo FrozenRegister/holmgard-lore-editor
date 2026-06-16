@@ -56,13 +56,14 @@ answer questions like *"how far is Lyondell from the Iron Market?"* or
 *"what lore is near the cursed forest?"*.
 
 **Files to touch:**
+
 - `src/lib/claude.ts` — add 6 tool defs + 6 executor branches + system
   prompt update.
 
 **Implementation prompt (paste this into a fresh session):**
 
 > You are extending the Claude agentic loop in
-> `c:\Users\kyleb\holmgard-lore-editor\src\lib\claude.ts` so the model can
+> `%USERPROFILE%\holmgard-lore-editor\src\lib\claude.ts` so the model can
 > query the local IndexedDB map data.
 >
 > Six new tools, all read-only:
@@ -99,6 +100,7 @@ answer questions like *"how far is Lyondell from the Iron Market?"* or
 > case — match that style).
 >
 > Update `buildSystemPrompt()` (lines 109-123) to:
+>
 > - Mention the map tools are available.
 > - If any maps exist, list them with their landmark counts.
 > - Add a one-line hint: *"When the user references a place, check if it
@@ -107,6 +109,7 @@ answer questions like *"how far is Lyondell from the Iron Market?"* or
 >
 > Add a Vitest file `src/lib/__tests__/claude.mapTools.test.ts` that
 > mocks `mapTools` and asserts:
+>
 > - All 6 tool names appear in the exported `TOOLS` constant (you'll
 >   need to export it).
 > - Each executor branch returns the right shape on a happy path.
@@ -114,6 +117,7 @@ answer questions like *"how far is Lyondell from the Iron Market?"* or
 >    helper throws.
 
 **Acceptance criteria:**
+
 - All 6 tools appear in the Anthropic request body.
 - Manual test: ask Claude *"How far is the Iron Market from the Thorn
   Gate?"* (using two landmarks that exist in a test map) → it calls
@@ -129,6 +133,7 @@ click a landmark and link it to a lore key, with a search modal that
 filters the topic list as they type.
 
 **Files to touch:**
+
 - `src/routes/maps/+page.svelte` (or wherever the map editor lives —
   check existing route)
 - New: `src/lib/components/LinkLandmarkModal.svelte`
@@ -177,7 +182,8 @@ function is fine.
 the MCP can answer map questions about lore on any device (not just the
 one with the local IDB).
 
-**Files to touch (sibling repo, `c:\Users\kyleb\holmgard-lore-mcp`):**
+**Files to touch (sibling repo, `%USERPROFILE%\holmgard-lore-mcp`):**
+
 - New: `src/map-tools.ts` — exports matching the local `mapTools.ts`
   surface, but reading from KV (or Durable Objects) instead of IDB.
 - New: `src/routes/map/*` — REST/MCP endpoints, one per local tool.
@@ -238,6 +244,7 @@ scripts (e.g. the lore editor's "view on map" button) can trigger
 camera moves, highlight landmarks, and react to clicks.
 
 **Files to touch:**
+
 - `static/hexmap/game.js` — add a public surface.
 - Possibly: a new `static/hexmap/holmgard-map-api.js` (loaded after
   `game.js` in the relevant `+page.svelte`).
@@ -310,6 +317,7 @@ landmark. Conversely, from the map editor, the link-modal (Phase 1d)
 should be triggered by the `holmgard:landmark-clicked` event.
 
 **Files to touch:**
+
 - Lore editor route (find via `src/routes/` — likely the home route or
   a dedicated editor route)
 - Map editor route (Phase 1d's modal is the listener)
@@ -389,5 +397,3 @@ implementer, please resolve or escalate:
 - **Found something out of date?** The "Last updated" line at the
   top should be bumped. If a phase is DONE, move it to a new
   `## Phase X — DONE (date)` heading and link to the relevant commit.
-
-
