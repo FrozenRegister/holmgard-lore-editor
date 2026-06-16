@@ -282,13 +282,14 @@
     const grp = document.getElementById('hexEarthDrilldownGroup');
     if (grp) grp.style.display = show ? '' : 'none';
 
-    let bar = document.getElementById('hexEarthSwitcher');
-    if (show) {
-      if (!bar) { buildSwitcher(); bar = document.getElementById('hexEarthSwitcher'); }
-      if (bar) bar.style.display = 'flex';
-    } else if (bar) {
-      bar.style.display = 'none';
-    }
+    // DISABLED: Auto-building region switcher UI (see init() for context)
+    // let bar = document.getElementById('hexEarthSwitcher');
+    // if (show) {
+    //   if (!bar) { buildSwitcher(); bar = document.getElementById('hexEarthSwitcher'); }
+    //   if (bar) bar.style.display = 'flex';
+    // } else if (bar) {
+    //   bar.style.display = 'none';
+    // }
   }
 
   function onMapChanged(isManualSwitch) {
@@ -342,29 +343,34 @@
   }
 
   function init() {
-    fetchJson(MANIFEST)
-      .then((data) => {
-        manifest = data.regions || [];
-        console.log(`${TAG} ${manifest.length} regions available:`, manifest.map((r) => r.id).join(', '));
-        whenReady(function () {
-          wrapLoader();
-          startVisibilityObserver();
-          startScheduler();
-          const hm = window.state.hexMap;
-          const count = hm && Array.isArray(hm.hexes) ? hm.hexes.length
-                      : (hm && hm.hexes ? Object.keys(hm.hexes).length : 0);
-          if (isEarthMap()) {
-            onMapChanged(false);
-          } else if (count > 0) {
-            onMapChanged(false);
-          } else {
-            const def = manifest.find((r) => r.isDefault) || manifest[0];
-            if (def) loadRegion(def.id);
-          }
-        });
-      })
-      .catch((err) => console.error(`${TAG} Could not load region manifest:`, err));
+    // DISABLED: Auto-loading of Earth regions removed (June 2026)
+    // Regions are now loaded dynamically via user action (File > Examples menu, or
+    // future user-defined regions). The region-switcher.js module provides the
+    // reusable switching logic for when regions are needed.
+    //
+    // To re-enable or implement dynamic region loading:
+    //   const switcher = new RegionSwitcher('/src/lib/data/earth-996-regions.json');
+    //   switcher.loadManifest().then(() => switcher.showUI());
+    //
+    // TODO: Wire up File menu Examples section to offer Earth 996 AD regions
 
+    // Still initialize zoom-to-load watchers (used for DetailHex zoom)
+    whenReady(function () {
+      wrapLoader();
+      startVisibilityObserver();
+      startScheduler();
+      const hm = window.state.hexMap;
+      const count = hm && Array.isArray(hm.hexes) ? hm.hexes.length
+                  : (hm && hm.hexes ? Object.keys(hm.hexes).length : 0);
+      if (isEarthMap()) {
+        onMapChanged(false);
+      } else if (count > 0) {
+        onMapChanged(false);
+      }
+      // Removed: auto-load default region
+    });
+
+    // Expose API for programmatic region loading (if switcher is initialized)
     window.HexEarth = {
       loadRegion: function (id) { return loadRegion(id); },
       getRegions: function () { return manifest; },
