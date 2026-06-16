@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `storage.ts`: `saveTopic` now debounces writes 300ms per topic key to reduce IndexedDB/Tauri FS contention during rapid keystroke saves (closes #26)
+- `storage.ts`: Improved error handling separates file-not-found from corruption — uses error codes (`ENOENT`, `notFound`, OS code 2) instead of string matching; corrupted files are logged distinctly (closes #31)
+- `sync.ts`: `flushQueue` now processes offline queue items in parallel batches of 5, reducing flush time from O(n × backoff) to O(n/5 × backoff) for typical queues (closes #27)
+- `static/hexmap/worker-patch.js`: Replaced direct `Worker.prototype` assignment with `Object.setPrototypeOf` for safer prototype patching in non-standard runtimes (closes #28)
+- `static/hexmap/river-edges.js`: Added hysteresis band (16–20px) to `autoGridLevel()` to prevent zoom flicker, and added reverse projection in `renderRivers()` for visual continuity when zooming across grid levels (closes #38)
+
 ### Fixed
 
 - Tests now work in GitHub Codespaces and fresh checkouts — `postinstall` hook runs `svelte-kit sync` so `.svelte-kit/tsconfig.json` is generated before any test command

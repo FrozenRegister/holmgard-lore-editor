@@ -241,10 +241,10 @@ describe('storage.ts logic', () => {
       (invoke as any).mockRejectedValueOnce(new Error('Write failed'));
 
       const promise = saveTopic(topic);
-      vi.advanceTimersByTime(300);
+      // Attach rejection handler before advancing timers so Node never sees an unhandled rejection
+      const assertion = expect(promise).rejects.toThrow('Write failed');
       await vi.runAllTimersAsync();
-
-      await expect(promise).rejects.toThrow('Write failed');
+      await assertion;
       vi.useRealTimers();
     });
 
@@ -331,6 +331,27 @@ describe('storage.ts logic', () => {
       expect(topics).toHaveLength(1);
       expect(topics[0].key).toBe('good');
       expect(spy).toHaveBeenCalled();
+    });
+
+    it('skips files that fail to read and logs a warning', async () => {
+      const mockFiles = ['good.json', 'unreadable.json'];
+      const goodTopic = { key: 'good', text: 'content', meta: { updatedAt: '2021-01-01T00:00:00.000Z', version: 1 } };
+
+      (invoke as any)
+        .mockResolvedValueOnce(mockFiles)
+        .mockResolvedValueOnce(JSON.stringify(goodTopic))
+        .mockRejectedValueOnce(new Error('Permission denied'));
+
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const topics = await loadAllTopics();
+
+      expect(topics).toHaveLength(1);
+      expect(topics[0].key).toBe('good');
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to read topic file'),
+        expect.any(Error),
+      );
+      spy.mockRestore();
     });
 
     it('returns sorted topics by key', async () => {
