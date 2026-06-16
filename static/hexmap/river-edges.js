@@ -229,6 +229,26 @@
     return null
   }
 
+  // Returns all detail-level edge keys that lie along a parent-level canonical edge.
+  // A parent edge at (pq, pr, dir) spans `ef` detail hex edges in a row,
+  // where ef = getEdgeFactor().
+  function parentEdgeToDetails(edgeKey) {
+    const parts = edgeKey.split(',')
+    const pq = parseInt(parts[0], 10)
+    const pr = parseInt(parts[1], 10)
+    const dir = parseInt(parts[2], 10)
+    if (parts.length > 3) return [edgeKey] // already detail
+    const ef = getEdgeFactor()
+    if (ef <= 1) return [edgeKey]
+    const dq = DIR_VECTORS[dir][0]
+    const dr = DIR_VECTORS[dir][1]
+    const result = []
+    for (let k = 0; k < ef; k++) {
+      result.push((pq * ef + dq * k) + ',' + (pr * ef + dr * k) + ',' + dir + ',detail')
+    }
+    return result
+  }
+
   function drawStraightEdge(ctx, pts) {
     ctx.moveTo(pts[0].x, pts[0].y)
     ctx.lineTo(pts[1].x, pts[1].y)
@@ -304,7 +324,28 @@
     const key = edgeKey(edge.q, edge.r, edge.dir, edge.gridLevel)
     if (key === lastKey) return
     lastKey = key
-    hm().riverEdges[key] = { riverId: activeRiverId }
+    const m = hm()
+    const isDetail = edge.gridLevel === 'detail'
+
+    m.riverEdges[key] = { riverId: activeRiverId }
+
+    if (isDetail) {
+      // Also write the projected parent edge so parent-level queries see it
+      const pEdge = detailEdgeToParent(edge.q, edge.r, edge.dir)
+      if (pEdge) {
+        const pKey = `${pEdge.q},${pEdge.r},${pEdge.dir},parent`
+        m.riverEdges[pKey] = { riverId: activeRiverId }
+      }
+    } else {
+      // Also write all detail sub-edges so detail zoom sees it
+      const dEdges = parentEdgeToDetails(key)
+      for (let d = 0; d < dEdges.length; d++) {
+        if (!m.riverEdges[dEdges[d]]) {
+          m.riverEdges[dEdges[d]] = { riverId: activeRiverId }
+        }
+      }
+    }
+
     window.renderHex && window.renderHex()
   }
 
@@ -313,7 +354,28 @@
     const key = edgeKey(edge.q, edge.r, edge.dir, edge.gridLevel)
     if (key === lastKey) return
     lastKey = key
-    delete hm().riverEdges[key]
+    const m = hm()
+    const isDetail = edge.gridLevel === 'detail'
+
+    delete m.riverEdges[key]
+
+    if (isDetail) {
+      // Also erase the projected parent edge
+      const pEdge = detailEdgeToParent(edge.q, edge.r, edge.dir)
+      if (pEdge) {
+        const pKey = `${pEdge.q},${pEdge.r},${pEdge.dir},parent`
+        if (m.riverEdges[pKey] && m.riverEdges[pKey].riverId === undefined) {
+          delete m.riverEdges[pKey]
+        }
+      }
+    } else {
+      // Also erase all detail sub-edges
+      const dEdges = parentEdgeToDetails(key)
+      for (let dd = 0; dd < dEdges.length; dd++) {
+        delete m.riverEdges[dEdges[dd]]
+      }
+    }
+
     window.renderHex && window.renderHex()
   }
 
