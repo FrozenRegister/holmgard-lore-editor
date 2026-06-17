@@ -13,7 +13,7 @@ Currently, `mapSync.ts` only **pushes** map data to the worker; the client has n
 - Remote-first workflows
 - Conflict resolution when local & remote states diverge
 
-This plan outlines a phased approach to add GET endpoints to the worker and readback logic to the client.
+This plan outlines a phased approach to add map read methods to the worker's `/mcp` JSON-RPC surface and readback logic to the client.
 
 ---
 
@@ -89,16 +89,28 @@ CREATE TABLE landmarks (
 )
 ```
 
-### Worker Endpoints (Current)
+### Worker Surface (Current + Planned)
 
-| Endpoint | Method | Purpose | Status |
-|----------|--------|---------|--------|
-| `/admin/map/setup-db` | POST | Create schema | ✅ |
-| `/admin/map/push-hexes` | POST | Upsert hexes to D1 | ✅ |
-| `/admin/map/push-landmarks` | POST | Upsert landmarks to D1 | ✅ |
-| `/map/{mapId}/hexes` | GET | Fetch all hexes | ❌ |
-| `/map/{mapId}/landmarks` | GET | Fetch all landmarks | ❌ |
-| `/map/{mapId}` | GET | Fetch map metadata | ❌ |
+**Transport split (matches the existing lore sync):** reads go through `POST /mcp`
+(JSON-RPC, same as `get_lore`/`list_topics`); privileged writes stay on REST
+`/admin/*` gated by `ADMIN_SECRET`. See the worker repo's
+`docs/d1-readback-api-design.md` → *Transport decision* for the full rationale.
+
+| Operation | Surface | Status |
+|-----------|---------|--------|
+| Setup schema | `POST /admin/map/setup-db` (REST, secret) | ✅ |
+| Push hexes | `POST /admin/map/push-hexes` (REST, secret) | ✅ |
+| Push landmarks | `POST /admin/map/push-landmarks` (REST, secret) | ✅ |
+| Read hexes | `POST /mcp` method `get_map_hexes` | ❌ |
+| Read landmarks | `POST /mcp` method `get_map_landmarks` | ❌ |
+| Read metadata | `POST /mcp` method `get_map_meta` | ❌ |
+
+> **Earlier draft note:** an initial version of this plan proposed
+> `GET /map/{mapId}/...` REST routes for reads. That was changed to MCP methods
+> to match the codebase convention (reads → `/mcp`, privileged writes → `/admin/*`)
+> and to reuse the client's existing `rpc()` transport with zero new plumbing.
+> The read methods return **structured JSON in `result`** (bare-method style, like
+> `get_lore`) so bulk sync doesn't parse content-block text.
 
 ---
 
@@ -159,8 +171,8 @@ The `Landmark` type (types.ts) has 40+ fields. Which belong in D1?
 
 #### Strategy A: Full Fetch (Simple, High Latency)
 ```
-GET /map/{mapId}/hexes → SELECT * FROM hexes WHERE map_id = ?
-GET /map/{mapId}/landmarks → SELECT * FROM landmarks WHERE map_id = ?
+get_map_hexes     { mapId } → SELECT * FROM hexes WHERE map_id = ?
+get_map_landmarks { mapId } → SELECT * FROM landmarks WHERE map_id = ?
 ```
 - **Cost:** 2 D1 reads per full sync
 - **Latency:** Single roundtrip per table
@@ -169,7 +181,7 @@ GET /map/{mapId}/landmarks → SELECT * FROM landmarks WHERE map_id = ?
 
 #### Strategy B: Pagination (Balanced, Medium Cost)
 ```
-GET /map/{mapId}/hexes?limit=500&cursor=abc
+get_map_hexes { mapId, limit: 500, cursor: "abc" }
 ```
 - **Cost:** 1+ D1 reads (N reads for large maps, where N = ceil(rowcount / limit))
 - **Latency:** Multiple roundtrips
@@ -178,7 +190,7 @@ GET /map/{mapId}/hexes?limit=500&cursor=abc
 
 #### Strategy C: Delta Sync (Efficient, Complex)
 ```
-GET /map/{mapId}/hexes/since?timestamp=2025-01-15T10:00:00Z
+get_map_hexes { mapId, since: "2025-01-15T10:00:00Z" }
 ```
 - **Cost:** 1 D1 read per sync (only changed rows)
 - **Latency:** Fast after first full fetch
@@ -200,26 +212,34 @@ GET /map/{mapId}/hexes/since?timestamp=2025-01-15T10:00:00Z
 
 ## Phased Implementation
 
-### Phase 1: Worker GET Endpoints
+### Phase 1: Worker MCP Read Methods
 
-**Goal:** Add read routes to worker  
+**Goal:** Add map read methods to the `/mcp` JSON-RPC surface
 **Deliverables:**
-1. `GET /map/{mapId}/hexes` — fetch all hexes
-2. `GET /map/{mapId}/landmarks` — fetch all landmarks
-3. `GET /map/{mapId}` — fetch map metadata
+1. `get_map_hexes` — fetch all hexes for a map
+2. `get_map_landmarks` — fetch all landmarks
+3. `get_map_meta` — counts + lastUpdated (cheap precheck)
 
 **Key Details:**
-- Use **Strategy A** (full fetch) initially
-- Convert D1 rows to client types (handle `label` → `name`, `category` → `type`, unpack JSON `data`)
-- Return JSON with `{ ok: true, hexes/landmarks: [...] }`
-- Error handling: 404 if map doesn't exist, 401 if not authed
+- Register each as a `tools/call` tool (discoverable via `tools/list`) **and** a
+  bare JSON-RPC method, mirroring `get_lore` / `list_topics`.
+- Bare method returns the structured payload directly in `result`
+  (`{ mapId, hexes/landmarks, count, lastUpdated }`); `tools/call` returns the
+  standard content-block + `metadata` envelope for agent use.
+- Use **Strategy A** (full fetch) initially.
+- Convert D1 rows to client types (handle `label` → `name`, `category` → `type`, unpack JSON `data`).
+- Errors via JSON-RPC, not HTTP status. Empty map → empty array, not an error.
 
-**Files to modify:**
-- `holmgard-lore-mcp/src/admin/routes.ts` — add GET handlers
-- `holmgard-lore-mcp/src/__tests__/admin-map.test.ts` — add GET tests
-- Possibly add conversion helper if D1 → client type mapping is complex
+**Files to modify (worker repo):**
+- `src/tools/map.ts` (new) — `handle_get_map_hexes/landmarks/meta` + conversion helpers
+- `src/index.ts` / `src/lib/rpc.ts` — register tool dispatch + bare-method aliases
+- `toolDefinitions` — advertise the three tools with input schemas
+- `src/__tests__/*` (workers) **and** `tests/live/*` — both suites (repo policy)
+- `CHANGELOG.md` + `CLAUDE.md` tool count (15 → 18)
 
-**Estimated effort:** ~2–3 hours (routes + tests)
+**Full spec:** `holmgard-lore-mcp/docs/d1-readback-api-design.md`
+
+**Estimated effort:** ~2–3 hours (handlers + dispatch + tests)
 
 ### Phase 2: Type Alignment & Schema Refinement
 
@@ -260,7 +280,7 @@ GET /map/{mapId}/hexes/since?timestamp=2025-01-15T10:00:00Z
 
 **Goal:** Ensure readback works end-to-end; update user docs  
 **Deliverables:**
-1. Worker test suite: GET endpoint tests (with various map sizes)
+1. Worker test suite: `/mcp` read-method tests (with various map sizes)
 2. Client test suite: readback → IndexedDB, conflict handling
 3. Live smoke test (if applicable)
 4. Update user guide with readback workflow
@@ -276,13 +296,13 @@ GET /map/{mapId}/hexes/since?timestamp=2025-01-15T10:00:00Z
 **Scenario:** User clicks "Sync from Remote", but local IndexedDB has uncommitted changes on the same hex/landmark.
 
 **Flow:**
-1. Fetch remote hexes/landmarks
+1. Fetch remote hexes/landmarks via `/mcp` (`get_map_hexes`, `get_map_landmarks`)
 2. Compare with local IndexedDB
 3. If any conflicts detected:
    - Add to `conflictQueue` store (like lore conflicts)
    - Show conflict UI, let user choose local/remote/merge
 4. Apply resolution, update IndexedDB
-5. Update `MapMeta.syncedAt`
+5. Update `MapMeta.syncedAt`; if local won, push back via REST `/admin/map/push-*`
 
 **No new conflict mechanism needed** — reuse the existing one.
 
@@ -291,7 +311,7 @@ GET /map/{mapId}/hexes/since?timestamp=2025-01-15T10:00:00Z
 ## Testing Strategy
 
 ### Worker Tests (vitest + miniflare)
-- GET endpoints return correct format
+- `/mcp` read methods return correct `result` shape
 - D1 → client type conversion handles all field mappings
 - Error cases (missing map, malformed data, auth failure)
 - Large payload handling (1000+ hexes/landmarks)
@@ -322,7 +342,7 @@ GET /map/{mapId}/hexes/since?timestamp=2025-01-15T10:00:00Z
 
 ## Success Criteria
 
-- ✅ Worker GET endpoints return correct hexes/landmarks
+- ✅ Worker `/mcp` read methods return correct hexes/landmarks
 - ✅ Client can pull map data and populate IndexedDB
 - ✅ Conflict resolution integrates with existing UI
 - ✅ Test coverage >80% for new code

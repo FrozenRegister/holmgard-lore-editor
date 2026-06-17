@@ -11,6 +11,16 @@
 > burner.
 >
 > **Last updated:** 2026-06-06 (when this doc was written)
+>
+> **⚠️ Transport note (added later):** Where this brief hedges between REST
+> endpoints and MCP tools (e.g. the `GET /maps/...` list in Phase 2), follow the
+> repo convention now settled in `docs/d1-readback-plan.md` and the worker's
+> `docs/d1-readback-api-design.md`: **reads/queries go through `/mcp` JSON-RPC
+> tools; privileged writes stay on REST `/admin/*` (ADMIN_SECRET).** So the
+> map query tools here (`list maps`, `nearby`, `path`, `distance`) should be MCP
+> tools, and link/unlink-with-write-back should reuse the admin write path.
+> Also note: this brief assumes a **KV**-mirrored map store, but the shipped sync
+> targets **D1** (`RPG_DB`) — reconcile against the D1 schema before building.
 
 ---
 

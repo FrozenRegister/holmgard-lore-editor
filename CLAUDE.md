@@ -62,6 +62,8 @@ Topics have `{ version, updatedAt, syncedAt }` in their `meta`. Conflict detecti
 
 The MCP Worker lives at `https://holmgard-lore-mcp.frozenregister.workers.dev` (sibling project `holmgard-lore-mcp/`). Admin writes go to `/admin/set-lore` and `/admin/delete-lore` with a secret; reads use JSON-RPC at `/mcp`.
 
+**API surface convention — prefer MCP for reads, REST for privileged writes.** This is a read/write split, not a blanket rule. New **reads/queries** should call `/mcp` (JSON-RPC) via the `rpc()` helper in `src/lib/sync.ts` — the same path `get_lore`/`list_topics` use; the worker returns structured JSON in `result`. New **privileged writes / bulk ops** go to `/admin/*` with the admin secret (like `adminSave`/`adminSaveBatch`). When adding a remote capability, prefer an MCP method over a new REST GET route. The **map readback** feature follows this: map reads use `/mcp` (`get_map_*`), while map pushes stay on `/admin/map/*`. See `docs/d1-readback-plan.md` and `docs/MAP-SYNC-ARCHITECTURE.md`.
+
 ### Tauri commands (Rust)
 
 `src-tauri/src/main.rs` exposes: `keyring_get`, `keyring_set`, `keyring_delete`, `fs_read`, `fs_write`, `fs_list`, `fs_delete`. All filesystem paths are relative to the OS app-data directory.

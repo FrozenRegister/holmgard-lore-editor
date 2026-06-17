@@ -63,20 +63,21 @@ The hex map editor syncs map data (hexes & landmarks) to a Cloudflare Worker bac
 │  └─ mapDb (IndexedDB)
 └──────────┬──────────┘
            │
-      ┌────┴────────────────────┐
-      │                         │
-      │ POST /admin/map/...     │ GET /map/{mapId}/...
-      │ (write, auth required)  │ (read, public)
-      │                         │
-      ▼                         ▼
-┌──────────────────────────────────────┐
-│ Holmgard Lore Worker                 │
-│ ├─ src/admin/routes.ts               │
-│ │  ├─ POST /admin/map/push-hexes     │ ← Existing
-│ │  ├─ POST /admin/map/push-landmarks │ ← Existing
-│ │  └─ GET /map/{mapId}/...           │ ← New
-│ └─ RPG_DB (D1)                       │
-└──────────┬───────────────────────────┘
+      ┌────┴────────────────────────┐
+      │                             │
+      │ POST /admin/map/...         │ POST /mcp  (get_map_*)
+      │ (write, ADMIN_SECRET)       │ (read, JSON-RPC)
+      │                             │
+      ▼                             ▼
+┌──────────────────────────────────────────┐
+│ Holmgard Lore Worker                     │
+│ ├─ src/admin/routes.ts  (REST writes)    │
+│ │  ├─ POST /admin/map/push-hexes         │ ← Existing
+│ │  └─ POST /admin/map/push-landmarks     │ ← Existing
+│ ├─ src/tools/map.ts     (MCP reads)      │
+│ │  └─ get_map_hexes / _landmarks / _meta │ ← New (/mcp)
+│ └─ RPG_DB (D1)                           │
+└──────────┬───────────────────────────────┘
            │
            ▼
 ┌──────────────────────────┐
@@ -89,7 +90,7 @@ The hex map editor syncs map data (hexes & landmarks) to a Cloudflare Worker bac
 1. User launches editor
 2. Editor checks IndexedDB for maps; if empty:
    - Calls `pullMapFromWorker(mapId)` (mapSync.ts)
-3. Worker GET `/map/{mapId}/hexes` + `/map/{mapId}/landmarks`
+3. Worker `/mcp` methods `get_map_hexes` + `get_map_landmarks`
 4. Convert D1 rows → client types
 5. Write to IndexedDB (mapDb)
 6. Render in editor
@@ -109,19 +110,20 @@ When local changes & remote state differ:
 
 ## Implementation Roadmap
 
-### Phase 1: Worker GET Endpoints ⬅️ **Start here**
+### Phase 1: Worker MCP Read Methods ⬅️ **Start here**
 **Location:** `holmgard-lore-mcp/docs/d1-readback-api-design.md`
 
 **Deliverables:**
-1. `GET /map/{mapId}/hexes` — fetch all hexes for a map
-2. `GET /map/{mapId}/landmarks` — fetch all landmarks
-3. `GET /map/{mapId}` — fetch map metadata
+1. `get_map_hexes` — fetch all hexes for a map
+2. `get_map_landmarks` — fetch all landmarks
+3. `get_map_meta` — counts + lastUpdated
 4. Conversion helpers (D1 rows → client types)
-5. Tests (vitest + miniflare)
+5. Registered as `tools/call` tools **and** bare JSON-RPC methods
+6. Tests (vitest + miniflare, both suites)
 
 **Effort:** ~2–3 hours  
 **Blockers:** None  
-**Files:** `holmgard-lore-mcp/src/admin/routes.ts`, tests, conversion helpers
+**Files:** `holmgard-lore-mcp/src/tools/map.ts` (new), `/mcp` dispatch wiring, tests
 
 **Key Decisions:**
 - Start with **full fetch** (Strategy A), not pagination/delta (Phases 2+)
@@ -257,7 +259,7 @@ where data = {
 **Scenario:** Local uncommitted changes on a hex/landmark; remote state differs.
 
 **Flow:**
-1. Fetch remote via `GET /map/{mapId}/hexes` + landmarks
+1. Fetch remote via `/mcp` `get_map_hexes` + `get_map_landmarks`
 2. Compare with local IndexedDB
 3. Identify conflicts (rows with different data)
 4. Add to `conflictQueue` store
@@ -274,7 +276,7 @@ where data = {
 ## Cloudflare Billing & Performance
 
 ### D1 Read Costs
-- Each GET endpoint = 1–2 D1 reads (fetch hexes, fetch landmarks)
+- Each read method = 1–2 D1 reads (fetch hexes, fetch landmarks)
 - Typical map: negligible cost (<$0.0001 per sync)
 - Scale: 1,000 users, daily sync = ~$0.02/day total
 
@@ -290,7 +292,7 @@ where data = {
 ## Testing Strategy
 
 ### Worker Tests
-- ✅ GET endpoints return correct data
+- ✅ `/mcp` read methods return correct data
 - ✅ D1 → client type conversion
 - ✅ Error handling (missing map, D1 unavailable)
 - ✅ Large payloads (1000+ hexes/landmarks)
@@ -312,7 +314,7 @@ where data = {
 
 ## Success Criteria
 
-- ✅ Worker GET endpoints implemented & tested
+- ✅ Worker `/mcp` read methods implemented & tested
 - ✅ Client can pull & populate IndexedDB
 - ✅ Conflicts integrate with existing UI
 - ✅ Test coverage >80% for new code
@@ -362,7 +364,7 @@ where data = {
 
 | Phase | Scope | Effort | Dependencies |
 |-------|-------|--------|---|
-| 1 | Worker GET endpoints | 2–3 hrs | None |
+| 1 | Worker `/mcp` read methods | 2–3 hrs | None |
 | 2 | Type alignment, schema refinement | 2–4 hrs | Phase 1 complete; field classification decisions |
 | 3 | Client readback logic, UI | 3–4 hrs | Phase 2 complete |
 | 4 | Tests, docs | 2–3 hrs | Phase 3 complete |
