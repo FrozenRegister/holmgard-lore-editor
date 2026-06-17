@@ -217,7 +217,7 @@ describe('pullAll', () => {
   it('returns populated map for one topic', async () => {
     fetchMock
       .mockResolvedValueOnce(okFetch({ keys: ['dragons'] }))
-      .mockResolvedValueOnce(okFetch({ key: 'dragons', text: 'here be dragons', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
+      .mockResolvedValueOnce(okFetch({ dragons: { text: 'here be dragons', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } } }));
     const map = await pullAll('http://worker');
     expect(map.get('dragons')?.text).toBe('here be dragons');
   });
@@ -225,17 +225,17 @@ describe('pullAll', () => {
   it('handles 20 topics without throwing', async () => {
     const keys = Array.from({ length: 20 }, (_, i) => `topic-${i}`);
     fetchMock.mockResolvedValueOnce(okFetch({ keys }));
-    for (const k of keys) {
-      fetchMock.mockResolvedValueOnce(okFetch({ key: k, text: `text for ${k}`, meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
-    }
+    // One batch response containing all 20 topics
+    const batchResult = Object.fromEntries(keys.map((k) => [k, { text: `text for ${k}`, meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }]));
+    fetchMock.mockResolvedValueOnce(okFetch(batchResult));
     expect((await pullAll('http://worker')).size).toBe(20);
   });
 
   it('omits topics missing from batch results', async () => {
     fetchMock
       .mockResolvedValueOnce(okFetch({ keys: ['good', 'bad'] }))
-      .mockResolvedValueOnce(okFetch({ key: 'good', text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
-      .mockRejectedValueOnce(new Error('not found'));
+      // Worker returns null for keys not found
+      .mockResolvedValueOnce(okFetch({ good: { text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }, bad: null }));
     const map = await pullAll('http://worker');
     expect(map.has('good')).toBe(true);
     expect(map.has('bad')).toBe(false);
@@ -384,11 +384,12 @@ describe('batchGetTopicsRemote', () => {
     expect(map.size).toBe(0);
   });
 
-  it('fetches multiple topics in parallel', async () => {
-    fetchMock
-      .mockResolvedValueOnce(okFetch({ key: 'a', text: 'text a', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
-      .mockResolvedValueOnce(okFetch({ key: 'b', text: 'text b', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
-      .mockResolvedValueOnce(okFetch({ key: 'c', text: 'text c', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
+  it('fetches multiple topics in one batch RPC call', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({
+      a: { text: 'text a', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } },
+      b: { text: 'text b', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } },
+      c: { text: 'text c', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } },
+    }));
     const map = await batchGetTopicsRemote('http://worker', ['a', 'b', 'c']);
     expect(map.size).toBe(3);
     expect(map.get('a')?.text).toBe('text a');
@@ -396,11 +397,12 @@ describe('batchGetTopicsRemote', () => {
     expect(map.get('c')?.text).toBe('text c');
   });
 
-  it('omits failed fetches from result', async () => {
-    fetchMock
-      .mockResolvedValueOnce(okFetch({ key: 'good', text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }))
-      .mockRejectedValueOnce(new Error('failed'))
-      .mockResolvedValueOnce(okFetch({ key: 'also-good', text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } }));
+  it('omits null entries returned by the worker for missing keys', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({
+      good:      { text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } },
+      bad:       null,
+      'also-good': { text: 'ok', meta: { version: 1, updatedAt: '2026-01-01T00:00:00.000Z' } },
+    }));
     const map = await batchGetTopicsRemote('http://worker', ['good', 'bad', 'also-good']);
     expect(map.size).toBe(2);
     expect(map.has('good')).toBe(true);
