@@ -155,13 +155,36 @@ describe('storage.ts logic', () => {
       (window as any).__TAURI__ = {};
     });
 
-    it('suppresses warning for missing files (normal case)', async () => {
+    it('suppresses warning for missing files (Tauri structured error)', async () => {
       const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       (invoke as any).mockRejectedValue('Os { code: 2, kind: NotFound, message: "..." }');
 
       const topic = await loadTopic('missing');
       expect(topic).toBeNull();
       expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('suppresses warning for missing files (os error 2 format)', async () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      (invoke as any).mockRejectedValue('No such file or directory (os error 2)');
+
+      const topic = await loadTopic('missing-posix');
+      expect(topic).toBeNull();
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('warns when error contains "not found" but is not a Tauri ENOENT', async () => {
+      // A corruption/schema error whose message happens to contain "not found"
+      // should NOT be silently swallowed — it must produce a warning.
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      (invoke as any).mockRejectedValue(new Error('schema field not found in database record'));
+
+      const topic = await loadTopic('maybe-corrupt');
+      expect(topic).toBeNull();
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining('Unexpected error loading topic'),
+        expect.any(Error)
+      );
     });
 
     it('warns on unexpected read errors', async () => {

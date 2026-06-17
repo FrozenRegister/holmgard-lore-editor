@@ -129,7 +129,11 @@ export async function loadTopic(key: string): Promise<Topic | null> {
     try {
       raw = await invoke<string>('fs_read', { path });
     } catch (err) {
-      // Check if file genuinely doesn't exist (ENOENT / code 2)
+      // Distinguish "file does not exist" from real errors (corruption, permissions, etc.).
+      // Tauri v1 serialises ENOENT as: 'Os { code: 2, kind: NotFound, message: "..." }'
+      // We match on the structured parts of that string; avoid the broad "not found"
+      // substring which could swallow corruption errors whose message happens to contain
+      // those words.
       const errorObj = err as any;
       const errorCode = errorObj?.code ?? errorObj?.kind;
       const errorMsg = String(err).toLowerCase();
@@ -138,10 +142,8 @@ export async function loadTopic(key: string): Promise<Topic | null> {
         errorCode === 'notFound' ||
         errorCode === 'NotFound' ||
         errorCode === 2 ||
-        errorMsg.includes('os error 2') ||
-        errorMsg.includes('not found') ||
-        errorMsg.includes('code: 2') ||
-        errorMsg.includes('kind: notfound');
+        errorMsg.includes('os error 2') ||       // POSIX errno 2 in Tauri message field
+        errorMsg.includes('kind: notfound');      // Tauri structured error kind
 
       if (!isNotFound) {
         console.warn(`Unexpected error loading topic "${key}" at ${path}:`, err);
@@ -172,14 +174,10 @@ const _saveTimers = new Map<string, NodeJS.Timeout>();
 
 async function saveTopicImmediate(topic: Topic): Promise<void> {
   if (isTauri()) {
-    try {
-      await invoke('fs_write', {
-        path: `topics/${encodeURIComponent(topic.key)}.json`,
-        content: JSON.stringify(topic, null, 2),
-      });
-    } catch (err) {
-      throw err;
-    }
+    await invoke('fs_write', {
+      path: `topics/${encodeURIComponent(topic.key)}.json`,
+      content: JSON.stringify(topic, null, 2),
+    });
   } else {
     // Browser: use IndexedDB
     await ensureMigrationDone();
