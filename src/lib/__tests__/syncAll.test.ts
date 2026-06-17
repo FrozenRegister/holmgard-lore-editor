@@ -23,11 +23,12 @@ const mocks = vi.hoisted(() => {
   const syncStateUpdateEvents: any[] = [];
 
   return {
-    invokeMock:         vi.fn(),
-    pullAllMock:        vi.fn(),
-    detectConflictMock: vi.fn(),
-    adminDeleteMock:    vi.fn(),
-    saveTopicMock:      vi.fn(),
+    invokeMock:           vi.fn(),
+    pullAllMock:          vi.fn(),
+    detectConflictMock:   vi.fn(),
+    adminDeleteMock:      vi.fn(),
+    adminDeleteBatchMock: vi.fn(),
+    saveTopicMock:        vi.fn(),
     pushHistoryMock:    vi.fn(),
     flushQueueMock:     vi.fn(),
     getAdminSecretMock: vi.fn(),
@@ -69,6 +70,7 @@ vi.mock('../sync', () => ({
   pullAll:               mocks.pullAllMock,
   detectConflict:        mocks.detectConflictMock,
   adminDelete:           mocks.adminDeleteMock,
+  adminDeleteBatch:      mocks.adminDeleteBatchMock,
   enqueue:               vi.fn(),
   getChanges:            mocks.getChangesMock,
   batchGetTopicsRemote:  mocks.batchGetTopicsRemoteMock,
@@ -292,20 +294,20 @@ describe('runSync — concurrency guard', () => {
 
 // ── Pending deletes ───────────────────────────────────────────────────────────
 describe('runSync — pending deletes', () => {
-  it('calls adminDelete for each pending key when secret is available', async () => {
+  it('calls adminDeleteBatch with all pending keys when secret is available', async () => {
     mocks.dequeueMock.mockReturnValue(['old-topic']);
     mocks.getAdminSecretMock.mockResolvedValue('secret');
-    mocks.adminDeleteMock.mockResolvedValue(undefined);
+    mocks.adminDeleteBatchMock.mockResolvedValue(undefined);
 
     await runSync();
 
-    expect(mocks.adminDeleteMock).toHaveBeenCalledWith('http://worker', 'old-topic', 'secret');
+    expect(mocks.adminDeleteBatchMock).toHaveBeenCalledWith('http://worker', ['old-topic'], 'secret');
   });
 
-  it('re-queues failed deletes', async () => {
+  it('re-queues all keys when batch delete fails', async () => {
     mocks.dequeueMock.mockReturnValue(['bad-topic']);
     mocks.getAdminSecretMock.mockResolvedValue('secret');
-    mocks.adminDeleteMock.mockRejectedValue(new Error('network'));
+    mocks.adminDeleteBatchMock.mockRejectedValue(new Error('network'));
 
     await runSync();
 
@@ -320,7 +322,7 @@ describe('runSync — pending deletes', () => {
 
     expect(mocks.enqueuePendingDeleteMock).toHaveBeenCalledWith('key-a');
     expect(mocks.enqueuePendingDeleteMock).toHaveBeenCalledWith('key-b');
-    expect(mocks.adminDeleteMock).not.toHaveBeenCalled();
+    expect(mocks.adminDeleteBatchMock).not.toHaveBeenCalled();
   });
 });
 
