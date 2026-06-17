@@ -12,7 +12,7 @@ import { saveTopic } from './storage'
 import { pushHistory } from './history'
 import {
   pullAll,
-  adminDelete,
+  adminDeleteBatch,
   detectConflict,
   enqueuePendingDelete,
   dequeuePendingDeletes,
@@ -33,16 +33,12 @@ async function flushPendingDeletes(host: string): Promise<void> {
     pendingDeletes.forEach((key) => enqueuePendingDelete(key))
     return
   }
-  await Promise.all(
-    pendingDeletes.map(async (key) => {
-      try {
-        await adminDelete(host, key, secret)
-      } catch (err) {
-        enqueuePendingDelete(key)
-        console.warn(`Delete failed for "${key}", re-queued:`, err)
-      }
-    }),
-  )
+  try {
+    await adminDeleteBatch(host, pendingDeletes, secret)
+  } catch (err) {
+    pendingDeletes.forEach((key) => enqueuePendingDelete(key))
+    console.warn('Batch delete failed, re-queued:', err)
+  }
 }
 
 // ── Full sync (manual Sync button, first run, changelog fallback) ───────────────
@@ -129,6 +125,8 @@ export async function runSync(): Promise<void> {
 // Returns false if it had to abort and the caller should trigger a full sync.
 
 export async function runSmartSync(since: string): Promise<boolean> {
+  if (get(syncState).status === 'syncing') return true
+
   const apiKey = await getMcpApiKey()
   if (!apiKey) {
     showToast('MCP API key not configured — set it in Settings first', 'warning')

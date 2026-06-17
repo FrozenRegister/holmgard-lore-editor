@@ -139,10 +139,10 @@ describe('sync integration', () => {
 
   describe('pullAll (two-call compose)', () => {
     it('should list then batch-fetch in two calls', async () => {
+      // list_topics → get_lore_batch (1 batch call, not N individual calls)
       mockFetchSequence(
         { json: { jsonrpc: '2.0', id: 1, result: { keys: ['a', 'b'] } } },
-        { json: { jsonrpc: '2.0', id: 2, result: { key: 'a', text: 'Topic A' } } },
-        { json: { jsonrpc: '2.0', id: 3, result: { key: 'b', text: 'Topic B' } } },
+        { json: { jsonrpc: '2.0', id: 2, result: { a: { text: 'Topic A', meta: { version: 1, updatedAt: '' } }, b: { text: 'Topic B', meta: { version: 1, updatedAt: '' } } } } },
       );
 
       const { pullAll } = await import('$lib/sync');
@@ -366,12 +366,16 @@ describe('sync integration', () => {
 
   // ── batchGetTopicsRemote ──────────────────────────────────────────────────────
 
-  describe('batchGetTopicsRemote (parallel getTopicRemote)', () => {
-    it('should fetch multiple topics in parallel', async () => {
-      mockFetchSequence(
-        { json: { jsonrpc: '2.0', id: 1, result: { key: 'a', text: 'A', meta: { version: 1, updatedAt: '' } } } },
-        { json: { jsonrpc: '2.0', id: 2, result: { key: 'b', text: 'B', meta: { version: 1, updatedAt: '' } } } },
-      );
+  describe('batchGetTopicsRemote (single get_lore_batch RPC)', () => {
+    it('should fetch multiple topics in one RPC call', async () => {
+      // One request, one response containing all topics
+      mockFetch({
+        jsonrpc: '2.0', id: 1,
+        result: {
+          a: { text: 'A', meta: { version: 1, updatedAt: '' } },
+          b: { text: 'B', meta: { version: 1, updatedAt: '' } },
+        },
+      });
 
       const { batchGetTopicsRemote } = await import('$lib/sync');
       const map = await batchGetTopicsRemote('https://example.workers.dev', ['a', 'b'], 'sk-test');
@@ -386,15 +390,20 @@ describe('sync integration', () => {
       expect(map.size).toBe(0);
     });
 
-    it('should skip failed fetches gracefully', async () => {
-      mockFetchSequence(
-        { json: { jsonrpc: '2.0', id: 1, result: { key: 'a', text: 'A', meta: { version: 1, updatedAt: '' } } } },
-        { json: {}, status: 500 }, // b fails
-      );
+    it('should skip null entries returned by the worker for missing keys', async () => {
+      // Worker returns null for keys that don't exist
+      mockFetch({
+        jsonrpc: '2.0', id: 1,
+        result: {
+          a: { text: 'A', meta: { version: 1, updatedAt: '' } },
+          b: null,
+        },
+      });
 
       const { batchGetTopicsRemote } = await import('$lib/sync');
       const map = await batchGetTopicsRemote('https://example.workers.dev', ['a', 'b'], 'sk-test');
-      expect(map.size).toBe(1); // only 'a' succeeds
+      expect(map.size).toBe(1); // only 'a' present
+      expect(map.get('a')!.text).toBe('A');
     });
   });
 });
