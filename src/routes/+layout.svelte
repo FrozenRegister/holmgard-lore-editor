@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { fade } from 'svelte/transition';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import Sidebar from '$lib/components/Sidebar.svelte';
@@ -51,17 +52,19 @@
     (async () => {
       setupMarked();
       try {
-        const [storedTopics, storedSettings] = await Promise.all([
-          loadAllTopics(),
-          loadSettings(),
-        ]);
+        showToast('Loading topics…', 'info', 30000);
+        const storedTopics = await loadAllTopics();
+        showToast('Loading settings…', 'info', 30000);
+        const storedSettings = await loadSettings();
         settings.set(storedSettings);
         if (storedTopics.length === 0) {
+          showToast('Loading demo data…', 'info', 30000);
           const demo = await loadDemoData();
           topics.set(demo);
         } else {
           topics.set(storedTopics);
         }
+        toasts.set([]); // clear loading-step status toasts before splash fades out
       } catch (err) {
         console.error('Init error:', err);
         const msg = err instanceof Error ? err.message : 'Failed to load local data';
@@ -113,14 +116,7 @@
     {/if}
 
     <main class="app-main">
-      {#if $initialising}
-        <div class="loading-screen">
-          <div class="spinner" aria-label="Loading…"></div>
-          <p>Loading Holmgard Lore Editor…</p>
-        </div>
-      {:else}
-        <slot />
-      {/if}
+      <slot />
     </main>
   </div>
 </div>
@@ -144,6 +140,22 @@
     </div>
   {/each}
 </div>
+
+<!-- Branded loading splash — fixed overlay, covers sidebar and all chrome -->
+{#if $initialising}
+  <div class="splash-screen" transition:fade={{ duration: 300 }} aria-label="Loading application" aria-live="polite">
+    <div class="splash-inner">
+      <div class="splash-icon" aria-hidden="true">⚔</div>
+      <div class="splash-title">
+        <span class="splash-name">Holmgard</span>
+        <span class="splash-sub">Lore Editor</span>
+      </div>
+      <p class="splash-status">
+        {$toasts.length > 0 ? $toasts[$toasts.length - 1].message : 'Starting up…'}
+      </p>
+    </div>
+  </div>
+{/if}
 
 <style>
   .app-wrapper {
@@ -220,27 +232,67 @@
     z-index: 150;
   }
 
-  /* ── Loading screen ─────────────────────────────────────────── */
-  .loading-screen {
+  /* ── Branded loading splash ─────────────────────────────────── */
+  .splash-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #0f1419;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .splash-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: 1rem;
-    color: var(--fg-muted);
+    gap: 16px;
+    width: 280px;
   }
 
-  .spinner {
-    width: 2.5rem;
-    height: 2.5rem;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+  .splash-icon {
+    font-size: 52px;
+    line-height: 1;
+    animation: ldPulse 2s ease-in-out infinite;
   }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .splash-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .splash-name {
+    font-size: 30px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .splash-sub {
+    font-size: 12px;
+    font-weight: 500;
+    color: #718096;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .splash-status {
+    font-size: 13px;
+    color: #718096;
+    margin: 0;
+    min-height: 20px;
+    text-align: center;
+  }
+
+  @keyframes ldPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.65; transform: scale(0.92); }
+  }
 
   /* ── Toast stack ────────────────────────────────────────────── */
   .toast-stack {
