@@ -1,16 +1,81 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { beforeNavigate } from '$app/navigation';
-  import { showToast } from '$lib/stores';
+  import { showToast, topics } from '$lib/stores';
   import { exposeAggregationAPI } from '$lib/terrain-aggregation';
+  import { putLandmark, getAllLandmarks } from '$lib/mapDb';
+  import { linkLandmarkToLore, unlinkLandmarkFromLore } from '$lib/mapTools';
   import '$lib/importMap';
 
   let isLoaded = false;
   let pageContainer: HTMLElement;
 
+  // Lore linking state
+  let showLoreLinkModal = false;
+  let selectedLandmark: { mapId: string; id: string; name: string; q: number; r: number } | null = null;
+  let loreLinkSearch = '';
+  let loreLinkMatches: Array<{ key: string; text: string }> = [];
+  let loreLinkLoading = false;
+
   function handleFontLoadComplete(e: Event) {
     const link = e.currentTarget as HTMLLinkElement;
     link.media = 'all';
+  }
+
+  function openLoreLinkModal(mapId: string, landmarkId: string, landmarkName: string, q: number, r: number) {
+    selectedLandmark = { mapId, id: landmarkId, name: landmarkName, q, r };
+    loreLinkSearch = '';
+    loreLinkMatches = [];
+    showLoreLinkModal = true;
+  }
+
+  function closeLoreLinkModal() {
+    showLoreLinkModal = false;
+    selectedLandmark = null;
+    loreLinkSearch = '';
+    loreLinkMatches = [];
+  }
+
+  function handleLoreLinkSearch() {
+    const query = loreLinkSearch.toLowerCase();
+    loreLinkMatches = $topics
+      .filter((t) => t.key.toLowerCase().includes(query) || t.text.toLowerCase().includes(query))
+      .slice(0, 10)
+      .map((t) => ({ key: t.key, text: t.text.substring(0, 80) }));
+  }
+
+  async function handleLinkToTopic(topicKey: string) {
+    if (!selectedLandmark) return;
+    try {
+      const mapId = selectedLandmark.mapId;
+      const landmarkId = selectedLandmark.id;
+      await linkLandmarkToLore(mapId, landmarkId, topicKey, { writeLoreBack: true });
+      showToast(`Linked to "${topicKey}"`, 'success');
+      closeLoreLinkModal();
+    } catch (err) {
+      console.error('Link error:', err);
+      showToast('Failed to link landmark', 'error');
+    }
+  }
+
+  async function handleUnlinkFromTopic() {
+    if (!selectedLandmark) return;
+    try {
+      const mapId = selectedLandmark.mapId;
+      const landmarkId = selectedLandmark.id;
+      await unlinkLandmarkFromLore(mapId, landmarkId, { writeLoreBack: true });
+      showToast('Unlinked from lore', 'info');
+      closeLoreLinkModal();
+    } catch (err) {
+      console.error('Unlink error:', err);
+      showToast('Failed to unlink', 'error');
+    }
+  }
+
+  // Expose functions to window for game.js integration
+  if (typeof window !== 'undefined') {
+    (window as any).openLoreLinkModal = openLoreLinkModal;
+    (window as any).closeLoreLinkModal = closeLoreLinkModal;
   }
 
   // Initialize telemetry tracking
@@ -395,6 +460,86 @@
   }
   @keyframes ldSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
   @keyframes ldPulse { 0%,100%{opacity:.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
+
+  /* Lore linking modal */
+  .lore-link-modal {
+    width: min(500px, 90vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lore-link-info {
+    padding: 0.75rem 0;
+    font-size: 0.9rem;
+  }
+
+  .lore-link-search {
+    margin: 1rem 0;
+  }
+
+  .lore-link-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    background: var(--surface2);
+    color: var(--fg);
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  .lore-link-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+  }
+
+  .lore-link-list {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .lore-link-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.65rem;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--fg);
+    transition: background 0.15s;
+  }
+
+  .lore-link-item:hover {
+    background: var(--surface2);
+    border-color: var(--accent-color);
+  }
+
+  .lore-link-key {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--accent-color);
+  }
+
+  .lore-link-preview {
+    font-size: 0.8rem;
+    color: var(--fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lore-link-empty {
+    text-align: center;
+    color: var(--fg-muted);
+    padding: 1.5rem;
+    font-size: 0.9rem;
+  }
 
   :global(.back-to-lore:hover) {
     background: rgba(160, 174, 192, 0.1) !important;
@@ -1220,6 +1365,60 @@
       <!-- Modal content populated by game.js -->
     </div>
   </div>
+
+  <!-- Lore Link Modal -->
+  {#if showLoreLinkModal && selectedLandmark}
+    <div class="modal-overlay" on:click={closeLoreLinkModal} on:keydown={(e) => { if (e.key === 'Escape') closeLoreLinkModal(); }}>
+      <div class="modal lore-link-modal" on:click={(e) => e.stopPropagation()}>
+        <div class="modal-header">
+          <div class="modal-title">
+            <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            Link to Lore
+          </div>
+          <button class="modal-close" on:click={closeLoreLinkModal}>
+            <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="lore-link-info">
+            <strong>{selectedLandmark.name || 'Landmark'}</strong><br>
+            <span style="font-size: 0.85rem; color: var(--fg-muted);">({selectedLandmark.q}, {selectedLandmark.r})</span>
+          </div>
+          <div class="lore-link-search">
+            <input
+              type="text"
+              placeholder="Search topics by name…"
+              bind:value={loreLinkSearch}
+              on:input={handleLoreLinkSearch}
+              class="lore-link-input"
+            />
+          </div>
+          {#if loreLinkMatches.length === 0 && loreLinkSearch.length > 0}
+            <p class="lore-link-empty">No topics found matching "{loreLinkSearch}"</p>
+          {:else if loreLinkMatches.length > 0}
+            <div class="lore-link-list">
+              {#each loreLinkMatches as match (match.key)}
+                <button class="lore-link-item" on:click={() => handleLinkToTopic(match.key)}>
+                  <div class="lore-link-key">{match.key}</div>
+                  <div class="lore-link-preview">{match.text}…</div>
+                </button>
+              {/each}
+            </div>
+          {:else}
+            <p class="lore-link-empty">Type to search for a topic to link</p>
+          {/if}
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" on:click={handleUnlinkFromTopic}>Unlink</button>
+          <button class="btn btn-ghost" on:click={closeLoreLinkModal}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <!-- Hidden file input for importing -->
