@@ -15,6 +15,7 @@
 
   let autoSyncTimer: ReturnType<typeof setInterval> | null = null;
   let dataLoaded = false;
+  let syncInProgress = false;
   let sidebarOpen = false;
 
   // Restart interval whenever the setting changes (or when data first loads)
@@ -23,12 +24,18 @@
     autoSyncTimer = null
     if ($settings.autoSync && $settings.autoSyncIntervalSecs > 0) {
       autoSyncTimer = setInterval(async () => {
-        const lastSync = $syncState.lastSync
-        if (lastSync) {
-          const ok = await runSmartSync(lastSync)
-          if (ok) return
+        if (syncInProgress) return;
+        syncInProgress = true;
+        try {
+          const lastSync = $syncState.lastSync
+          if (lastSync) {
+            const ok = await runSmartSync(lastSync)
+            if (ok) return
+          }
+          await runSync()
+        } finally {
+          syncInProgress = false;
         }
-        await runSync()
       }, $settings.autoSyncIntervalSecs * 1000)
     }
   }
