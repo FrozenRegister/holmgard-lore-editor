@@ -25,7 +25,9 @@ import {
   listTopicsRemote,
   getTopicRemote,
   adminSave,
+  adminSaveBatch,
   adminDelete,
+  adminDeleteBatch,
   batchGetTopicsRemote,
   getTopicHistories,
   getChanges,
@@ -374,6 +376,73 @@ describe('adminDelete', () => {
       text: async () => 'Key not found',
     } as Response);
     await expect(adminDelete('http://worker', 'missing', 'secret')).rejects.toThrow('Key not found');
+  });
+});
+
+// ── adminSaveBatch ────────────────────────────────────────────────────────────
+describe('adminSaveBatch', () => {
+  it('sends batch save to /admin/set-lore-batch endpoint', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true } as Response);
+    const items = [
+      { key: 'topic-a', text: 'Content A' },
+      { key: 'topic-b', text: 'Content B' },
+    ];
+    await adminSaveBatch('http://worker', items, 'my-secret');
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://worker/admin/set-lore-batch');
+    expect(options.method).toBe('POST');
+    const body = JSON.parse(options.body);
+    expect(body.items).toEqual(items);
+    expect(body.secret).toBe('my-secret');
+  });
+
+  it('skips request when items array is empty', async () => {
+    await adminSaveBatch('http://worker', [], 'secret');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('throws on HTTP error', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      text: async () => 'Server error',
+    } as Response);
+    await expect(
+      adminSaveBatch('http://worker', [{ key: 'x', text: 'y' }], 'secret'),
+    ).rejects.toThrow('Server error');
+  });
+});
+
+// ── adminDeleteBatch ──────────────────────────────────────────────────────────
+describe('adminDeleteBatch', () => {
+  it('sends batch delete to /admin/delete-lore-batch endpoint', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true } as Response);
+    const keys = ['topic-a', 'topic-b', 'topic-c'];
+    await adminDeleteBatch('http://worker', keys, 'my-secret');
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://worker/admin/delete-lore-batch');
+    expect(options.method).toBe('POST');
+    const body = JSON.parse(options.body);
+    expect(body.keys).toEqual(keys);
+    expect(body.secret).toBe('my-secret');
+  });
+
+  it('skips request when keys array is empty', async () => {
+    await adminDeleteBatch('http://worker', [], 'secret');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('throws on HTTP error', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      text: async () => 'Invalid secret',
+    } as Response);
+    await expect(
+      adminDeleteBatch('http://worker', ['x'], 'bad-secret'),
+    ).rejects.toThrow('Invalid secret');
   });
 });
 
