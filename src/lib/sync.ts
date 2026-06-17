@@ -98,6 +98,28 @@ export async function adminSave(
   }
 }
 
+/**
+ * Save multiple lore entries in a single HTTP request.
+ * Requires POST /admin/set-lore-batch on the worker.
+ */
+export async function adminSaveBatch(
+  host: string,
+  items: Array<{ key: string; text: string }>,
+  secret: string
+): Promise<void> {
+  if (!items.length) return;
+  const url = `${host}/admin/set-lore-batch`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items, secret }),
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Admin batch save failed (${res.status}): ${msg}`);
+  }
+}
+
 // ── Admin delete ──────────────────────────────────────────────────────────────
 
 export async function adminDelete(
@@ -114,6 +136,28 @@ export async function adminDelete(
   if (!res.ok) {
     const msg = await res.text().catch(() => res.statusText);
     throw new Error(`Admin delete failed (${res.status}): ${msg}`);
+  }
+}
+
+/**
+ * Delete multiple lore entries in a single HTTP request.
+ * Requires POST /admin/delete-lore-batch on the worker.
+ */
+export async function adminDeleteBatch(
+  host: string,
+  keys: string[],
+  secret: string
+): Promise<void> {
+  if (!keys.length) return;
+  const url = `${host}/admin/delete-lore-batch`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ keys, secret }),
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Admin batch delete failed (${res.status}): ${msg}`);
   }
 }
 
@@ -185,55 +229,58 @@ export async function enqueue(key: string, text: string): Promise<void> {
 export async function flushQueue(
   settings: AppSettings,
   secret: string,
-  onConflict: (info: ConflictInfo) => void
+  _onConflict?: (info: ConflictInfo) => void
 ): Promise<void> {
   const queue = await loadQueue();
   if (!queue.length) return;
 
-  const remaining: QueuedSave[] = [];
-  const BATCH_SIZE = 5;
+  const eligible = queue.filter((item) => item.attempts < MAX_ATTEMPTS);
+  const exceeded = queue.filter((item) => item.attempts >= MAX_ATTEMPTS);
 
-  for (let i = 0; i < queue.length; i += BATCH_SIZE) {
-    const batch = queue.slice(i, i + BATCH_SIZE).filter((item) => item.attempts < MAX_ATTEMPTS);
-    if (!batch.length) continue;
+  exceeded.forEach((item) =>
+    console.warn(`Dropping queue item "${item.key}" after ${MAX_ATTEMPTS} attempts`)
+  );
 
-    // Apply backoff once per batch (to the first item's attempt count)
-    const maxAttempts = Math.max(...batch.map((item) => item.attempts));
-    await new Promise((r) => setTimeout(r, backoffDelay(maxAttempts)));
-
-    // Process all items in batch in parallel
-    const results = await Promise.allSettled(
-      batch.map((item) => adminSave(settings.workerHost, item.key, item.text, secret))
-    );
-
-    // Handle results per-item
-    for (let j = 0; j < results.length; j++) {
-      const result = results[j];
-      const item = batch[j];
-
-      if (result.status === 'rejected') {
-        console.warn(`Queue flush failed for "${item.key}" (attempt ${item.attempts + 1}):`, result.reason);
-        remaining.push({ ...item, attempts: item.attempts + 1 });
-      }
-    }
+  if (!eligible.length) {
+    await saveQueue([]);
+    return;
   }
 
-  // Drop items that exceeded max attempts
-  queue.forEach((item) => {
-    if (item.attempts >= MAX_ATTEMPTS && !remaining.find((r) => r.key === item.key)) {
-      console.warn(`Dropping queue item "${item.key}" after ${MAX_ATTEMPTS} attempts`);
-    }
-  });
+  // Apply backoff based on the highest attempt count in the batch
+  const maxAttempts = Math.max(...eligible.map((i) => i.attempts));
+  if (maxAttempts > 0) {
+    await new Promise((r) => setTimeout(r, backoffDelay(maxAttempts)));
+  }
 
-  await saveQueue(remaining);
+  // One batch request instead of N parallel individual saves
+  try {
+    await adminSaveBatch(
+      settings.workerHost,
+      eligible.map((item) => ({ key: item.key, text: item.text })),
+      secret
+    );
+    await saveQueue([]);
+  } catch (err) {
+    console.warn('Queue batch flush failed, will retry:', err);
+    await saveQueue(eligible.map((item) => ({ ...item, attempts: item.attempts + 1 })));
+  }
 }
 
 export async function batchGetTopicsRemote(host: string, keys: string[], apiKey?: string): Promise<Map<string, RemoteTopic>> {
   if (!keys.length) return new Map();
-  const results = await Promise.all(keys.map((key) => getTopicRemote(host, key, apiKey)));
+  // Single RPC call returning all requested topics — requires get_lore_batch on the worker.
+  const result = await rpc<Record<string, { text: string; meta: TopicMeta } | null>>(
+    host, 'get_lore_batch', { keys }, apiKey
+  );
   const map = new Map<string, RemoteTopic>();
-  for (const topic of results) {
-    if (topic) map.set(topic.key, topic);
+  for (const [key, val] of Object.entries(result ?? {})) {
+    if (val) {
+      map.set(key, {
+        key,
+        text: val.text,
+        meta: val.meta ?? { version: 0, updatedAt: new Date().toISOString() },
+      });
+    }
   }
   return map;
 }
