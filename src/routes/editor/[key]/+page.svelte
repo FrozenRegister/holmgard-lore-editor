@@ -14,6 +14,8 @@
   import RemoteHistory from '$lib/components/RemoteHistory.svelte';
   import { callTool } from '$lib/mcp';
   import type { Topic, HistoryEntry, McpEvent, ActiveThread, TopicSnapshot, TopicMeta } from '$lib/types';
+  import { getLandmarksForLore, unlinkLandmarkFromLore } from '$lib/mapTools';
+  import type { LandmarkRecord } from '$lib/mapDb';
 
   // ── Route param ───────────────────────────────────────────────────────────────
   $: key = $page.params.key ? decodeURIComponent($page.params.key) : '';
@@ -39,6 +41,9 @@
   let availableThreads: ActiveThread[] = [];
   let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   const AUTOSAVE_DELAY = 5000;
+  let showMapLocations = false;
+  let linkedLandmarks: LandmarkRecord[] = [];
+  let mapLocationsLoading = false;
 
   // ── Load topic ────────────────────────────────────────────────────────────────
   $: if (key) loadCurrent();
@@ -132,6 +137,7 @@
   async function openHistory() {
     showEventLog = false;
     showRemoteHistory = false;
+    showMapLocations = false;
     historyEntries = await loadHistory(key);
     showHistory = true;
   }
@@ -139,6 +145,7 @@
   async function openRemoteHistory() {
     showHistory = false;
     showEventLog = false;
+    showMapLocations = false;
     remoteHistoryLoading = true;
     remoteHistoryError = null;
     try {
@@ -154,8 +161,36 @@
   }
 
   // ── Event log ─────────────────────────────────────────────────────────────────
+  async function openMapLocations() {
+    showHistory = false;
+    showRemoteHistory = false;
+    showEventLog = false;
+    showMapLocations = true;
+    mapLocationsLoading = true;
+    try {
+      linkedLandmarks = await getLandmarksForLore(key);
+    } catch (err) {
+      console.error('Map locations error:', err);
+      showToast('Failed to load map locations', 'error');
+    } finally {
+      mapLocationsLoading = false;
+    }
+  }
+
+  async function handleUnlinkLandmark(mapId: string, landmarkId: string) {
+    try {
+      await unlinkLandmarkFromLore(mapId, landmarkId, { writeLoreBack: true });
+      linkedLandmarks = linkedLandmarks.filter((l) => !(l.mapId === mapId && l.id === landmarkId));
+      showToast('Map location unlinked', 'info');
+    } catch (err) {
+      console.error('Unlink error:', err);
+      showToast('Failed to unlink', 'error');
+    }
+  }
+
   async function openEventLog() {
     showHistory = false;
+    showMapLocations = false;
     showEventLog = true;
     if (availableThreads.length === 0) {
       try {
@@ -227,6 +262,7 @@
         <button class="btn btn-ghost btn-sm" on:click={openHistory}>History</button>
         <button class="btn btn-ghost btn-sm" on:click={openRemoteHistory}>Remote History</button>
         <button class="btn btn-ghost btn-sm" on:click={openEventLog}>Event Log</button>
+        <button class="btn btn-ghost btn-sm" on:click={openMapLocations} title="View and manage linked map locations">Map Locations</button>
         <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
           Save
         </button>
@@ -326,6 +362,43 @@
               <button class="btn btn-secondary btn-sm" on:click={() => restoreVersion(entry)}>
                 Restore
               </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<!-- Map Locations drawer (desktop only) -->
+{#if !$isMobile && showMapLocations}
+  <div class="history-overlay" role="dialog" aria-modal="true" aria-label="Map Locations">
+    <div class="history-panel">
+      <div class="history-header">
+        <h3>Map Locations</h3>
+        <button class="btn-icon" on:click={() => (showMapLocations = false)} aria-label="Close">✕</button>
+      </div>
+      {#if mapLocationsLoading}
+        <p class="empty-hist">Loading…</p>
+      {:else if linkedLandmarks.length === 0}
+        <p class="empty-hist">No map locations linked.<br><br>Open the World Map editor and use the <strong>Lore</strong> button in the toolbar to link this topic to a landmark.</p>
+      {:else}
+        <ul class="history-list">
+          {#each linkedLandmarks as lm (lm.mapId + lm.id)}
+            <li class="map-loc-row">
+              <div class="hist-meta">
+                <div class="hist-top">
+                  <span class="hist-version">{lm.name || lm.id}</span>
+                  {#if lm.type}
+                    <span class="hist-source hist-source--remote">{lm.type}</span>
+                  {/if}
+                </div>
+                <span class="hist-date">({lm.q}, {lm.r})</span>
+              </div>
+              <div class="map-loc-actions">
+                <button class="btn btn-ghost btn-sm" on:click={() => goto('/world-editor')} title="Open World Map">Map ↗</button>
+                <button class="btn btn-secondary btn-sm" on:click={() => handleUnlinkLandmark(lm.mapId, lm.id)}>Unlink</button>
+              </div>
             </li>
           {/each}
         </ul>
@@ -515,4 +588,15 @@
     flex: 1;
     overflow-y: auto;
   }
+
+  .map-loc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.75rem;
+    border-radius: 6px;
+    gap: 0.5rem;
+  }
+  .map-loc-row:hover { background: var(--surface2); }
+  .map-loc-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
 </style>
