@@ -17,19 +17,27 @@
   let autoSyncTimer: ReturnType<typeof setInterval> | null = null;
   let dataLoaded = false;
   let sidebarOpen = false;
+  let syncInFlight = false;
 
-  // Restart interval whenever the setting changes (or when data first loads)
+  // Restart interval whenever the setting changes (or when data first loads).
+  // syncInFlight prevents overlapping ticks when a sync outlasts the interval.
   $: if (dataLoaded) {
     if (autoSyncTimer) clearInterval(autoSyncTimer)
     autoSyncTimer = null
     if ($settings.autoSync && $settings.autoSyncIntervalSecs > 0) {
       autoSyncTimer = setInterval(async () => {
-        const lastSync = $syncState.lastSync
-        if (lastSync) {
-          const ok = await runSmartSync(lastSync)
-          if (ok) return
+        if (syncInFlight) return;
+        syncInFlight = true;
+        try {
+          const lastSync = $syncState.lastSync
+          if (lastSync) {
+            const ok = await runSmartSync(lastSync)
+            if (ok) return
+          }
+          await runSync()
+        } finally {
+          syncInFlight = false;
         }
-        await runSync()
       }, $settings.autoSyncIntervalSecs * 1000)
     }
   }
