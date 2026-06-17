@@ -116,7 +116,9 @@
     {/if}
 
     <main class="app-main">
-      <slot />
+      {#if !$initialising}
+        <slot />
+      {/if}
     </main>
   </div>
 </div>
