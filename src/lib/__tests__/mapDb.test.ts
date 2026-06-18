@@ -19,6 +19,11 @@ import {
 	setLandmarkLinkedLore,
 	getLandmarksForLoreKey,
 	getLandmarksForLoreKeyOnMap,
+	saveHex,
+	saveLandmark,
+	clearMapData,
+	getAllHexes,
+	getAllLandmarks,
 	type MapMeta,
 	type HexRecord,
 	type LandmarkRecord
@@ -401,6 +406,280 @@ describe('mapDb', () => {
 			]);
 			const result = await getLandmarksForLoreKeyOnMap('map1', 'location:nope');
 			expect(result).toEqual([]);
+		});
+
+		describe('saveHex', () => {
+			it('saves a new hex record to IndexedDB', async () => {
+				const hex: HexRecord = {
+					mapId: 'map1',
+					q: 5,
+					r: 10,
+					terrain: 'forest',
+					name: 'Dark Woods',
+					description: 'A mysterious forest'
+				};
+				await saveHex(hex);
+				const retrieved = await getHex('map1', 5, 10);
+				expect(retrieved).toEqual(hex);
+			});
+
+			it('updates an existing hex record', async () => {
+				await seedMap('map1', [{ q: 0, r: 0, terrain: 'grass', name: 'Start' }], []);
+				const updated: HexRecord = {
+					mapId: 'map1',
+					q: 0,
+					r: 0,
+					terrain: 'mountain',
+					name: 'Peak',
+					description: 'A high mountain'
+				};
+				await saveHex(updated);
+				const retrieved = await getHex('map1', 0, 0);
+				expect(retrieved?.terrain).toBe('mountain');
+				expect(retrieved?.name).toBe('Peak');
+			});
+
+			it('saves hex with empty description', async () => {
+				const hex: HexRecord = {
+					mapId: 'map1',
+					q: 1,
+					r: 1,
+					terrain: 'water',
+					name: 'Lake',
+					description: ''
+				};
+				await saveHex(hex);
+				const retrieved = await getHex('map1', 1, 1);
+				expect(retrieved?.description).toBe('');
+			});
+
+			it('preserves hex across different maps', async () => {
+				const hex1: HexRecord = {
+					mapId: 'map1',
+					q: 0,
+					r: 0,
+					terrain: 'grass',
+					name: 'Field',
+					description: ''
+				};
+				const hex2: HexRecord = {
+					mapId: 'map2',
+					q: 0,
+					r: 0,
+					terrain: 'mountain',
+					name: 'Peak',
+					description: ''
+				};
+				await saveHex(hex1);
+				await saveHex(hex2);
+				const retrieved1 = await getHex('map1', 0, 0);
+				const retrieved2 = await getHex('map2', 0, 0);
+				expect(retrieved1?.terrain).toBe('grass');
+				expect(retrieved2?.terrain).toBe('mountain');
+			});
+		});
+
+		describe('saveLandmark', () => {
+			it('saves a new landmark record to IndexedDB', async () => {
+				const landmark: LandmarkRecord = {
+					mapId: 'map1',
+					id: 'lm1',
+					q: 5,
+					r: 10,
+					name: 'Castle',
+					type: 'fortress',
+					notes: 'A grand fortress',
+					attributes: '{"level":3}',
+					linkedMapId: null,
+					visible: true,
+					linkedLoreKey: null
+				};
+				await saveLandmark(landmark);
+				const retrieved = await getLandmark('map1', 'lm1');
+				expect(retrieved).toEqual(landmark);
+			});
+
+			it('updates an existing landmark record', async () => {
+				await seedMap('map1', [], [
+					{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'Old' }
+				]);
+				const updated: LandmarkRecord = {
+					mapId: 'map1',
+					id: 'lm1',
+					q: 0,
+					r: 0,
+					name: 'New City',
+					type: 'capital',
+					notes: 'Updated notes',
+					attributes: '{}',
+					linkedMapId: null,
+					visible: true,
+					linkedLoreKey: null
+				};
+				await saveLandmark(updated);
+				const retrieved = await getLandmark('map1', 'lm1');
+				expect(retrieved?.name).toBe('New City');
+				expect(retrieved?.type).toBe('capital');
+			});
+
+			it('preserves linkedLoreKey on update', async () => {
+				await seedMap('map1', [], [
+					{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'City' }
+				]);
+				await setLandmarkLinkedLore('map1', 'lm1', 'location:crowkeep');
+				const landmark: LandmarkRecord = {
+					mapId: 'map1',
+					id: 'lm1',
+					q: 0,
+					r: 0,
+					name: 'City',
+					type: 'city',
+					notes: '',
+					attributes: '{}',
+					linkedMapId: null,
+					visible: true,
+					linkedLoreKey: null
+				};
+				await saveLandmark(landmark);
+				const retrieved = await getLandmark('map1', 'lm1');
+				expect(retrieved?.linkedLoreKey).toBe('location:crowkeep');
+			});
+
+			it('saves landmark with linkedMapId and linkedLoreKey', async () => {
+				const landmark: LandmarkRecord = {
+					mapId: 'map1',
+					id: 'lm1',
+					q: 5,
+					r: 10,
+					name: 'Portal',
+					type: 'gateway',
+					notes: 'Links to another realm',
+					attributes: '{"destination":"map2"}',
+					linkedMapId: 'map2',
+					visible: true,
+					linkedLoreKey: 'location:portal'
+				};
+				await saveLandmark(landmark);
+				const retrieved = await getLandmark('map1', 'lm1');
+				expect(retrieved?.linkedMapId).toBe('map2');
+				expect(retrieved?.linkedLoreKey).toBe('location:portal');
+			});
+
+			it('saves landmark with visibility flag', async () => {
+				const visible: LandmarkRecord = {
+					mapId: 'map1',
+					id: 'lm-visible',
+					q: 0,
+					r: 0,
+					name: 'Visible',
+					type: 'city',
+					notes: '',
+					attributes: '{}',
+					linkedMapId: null,
+					visible: true,
+					linkedLoreKey: null
+				};
+				const hidden: LandmarkRecord = {
+					mapId: 'map1',
+					id: 'lm-hidden',
+					q: 1,
+					r: 1,
+					name: 'Hidden',
+					type: 'city',
+					notes: '',
+					attributes: '{}',
+					linkedMapId: null,
+					visible: false,
+					linkedLoreKey: null
+				};
+				await saveLandmark(visible);
+				await saveLandmark(hidden);
+				const retrievedVisible = await getLandmark('map1', 'lm-visible');
+				const retrievedHidden = await getLandmark('map1', 'lm-hidden');
+				expect(retrievedVisible?.visible).toBe(true);
+				expect(retrievedHidden?.visible).toBe(false);
+			});
+		});
+
+		describe('clearMapData', () => {
+			it('clears all hexes for a map', async () => {
+				await seedMap('map1', [
+					{ q: 0, r: 0, terrain: 'grass', name: 'H1' },
+					{ q: 1, r: 1, terrain: 'forest', name: 'H2' }
+				], []);
+				await clearMapData('map1');
+				const hexes = await getAllHexes('map1');
+				expect(hexes).toEqual([]);
+			});
+
+			it('clears all landmarks for a map', async () => {
+				await seedMap('map1', [], [
+					{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'City1' },
+					{ id: 'lm2', q: 1, r: 1, type: 'city', name: 'City2' }
+				]);
+				await clearMapData('map1');
+				const landmarks = await getAllLandmarks('map1');
+				expect(landmarks).toEqual([]);
+			});
+
+			it('clears both hexes and landmarks for a map', async () => {
+				await seedMap('map1', [
+					{ q: 0, r: 0, terrain: 'grass', name: 'H1' },
+					{ q: 1, r: 1, terrain: 'forest', name: 'H2' }
+				], [
+					{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'C1' },
+					{ id: 'lm2', q: 1, r: 1, type: 'city', name: 'C2' }
+				]);
+				await clearMapData('map1');
+				const hexes = await getAllHexes('map1');
+				const landmarks = await getAllLandmarks('map1');
+				expect(hexes).toEqual([]);
+				expect(landmarks).toEqual([]);
+			});
+
+			it('preserves other maps data when clearing one map', async () => {
+				await seedMap('map1', [
+					{ q: 0, r: 0, terrain: 'grass', name: 'H1' }
+				], [
+					{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'C1' }
+				]);
+				await seedMap('map2', [
+					{ q: 5, r: 5, terrain: 'mountain', name: 'H2' }
+				], [
+					{ id: 'lm2', q: 5, r: 5, type: 'city', name: 'C2' }
+				]);
+				await clearMapData('map1');
+				const hexes1 = await getAllHexes('map1');
+				const hexes2 = await getAllHexes('map2');
+				const landmarks1 = await getAllLandmarks('map1');
+				const landmarks2 = await getAllLandmarks('map2');
+				expect(hexes1).toEqual([]);
+				expect(hexes2).toHaveLength(1);
+				expect(hexes2[0].name).toBe('H2');
+				expect(landmarks1).toEqual([]);
+				expect(landmarks2).toHaveLength(1);
+				expect(landmarks2[0].name).toBe('C2');
+			});
+
+			it('handles clearing empty map gracefully', async () => {
+				await clearMapData('nonexistent');
+				const hexes = await getAllHexes('nonexistent');
+				const landmarks = await getAllLandmarks('nonexistent');
+				expect(hexes).toEqual([]);
+				expect(landmarks).toEqual([]);
+			});
+
+			it('clears landmarks with linkedLoreKey', async () => {
+				await seedMap('map1', [], [
+					{ id: 'lm1', q: 0, r: 0, type: 'city', name: 'City', linkedLoreKey: 'location:crowkeep' }
+				]);
+				await clearMapData('map1');
+				const landmarks = await getAllLandmarks('map1');
+				expect(landmarks).toEqual([]);
+				// Verify the lore link index is not searched for the deleted landmark
+				const forLore = await getLandmarksForLoreKey('location:crowkeep');
+				expect(forLore).toEqual([]);
+			});
 		});
 	});
 });

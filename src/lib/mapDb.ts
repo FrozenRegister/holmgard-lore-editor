@@ -426,3 +426,51 @@ export async function getLandmarksForLoreKeyOnMap(
 	const rows = (await index.getAll(range)) as LandmarkRecord[];
 	return rows.map((l: LandmarkRecord) => ({ ...l, linkedLoreKey: l.linkedLoreKey ?? null }));
 }
+
+/**
+ * Save a hex record to IndexedDB.
+ * Alias for the low-level put operation.
+ */
+export async function saveHex(record: HexRecord): Promise<void> {
+	const db = await getMapDb();
+	await db.put('hexes', record);
+}
+
+/**
+ * Save a landmark record to IndexedDB.
+ * Alias for putLandmark.
+ */
+export async function saveLandmark(record: LandmarkRecord): Promise<void> {
+	await putLandmark(record);
+}
+
+/**
+ * Clear all hex and landmark data for a given map from IndexedDB.
+ * Used before pulling fresh data from the worker.
+ */
+export async function clearMapData(mapId: string): Promise<void> {
+	const db = await getMapDb();
+	const tx = db.transaction(['hexes', 'landmarks'], 'readwrite');
+
+	// Delete all hexes for this map
+	const hexIndex = (tx.objectStore('hexes') as any).index('by-map-q');
+	const hexRange = IDBKeyRange.bound([mapId], [mapId, Infinity]);
+	const hexCursor = await hexIndex.openCursor(hexRange);
+	if (hexCursor) {
+		for await (const cursor of hexCursor) {
+			cursor.delete();
+		}
+	}
+
+	// Delete all landmarks for this map
+	const landmarkIndex = (tx.objectStore('landmarks') as any).index('by-map-q');
+	const landmarkRange = IDBKeyRange.bound([mapId], [mapId, Infinity]);
+	const landmarkCursor = await landmarkIndex.openCursor(landmarkRange);
+	if (landmarkCursor) {
+		for await (const cursor of landmarkCursor) {
+			cursor.delete();
+		}
+	}
+
+	await tx.done;
+}
