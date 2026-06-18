@@ -22,6 +22,9 @@ const mocks = vi.hoisted(() => {
     updateMapPushedAtMock:  vi.fn(),
     getAdminSecretMock:     vi.fn(),
     invokeMock:             vi.fn(),
+    saveHexMock:            vi.fn(),
+    saveLandmarkMock:       vi.fn(),
+    clearMapDataMock:       vi.fn(),
     settingsStore: makeStore<any>({
       workerHost: 'http://worker',
       autoSync: true,
@@ -43,6 +46,9 @@ vi.mock('../mapDb', () => ({
   getAllHexes:         mocks.getAllHexesMock,
   getAllLandmarks:     mocks.getAllLandmarksMock,
   updateMapPushedAt:   mocks.updateMapPushedAtMock,
+  saveHex:             mocks.saveHexMock,
+  saveLandmark:        mocks.saveLandmarkMock,
+  clearMapData:        mocks.clearMapDataMock,
 }));
 
 vi.mock('../auth', () => ({
@@ -54,7 +60,7 @@ vi.mock('../stores', () => ({
 }));
 
 // Import AFTER mocks
-import { MapSyncError, pushMapToWorker } from '../mapSync';
+import { MapSyncError, pushMapToWorker, pullMapFromWorker } from '../mapSync';
 import type { HexRecord, LandmarkRecord } from '../mapDb';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -94,6 +100,9 @@ beforeEach(() => {
   mocks.getAllLandmarksMock.mockResolvedValue([]);
   mocks.updateMapPushedAtMock.mockResolvedValue(undefined);
   mocks.getAdminSecretMock.mockResolvedValue('test-secret');
+  mocks.saveHexMock.mockResolvedValue(undefined);
+  mocks.saveLandmarkMock.mockResolvedValue(undefined);
+  mocks.clearMapDataMock.mockResolvedValue(undefined);
   mocks.settingsStore.set({
     workerHost: 'http://worker',
     autoSync: true,
@@ -442,5 +451,162 @@ describe('pushMapToWorker — edge cases', () => {
     expect(hexCalls).toHaveLength(2);
     expect(landmarkCalls).toHaveLength(1);
     expect(mocks.updateMapPushedAtMock).toHaveBeenCalledOnce();
+  });
+});
+
+// ── pullMapFromWorker ─────────────────────────────────────────────────────────
+
+describe('pullMapFromWorker — host validation', () => {
+  it('throws MapSyncError when workerHost is empty string', async () => {
+    mocks.settingsStore.set({ ...mocks.settingsStore.val, workerHost: '' });
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('Worker host is not configured');
+  });
+
+  it('throws MapSyncError when workerHost is whitespace-only', async () => {
+    mocks.settingsStore.set({ ...mocks.settingsStore.val, workerHost: '   ' });
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('Worker host is not configured');
+  });
+});
+
+describe('pullMapFromWorker — auth (browser mode)', () => {
+  beforeEach(() => {
+    delete (globalThis as any).__TAURI__;
+  });
+
+  it('calls getAdminSecret when not in Tauri', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, hexes: [], landmarks: [] }),
+    } as Response);
+    mocks.getAdminSecretMock.mockResolvedValue('browser-secret');
+    await pullMapFromWorker(TEST_MAP_ID);
+    expect(mocks.getAdminSecretMock).toHaveBeenCalledOnce();
+  });
+
+  it('throws MapSyncError when adminSecret is null', async () => {
+    mocks.getAdminSecretMock.mockResolvedValue(null);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('Admin secret is not configured');
+  });
+
+  it('throws MapSyncError when adminSecret is empty string', async () => {
+    mocks.getAdminSecretMock.mockResolvedValue('');
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('Admin secret is not configured');
+  });
+});
+
+describe('pullMapFromWorker — request construction', () => {
+  beforeEach(() => {
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, hexes: [], landmarks: [] }),
+    } as Response);
+  });
+
+  it('strips trailing slash from workerHost', async () => {
+    mocks.settingsStore.set({ ...mocks.settingsStore.val, workerHost: 'http://worker/' });
+    await pullMapFromWorker(TEST_MAP_ID);
+    const [url] = (fetch as Mock).mock.calls[0];
+    expect(url).toBe('http://worker/internal/map-readback');
+  });
+
+  it('sends POST request with correct headers', async () => {
+    await pullMapFromWorker(TEST_MAP_ID);
+    const [, options] = (fetch as Mock).mock.calls[0];
+    expect(options.method).toBe('POST');
+    expect(options.headers['Content-Type']).toBe('application/json');
+    expect(options.headers['X-Admin-Secret']).toBe('test-secret');
+  });
+
+  it('includes mapId in the body', async () => {
+    await pullMapFromWorker(TEST_MAP_ID);
+    const [, options] = (fetch as Mock).mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.mapId).toBe(TEST_MAP_ID);
+  });
+});
+
+describe('pullMapFromWorker — data handling', () => {
+  it('clears map data and saves hexes and landmarks', async () => {
+    const hexes = [
+      makeHex(0, 0, 'grassland', TEST_MAP_ID),
+      makeHex(1, 0, 'forest', TEST_MAP_ID),
+    ];
+    const landmarks = [
+      makeLandmark('lm-1', 0, 0, TEST_MAP_ID),
+      makeLandmark('lm-2', 1, 0, TEST_MAP_ID),
+    ];
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, hexes, landmarks }),
+    } as Response);
+
+    const result = await pullMapFromWorker(TEST_MAP_ID);
+
+    expect(mocks.clearMapDataMock).toHaveBeenCalledWith(TEST_MAP_ID);
+    expect(mocks.saveHexMock).toHaveBeenCalledTimes(2);
+    expect(mocks.saveHexMock).toHaveBeenCalledWith(hexes[0]);
+    expect(mocks.saveHexMock).toHaveBeenCalledWith(hexes[1]);
+    expect(mocks.saveLandmarkMock).toHaveBeenCalledTimes(2);
+    expect(mocks.saveLandmarkMock).toHaveBeenCalledWith(landmarks[0]);
+    expect(mocks.saveLandmarkMock).toHaveBeenCalledWith(landmarks[1]);
+    expect(result).toEqual({ hexCount: 2, landmarkCount: 2 });
+  });
+
+  it('returns correct counts for empty data', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, hexes: [], landmarks: [] }),
+    } as Response);
+
+    const result = await pullMapFromWorker(TEST_MAP_ID);
+
+    expect(result).toEqual({ hexCount: 0, landmarkCount: 0 });
+    expect(mocks.clearMapDataMock).toHaveBeenCalledWith(TEST_MAP_ID);
+  });
+});
+
+describe('pullMapFromWorker — HTTP errors', () => {
+  it('throws MapSyncError on HTTP 500', async () => {
+    (fetch as Mock).mockResolvedValue(errorResponse(500, 'Server crashed'));
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow(MapSyncError);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('HTTP 500: Server crashed');
+  });
+
+  it('throws MapSyncError on HTTP 401', async () => {
+    (fetch as Mock).mockResolvedValue(errorResponse(401, 'Unauthorized'));
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('HTTP 401: Unauthorized');
+  });
+
+  it('throws MapSyncError on invalid JSON response', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => { throw new Error('invalid json'); },
+    } as unknown as Response);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow(Error);
+    // The json() error is thrown as-is, not wrapped in MapSyncError
+  });
+
+  it('throws MapSyncError when response ok is false', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: false, hexes: [], landmarks: [] }),
+    } as Response);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('Invalid response from map-readback endpoint');
+  });
+
+  it('throws MapSyncError when hexes is missing', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, landmarks: [] }),
+    } as Response);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('Invalid response from map-readback endpoint');
+  });
+
+  it('throws MapSyncError when landmarks is missing', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, hexes: [] }),
+    } as Response);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('Invalid response from map-readback endpoint');
   });
 });
