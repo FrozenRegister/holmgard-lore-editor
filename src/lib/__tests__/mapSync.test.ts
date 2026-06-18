@@ -609,4 +609,32 @@ describe('pullMapFromWorker — HTTP errors', () => {
     } as Response);
     await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('Invalid response from map-readback endpoint');
   });
+
+  it('handles error response when text() throws', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Error',
+      text: async () => { throw new Error('cannot read body'); },
+    } as unknown as Response);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('HTTP 500');
+  });
+
+  it('throws MapSyncError when response.json() throws on ok response', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: async () => { throw new Error('json parse failed'); },
+    } as unknown as Response);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow();
+  });
+
+  it('includes error body in MapSyncError message when response.text() succeeds', async () => {
+    (fetch as Mock).mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      text: async () => 'Access denied',
+    } as unknown as Response);
+    await expect(pullMapFromWorker(TEST_MAP_ID)).rejects.toThrow('HTTP 403: Access denied');
+  });
 });
