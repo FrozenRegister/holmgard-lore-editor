@@ -34,12 +34,15 @@ const db = new HolmgardDB();
 
 export async function idbLoadAllTopics(): Promise<Topic[]> {
   const records = await db.topics.toArray();
-  return records.map(r => r.data).sort((a, b) => a.key.localeCompare(b.key));
+  return records
+    .map(r => ({ ...r.data, text: r.data.text ?? '' }))
+    .sort((a, b) => (a.key ?? '').localeCompare(b.key ?? ''));
 }
 
 export async function idbLoadTopic(key: string): Promise<Topic | null> {
   const record = await db.topics.get(key);
-  return record?.data ?? null;
+  if (!record) return null;
+  return { ...record.data, text: record.data.text ?? '' };
 }
 
 export async function idbSaveTopic(topic: Topic): Promise<void> {

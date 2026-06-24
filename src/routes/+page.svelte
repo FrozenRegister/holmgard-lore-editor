@@ -20,8 +20,9 @@
   $: typePrefixes = (() => {
     const counts = new Map<string, number>();
     for (const t of $topics) {
-      const idx = t.key.indexOf(":");
-      const prefix = idx !== -1 ? t.key.slice(0, idx) : "other";
+      const k = t.key ?? '';
+      const idx = k.indexOf(":");
+      const prefix = idx !== -1 ? k.slice(0, idx) : "other";
       counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
     }
     return [...counts.entries()].sort(([a], [b]) => {
@@ -35,17 +36,17 @@
     .filter(
       (t) =>
         !activeType ||
-        t.key.startsWith(activeType + ":") ||
-        (activeType === "other" && !t.key.includes(":")),
+        (t.key ?? '').startsWith(activeType + ":") ||
+        (activeType === "other" && !(t.key ?? '').includes(":")),
     )
     .filter((t) => {
       if (!activeStatus) return true;
       if (activeStatus === "conflicts")
         return $conflictQueue.some((c) => c.key === t.key);
-      if (activeStatus === "removed") return t.meta.removedFromRemote === true;
+      if (activeStatus === "removed") return t.meta?.removedFromRemote === true;
       if (activeStatus === "recent")
         return (
-          new Date(t.meta.updatedAt) >
+          new Date(t.meta?.updatedAt as string) >
           new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
         );
       return true;
@@ -57,20 +58,21 @@
         (t.text ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
     )
     .sort((a, b) => {
-      if (sortBy === "name-desc") return b.key.localeCompare(a.key);
+      if (sortBy === "name-desc") return (b.key ?? '').localeCompare(a.key ?? '');
       if (sortBy === "updated-desc")
-        return new Date(b.meta.updatedAt as string).getTime() - new Date(a.meta.updatedAt as string).getTime();
+        return new Date(b.meta?.updatedAt as string).getTime() - new Date(a.meta?.updatedAt as string).getTime();
       if (sortBy === "updated-asc")
-        return new Date(a.meta.updatedAt as string).getTime() - new Date(b.meta.updatedAt as string).getTime();
+        return new Date(a.meta?.updatedAt as string).getTime() - new Date(b.meta?.updatedAt as string).getTime();
       if (sortBy === "version-desc")
-        return (b.meta.version ?? 0) - (a.meta.version ?? 0);
+        return (b.meta?.version ?? 0) - (a.meta?.version ?? 0);
       if (sortBy === "type") {
-        const aPrefix = a.key.includes(":") ? a.key.slice(0, a.key.indexOf(":")) : "￿";
-        const bPrefix = b.key.includes(":") ? b.key.slice(0, b.key.indexOf(":")) : "￿";
+        const ak = a.key ?? '', bk = b.key ?? '';
+        const aPrefix = ak.includes(":") ? ak.slice(0, ak.indexOf(":")) : "￿";
+        const bPrefix = bk.includes(":") ? bk.slice(0, bk.indexOf(":")) : "￿";
         const cmp = aPrefix.localeCompare(bPrefix);
-        return cmp !== 0 ? cmp : a.key.localeCompare(b.key);
+        return cmp !== 0 ? cmp : ak.localeCompare(bk);
       }
-      return a.key.localeCompare(b.key); // name-asc default
+      return (a.key ?? '').localeCompare(b.key ?? ''); // name-asc default
     });
 
   async function createNewTopic() {
