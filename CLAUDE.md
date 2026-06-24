@@ -31,6 +31,18 @@ When asked to review changes and push, always split changes into multiple logica
 
 After all commits are made, push once. This is the default behavior — no need for the user to ask explicitly.
 
+After a PR merges to main, always clean up the local branch:
+
+```bash
+git switch main && git pull && git branch -D <branch-name>
+```
+
+If multiple stale branches have accumulated, delete all non-main local branches at once:
+
+```bash
+git branch | grep -v "^\* main" | xargs git branch -D
+```
+
 Run a single test file:
 
 ```bash
