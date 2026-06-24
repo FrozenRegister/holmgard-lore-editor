@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { get } from 'svelte/store';
 
@@ -308,6 +308,64 @@ describe('mapTools', () => {
 		it('returns null when the landmark does not exist', async () => {
 			const r = await linkLandmarkToLore('map1', 'missing', 'location:crowkeep');
 			expect(r).toBeNull();
+		});
+
+		// Lines 298-299: catch block in linkLandmarkToLore when writeMapPositionToLore throws
+		it('swallows writeMapPositionToLore errors and still returns the updated landmark', async () => {
+			await seedLoreTopic('location:throwtest', '# Throw Test');
+			await seedMap('map1', [{ q: 5, r: 5, terrain: 'grass' }], [
+				{ id: 'lm-throw', q: 5, r: 5, type: 'city', name: 'Throw', notes: '' }
+			]);
+
+			// Make loadTopic throw so writeMapPositionToLore fails
+			const storage = await import('../storage');
+			const spy = vi.spyOn(storage, 'loadTopic').mockRejectedValueOnce(new Error('storage boom'));
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			const result = await linkLandmarkToLore('map1', 'lm-throw', 'location:throwtest', { writeLoreBack: true });
+
+			// The landmark record is still returned even though the write-back failed
+			expect(result?.linkedLoreKey).toBe('location:throwtest');
+			expect(consoleSpy).toHaveBeenCalledWith(
+				expect.stringContaining('lore write-back failed'),
+				expect.any(Error)
+			);
+
+			spy.mockRestore();
+			consoleSpy.mockRestore();
+		});
+
+		// Lines 324-325: catch block in unlinkLandmarkFromLore when removeMapPositionFromLore throws
+		it('swallows removeMapPositionFromLore errors and still returns the updated landmark', async () => {
+			await seedLoreTopic('location:unlinktest', '# Unlink\n\n**Map-Position:** map1, 7, 3');
+			await seedMap('map1', [{ q: 7, r: 3, terrain: 'grass' }], [
+				{
+					id: 'lm-unlink',
+					q: 7,
+					r: 3,
+					type: 'city',
+					name: 'Unlink',
+					notes: '',
+					linkedLoreKey: 'location:unlinktest'
+				}
+			]);
+
+			// Make saveTopic throw so removeMapPositionFromLore fails
+			const storage = await import('../storage');
+			const spy = vi.spyOn(storage, 'saveTopic').mockRejectedValueOnce(new Error('save boom'));
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			const result = await unlinkLandmarkFromLore('map1', 'lm-unlink', { writeLoreBack: true });
+
+			// The landmark is still returned unlinked
+			expect(result?.linkedLoreKey).toBeNull();
+			expect(consoleSpy).toHaveBeenCalledWith(
+				expect.stringContaining('lore write-back failed'),
+				expect.any(Error)
+			);
+
+			spy.mockRestore();
+			consoleSpy.mockRestore();
 		});
 	});
 

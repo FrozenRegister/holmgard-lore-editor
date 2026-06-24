@@ -133,6 +133,15 @@ describe('Tauri mode', () => {
     (invoke as any).mockRejectedValue(new Error('delete failed'));
     await expect(clearHistory('dragons')).resolves.not.toThrow();
   });
+
+  // Line 57: the invoke('fs_delete') success path inside clearHistory's Tauri branch
+  it('clearHistory calls invoke fs_delete when Tauri is active (success path)', async () => {
+    (invoke as any).mockResolvedValue(undefined);
+    await clearHistory('hobbits');
+    expect(invoke).toHaveBeenCalledWith('fs_delete', {
+      path: 'history/hobbits.json',
+    });
+  });
 });
 
 // ── clearHistory ──────────────────────────────────────────────────────────────

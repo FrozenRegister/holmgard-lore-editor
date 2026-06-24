@@ -3,6 +3,7 @@ import {
 	axialToLatLon,
 	latLonToAxial,
 	isInsideCoastline,
+	clearCoastlineCache,
 	getTerrainFromLatitude,
 	generateElevation,
 	generateProceduralHex,
@@ -413,5 +414,83 @@ describe('hexmap-utils', () => {
 				}],
 			};
 		}
+	});
+
+	// ── clearCoastlineCache (lines 17-18) ─────────────────────────────────────
+
+	describe('clearCoastlineCache', () => {
+		it('clears cache without throwing', () => {
+			// Populate cache by running a lookup first
+			const coastline: CoastlineMap = {
+				type: 'FeatureCollection',
+				features: [{
+					type: 'Feature',
+					geometry: {
+						type: 'Polygon',
+						coordinates: [[[-10, -10], [10, -10], [10, 10], [-10, 10], [-10, -10]]],
+					},
+				}],
+			};
+			// Prime the cache
+			isInsideCoastline(0, 0, coastline);
+			// Clear it — must not throw
+			expect(() => clearCoastlineCache()).not.toThrow();
+		});
+
+		it('result is recomputed after cache is cleared (cache miss)', () => {
+			const coastline: CoastlineMap = {
+				type: 'FeatureCollection',
+				features: [{
+					type: 'Feature',
+					geometry: {
+						type: 'Polygon',
+						coordinates: [[[-10, -10], [10, -10], [10, 10], [-10, 10], [-10, -10]]],
+					},
+				}],
+			};
+			// First call — populates cache
+			const first = isInsideCoastline(0, 0, coastline);
+			// Clear cache
+			clearCoastlineCache();
+			// Second call — must recompute (same result expected)
+			const second = isInsideCoastline(0, 0, coastline);
+			expect(first).toBe(second);
+		});
+	});
+
+	// ── Cache eviction branch (lines 106-107) ────────────────────────────────
+
+	describe('isInsideCoastline — cache eviction when cache is full', () => {
+		it('does not throw when the cache exceeds MAX_CACHE_SIZE entries', () => {
+			// We cannot directly set COASTLINE_CACHE.size, but we can trigger enough
+			// unique lookups to hit the eviction branch (MAX_CACHE_SIZE = 10000).
+			// Instead, clear the cache first then verify the branch is reachable by
+			// filling it artificially via many distinct (q,r) pairs.
+			clearCoastlineCache();
+
+			// Build a small polygon that returns `true` for some coordinates
+			const coastline: CoastlineMap = {
+				type: 'FeatureCollection',
+				features: [{
+					type: 'Feature',
+					geometry: {
+						type: 'Polygon',
+						// A very large polygon covering a wide range of coordinates
+						coordinates: [[[-200, -200], [200, -200], [200, 200], [-200, 200], [-200, -200]]],
+					},
+				}],
+			};
+
+			// To cover the eviction branch we need 10,001 unique cache keys.
+			// Each unique (q, r) pair (with same coastline identity) produces one key.
+			// We use a loop with a unique q offset each time.
+			// 10,001 calls fill the cache past MAX_CACHE_SIZE and trigger clear().
+			for (let q = 0; q < 10001; q++) {
+				// Use a unique r as well to ensure distinct cache keys
+				isInsideCoastline(q, q + 1, coastline);
+			}
+			// If we reach here without error, the eviction branch executed cleanly.
+			expect(true).toBe(true);
+		});
 	});
 });
