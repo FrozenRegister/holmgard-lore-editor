@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `mcp.ts`: Fixed `checkAuth()` using the wrong tool name (`check_authentication` instead of `lore_manage` with `action: auth_check`); the Worker returned -32601 Method Not Found on every call, causing the Test button in both Worker Connection and MCP Worker sections to always report "rejected" regardless of the actual key value
 - `settings/+page.svelte`: Added `autocomplete="off"` plus `data-lpignore`, `data-1p-ignore`, and `data-bwignore` attributes to all sensitive config fields so LastPass, 1Password, Bitwarden, and browser-native autofill no longer treat them as login credentials
 - `settings/+page.svelte`: "Test" button in the MCP Worker section now falls back to the saved keyring value when the input field is empty, matching how the Worker Connection test works; previously it always failed when no value was typed
 - `e2e/global-setup.ts`: Pre-warms the Vite dev server before parallel test workers start, fixing a cold-start race where `editor.spec.ts` tests timed out on blank pages (closes #138)
