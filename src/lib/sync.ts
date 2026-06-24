@@ -67,7 +67,7 @@ export async function getTopicRemote(host: string, key: string, apiKey?: string)
     if (!result) return null;
     return {
       key: result.key,
-      text: result.text,
+      text: result.text ?? '',
       meta: result.meta ?? { version: 0, updatedAt: new Date().toISOString() },
     };
   } catch {
@@ -277,7 +277,7 @@ export async function batchGetTopicsRemote(host: string, keys: string[], apiKey?
     if (val) {
       map.set(key, {
         key,
-        text: val.text,
+        text: val.text ?? '',
         meta: val.meta ?? { version: 0, updatedAt: new Date().toISOString() },
       });
     }
