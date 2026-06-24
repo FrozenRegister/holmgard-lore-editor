@@ -142,7 +142,7 @@ describe('sync integration', () => {
       // list_topics → get_lore_batch (1 batch call, not N individual calls)
       mockFetchSequence(
         { json: { jsonrpc: '2.0', id: 1, result: { keys: ['a', 'b'] } } },
-        { json: { jsonrpc: '2.0', id: 2, result: { a: { text: 'Topic A', meta: { version: 1, updatedAt: '' } }, b: { text: 'Topic B', meta: { version: 1, updatedAt: '' } } } } },
+        { json: { jsonrpc: '2.0', id: 2, result: { results: { a: { text: 'Topic A', meta: { version: 1, updatedAt: '' } }, b: { text: 'Topic B', meta: { version: 1, updatedAt: '' } } } } } },
       );
 
       const { pullAll } = await import('$lib/sync');
@@ -371,10 +371,10 @@ describe('sync integration', () => {
       // One request, one response containing all topics
       mockFetch({
         jsonrpc: '2.0', id: 1,
-        result: {
+        result: { results: {
           a: { text: 'A', meta: { version: 1, updatedAt: '' } },
           b: { text: 'B', meta: { version: 1, updatedAt: '' } },
-        },
+        } },
       });
 
       const { batchGetTopicsRemote } = await import('$lib/sync');
@@ -394,10 +394,10 @@ describe('sync integration', () => {
       // Worker returns null for keys that don't exist
       mockFetch({
         jsonrpc: '2.0', id: 1,
-        result: {
+        result: { results: {
           a: { text: 'A', meta: { version: 1, updatedAt: '' } },
           b: null,
-        },
+        } },
       });
 
       const { batchGetTopicsRemote } = await import('$lib/sync');
