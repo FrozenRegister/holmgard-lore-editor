@@ -501,6 +501,22 @@ describe('batchGetTopicsRemote', () => {
     expect(map.has('results')).toBe(true);
     expect(map.get('results')!.text).toBe('');
   });
+
+  it('normalises missing meta field to default version/updatedAt', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({ results: {
+      bare: { text: 'hello' },
+    } }));
+    const map = await batchGetTopicsRemote('http://worker', ['bare']);
+    expect(map.has('bare')).toBe(true);
+    expect(map.get('bare')!.meta.version).toBe(0);
+    expect(typeof map.get('bare')!.meta.updatedAt).toBe('string');
+  });
+
+  it('returns empty map when worker returns no results wrapper', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({}));
+    const map = await batchGetTopicsRemote('http://worker', ['x']);
+    expect(map.size).toBe(0);
+  });
 });
 
 // ── getTopicHistories ──────────────────────────────────────────────────────────

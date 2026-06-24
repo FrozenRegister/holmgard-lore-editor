@@ -305,6 +305,20 @@ describe('listTools', () => {
     expect(tools).toEqual([]);
   });
 
+  it('returns empty array on 401 Unauthorized', async () => {
+    const { listTools } = await import('../mcp');
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+    });
+    global.fetch = mockFetch;
+
+    const tools = await listTools('http://localhost', 'bad-key');
+
+    expect(tools).toEqual([]);
+  });
+
   it('returns empty array on JSON-RPC error', async () => {
     const { listTools } = await import('../mcp');
     const mockFetch = vi.fn().mockResolvedValue({
