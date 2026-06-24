@@ -38,7 +38,7 @@ describe('MCPPanel.svelte', () => {
     const { container } = render(MCPPanel);
     const input = container.querySelector('input') as HTMLInputElement;
     expect(input).toBeDefined();
-    expect(input.value).toBe('list_topics');
+    expect(input.value).toBe('lore_manage');
   });
 
   it('displays params textarea with default empty JSON', () => {
@@ -66,7 +66,7 @@ describe('MCPPanel.svelte', () => {
   });
 
 
-  it('calls callTool with default list_topics method', async () => {
+  it('calls callTool with default lore_manage method and empty params', async () => {
     vi.mocked(mcpModule.callTool).mockResolvedValue({ success: true });
     render(MCPPanel);
     const runBtn = screen.getByText('Run Tool') as HTMLButtonElement;
@@ -77,7 +77,7 @@ describe('MCPPanel.svelte', () => {
 
     const calls = vi.mocked(mcpModule.callTool).mock.calls;
     expect(calls[0][0]).toContain('frozenregister.workers.dev');
-    expect(calls[0][1]).toBe('list_topics');
+    expect(calls[0][1]).toBe('lore_manage');
     expect(calls[0][2]).toEqual({});
   });
 
@@ -94,7 +94,7 @@ describe('MCPPanel.svelte', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     const calls = vi.mocked(mcpModule.callTool).mock.calls;
-    expect(calls[0][1]).toBe('list_topics');
+    expect(calls[0][1]).toBe('lore_manage');
     expect(calls[0][2]).toEqual({});
   });
 
@@ -128,7 +128,7 @@ describe('MCPPanel.svelte', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     const history = container.querySelector('.history');
-    expect(history?.innerHTML).toContain('list_topics');
+    expect(history?.innerHTML).toContain('lore_manage');
   });
 
   it('renders datalist for autocomplete', () => {
