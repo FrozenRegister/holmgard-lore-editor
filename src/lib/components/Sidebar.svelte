@@ -4,6 +4,7 @@
   import { topics, syncState, chatOpen, collapseSidebar } from '$lib/stores';
   import { getClaudeApiKey, getMcpApiKey } from '$lib/auth';
   import { mcpOpen } from '$lib/stores';
+  import { ENTITY_TYPES, getTopicPrefix } from '$lib/entities';
 
   export let currentPath: string = '/';
   /** On mobile the sidebar slides in/out; `open` controls visibility. */
@@ -26,13 +27,21 @@
     return () => window.removeEventListener('focus', checkKeys);
   });
 
-  const navItems = [
-    { href: '/',              label: 'Topics',        icon: '📚' },
+  const toolItems = [
     { href: '/world-editor',  label: 'World Map',     icon: '🗺️' },
     { href: '/maps',          label: 'Maps',          icon: '🗺' },
     { href: '/import-export', label: 'Import/Export', icon: '↕️' },
     { href: '/settings',      label: 'Settings',      icon: '⚙️' },
   ];
+
+  $: entityCounts = (() => {
+    const counts = new Map<string, number>();
+    for (const t of $topics) {
+      const p = getTopicPrefix(t.key);
+      if (p) counts.set(p, (counts.get(p) ?? 0) + 1);
+    }
+    return counts;
+  })();
 
   $: shouldCollapse = currentPath === '/world-editor' && $collapseSidebar;
 
@@ -74,7 +83,28 @@
   </div>
 
   <ul class="nav-list" role="list">
-    {#each navItems as item}
+    <!-- World entities -->
+    <li class="nav-section-header-item">
+      <span class="nav-section-header">World</span>
+    </li>
+    {#each ENTITY_TYPES as et}
+      <li>
+        <a
+          href="/entities/{et.prefix}"
+          class="nav-link entity-link"
+          class:active={currentPath.startsWith('/entities/' + et.prefix)}
+          aria-current={currentPath.startsWith('/entities/' + et.prefix) ? 'page' : undefined}
+          on:click={handleNavClick}
+        >
+          <span>{et.label}</span>
+          <span class="count-badge">{entityCounts.get(et.prefix) ?? 0}</span>
+        </a>
+      </li>
+    {/each}
+
+    <!-- Tools -->
+    <li class="nav-separator-item" aria-hidden="true"></li>
+    {#each toolItems as item}
       <li>
         <a
           href={item.href}
@@ -88,6 +118,21 @@
         </a>
       </li>
     {/each}
+
+    <!-- Legacy: All Topics -->
+    <li class="nav-separator-item" aria-hidden="true"></li>
+    <li>
+      <a
+        href="/"
+        class="nav-link legacy-link"
+        class:active={currentPath === '/'}
+        aria-current={currentPath === '/' ? 'page' : undefined}
+        on:click={handleNavClick}
+      >
+        <span class="nav-icon" aria-hidden="true">📚</span>
+        <span>All Topics</span>
+      </a>
+    </li>
   </ul>
 
   {#if hasClaudeKey}
@@ -226,6 +271,52 @@
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
+    overflow-y: auto;
+  }
+
+  .nav-section-header-item {
+    padding: 0.5rem 0.75rem 0.1rem;
+  }
+
+  .nav-section-header {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg-muted);
+    opacity: 0.6;
+  }
+
+  .nav-separator-item {
+    height: 1px;
+    background: var(--border);
+    margin: 0.35rem 0.5rem;
+  }
+
+  .entity-link {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .legacy-link {
+    opacity: 0.7;
+  }
+
+  .legacy-link:hover,
+  .legacy-link.active {
+    opacity: 1;
+  }
+
+  .count-badge {
+    margin-left: auto;
+    font-size: 0.7rem;
+    background: var(--surface2);
+    border-radius: 999px;
+    padding: 0.05rem 0.45rem;
+    color: var(--fg-muted);
+    min-width: 1.4rem;
+    text-align: center;
+    flex-shrink: 0;
   }
 
   .nav-link {
