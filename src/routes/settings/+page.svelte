@@ -281,14 +281,15 @@
   }
 
   async function testMcpApiKey() {
-    if (!mcpApiKeyInput.trim()) {
+    const keyToTest = mcpApiKeyInput.trim() || (await getMcpApiKey());
+    if (!keyToTest) {
       showToast("Enter MCP API key first", "warning");
       return;
     }
     try {
       const { authenticated } = await checkAuth(
         workerHost.trim(),
-        mcpApiKeyInput.trim(),
+        keyToTest,
       );
       if (authenticated) {
         showToast("MCP API key valid ✓ — Worker confirms authentication", "success");
