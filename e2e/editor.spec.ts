@@ -23,7 +23,7 @@ test.describe('Topic Editor', () => {
     await expect(page).toHaveURL(/\/editor\//);
     await page.locator('button', { hasText: '← Topics' }).click();
     await expect(page).toHaveURL('/');
-    await expect(page.locator('h1')).toHaveText('Lore Topics');
+    await expect(page.locator('h1')).toHaveText('All Topics');
   });
 
   test('Hide Preview toggles to Show Preview', async ({ page }) => {
