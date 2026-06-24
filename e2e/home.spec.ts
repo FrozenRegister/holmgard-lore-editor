@@ -8,8 +8,8 @@ test.describe('Home — Topic List', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('shows Lore Topics heading', async ({ page }) => {
-    await expect(page.locator('h1')).toHaveText('Lore Topics');
+  test('shows All Topics heading', async ({ page }) => {
+    await expect(page.locator('h1')).toHaveText('All Topics');
   });
 
   test('loads demo topics on first visit', async ({ page }) => {
