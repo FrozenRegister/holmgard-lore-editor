@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import {
   getHexesInRadius,
   computeParentDisplayTerrain,
   aggregateDetailToParent,
   aggregateAllDetailToParent,
+  exposeAggregationAPI,
 } from '$lib/terrain-aggregation'
 
 // ── getHexesInRadius ──────────────────────────────────────────────────────────
@@ -178,6 +179,34 @@ describe('aggregateDetailToParent', () => {
     )
     expect(result?.terrain).toBe('water')
   })
+})
+
+// ── exposeAggregationAPI (lines 132-139) ──────────────────────────────────────
+
+describe('exposeAggregationAPI', () => {
+  afterEach(() => {
+    delete (window as any).TerrainAggregation;
+  });
+
+  it('attaches TerrainAggregation to window in a browser environment', () => {
+    exposeAggregationAPI();
+    expect((window as any).TerrainAggregation).toBeDefined();
+  });
+
+  it('exposes computeParentDisplayTerrain on window', () => {
+    exposeAggregationAPI();
+    expect(typeof (window as any).TerrainAggregation.computeParentDisplayTerrain).toBe('function');
+  });
+
+  it('exposes aggregateDetailToParent on window', () => {
+    exposeAggregationAPI();
+    expect(typeof (window as any).TerrainAggregation.aggregateDetailToParent).toBe('function');
+  });
+
+  it('exposes aggregateAllDetailToParent on window', () => {
+    exposeAggregationAPI();
+    expect(typeof (window as any).TerrainAggregation.aggregateAllDetailToParent).toBe('function');
+  });
 })
 
 // ── aggregateAllDetailToParent ────────────────────────────────────────────────

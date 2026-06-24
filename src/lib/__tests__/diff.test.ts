@@ -199,3 +199,73 @@ describe('hunkCounts', () => {
     expect(hunkCounts(h).total).toBeGreaterThan(0);
   });
 });
+
+// ── Additional coverage tests ──────────────────────────────────────────────────
+
+describe('lineDiff — greedy pair: used.has(x) branch (line 113)', () => {
+  // When two del lines compete for the same ins line, the second del cannot
+  // claim the already-used ins slot. It should fall back to a raw del.
+  it('only pairs each ins with one del even when multiple dels are similar', () => {
+    // "foo bar" and "foo baz" are both similar to "foo qux", but only one can
+    // claim it. The other should remain a del.
+    const ops = lineDiff('foo bar\nfoo baz', 'foo qux');
+    const mods = ops.filter(o => o.type === 'mod');
+    const dels = ops.filter(o => o.type === 'del');
+    // Exactly one mod (the paired one) and one del (the unpaired one)
+    expect(mods.length + dels.length).toBe(2);
+    expect(mods.length).toBe(1);
+    expect(dels.length).toBe(1);
+  });
+});
+
+describe('wordDiff — tokenize fallback ?? [] (line 134)', () => {
+  // The `?? []` branch fires only when .match() returns null.
+  // .match() returns null when the regex matches nothing, which happens for
+  // an empty string — no tokens are produced so the result has no chars at all.
+  it('handles empty string inputs without throwing', () => {
+    expect(() => wordDiff('', '')).not.toThrow();
+  });
+
+  it('returns empty array for two empty strings', () => {
+    expect(wordDiff('', '')).toEqual([]);
+  });
+
+  it('returns ins token for empty local and non-empty remote', () => {
+    const parts = wordDiff('', 'hello');
+    expect(parts.some(p => p.type === 'ins')).toBe(true);
+  });
+});
+
+describe('summarize — mod branch (line 184)', () => {
+  it('counts mod ops correctly', () => {
+    // Use two similar lines so they collapse into a mod
+    const ops = lineDiff(
+      '**Status:** Active / Preparing',
+      '**Status:** Active / Departed'
+    );
+    const summary = summarize(ops);
+    expect(summary.mod).toBeGreaterThan(0);
+    expect(summary.total).toBe(summary.add + summary.del + summary.mod);
+  });
+});
+
+describe('mergeFromPicks — mod pick remote branch (line 223)', () => {
+  it('emits remote text for a mod op when pick is remote', () => {
+    const local  = 'status: active';
+    const remote = 'status: inactive';
+    const ops = lineDiff(local, remote);
+    const hunks = toHunks(ops, 0);
+    // With pick='remote', the merged result should be the remote text
+    const merged = mergeFromPicks(ops, hunks, hunks.map(() => 'remote'));
+    expect(merged).toBe(remote);
+  });
+
+  it('emits local text for a mod op when pick is local', () => {
+    const local  = 'status: active';
+    const remote = 'status: inactive';
+    const ops = lineDiff(local, remote);
+    const hunks = toHunks(ops, 0);
+    const merged = mergeFromPicks(ops, hunks, hunks.map(() => 'local'));
+    expect(merged).toBe(local);
+  });
+});

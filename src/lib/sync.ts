@@ -269,11 +269,11 @@ export async function flushQueue(
 export async function batchGetTopicsRemote(host: string, keys: string[], apiKey?: string): Promise<Map<string, RemoteTopic>> {
   if (!keys.length) return new Map();
   // Single RPC call returning all requested topics — requires get_lore_batch on the worker.
-  const result = await rpc<Record<string, { text: string; meta: TopicMeta } | null>>(
+  const wrapper = await rpc<{ results: Record<string, { text: string; meta: TopicMeta } | null> }>(
     host, 'get_lore_batch', { keys }, apiKey
   );
   const map = new Map<string, RemoteTopic>();
-  for (const [key, val] of Object.entries(result ?? {})) {
+  for (const [key, val] of Object.entries(wrapper?.results ?? {})) {
     if (val) {
       map.set(key, {
         key,

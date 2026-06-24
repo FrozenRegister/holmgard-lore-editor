@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `sync.ts`: Fixed `batchGetTopicsRemote()` unwrapping the wrong level of the RPC response — the Worker nests topic data under a `results` key but the function was iterating the outer wrapper object, producing one fake topic keyed `"results"` and leaving all real topics unfound, causing `runSync()` to flag every local topic `removedFromRemote: true` (red cards)
+- `mcp.ts`: Fixed `checkAuth()` using the wrong tool name (`check_authentication` instead of `lore_manage` with `action: auth_check`); the Worker returned -32601 Method Not Found on every call, causing the Test button in both Worker Connection and MCP Worker sections to always report "rejected" regardless of the actual key value
+- `MCPPanel.svelte`: Changed default tool from `list_topics` to `lore_manage`; `list_topics` is a legacy bare-RPC method not registered in the Worker's `toolRegistry`, so every default invocation via `callTool` (which uses `tools/call`) returned -32601 Method Not Found
+- `settings/+page.svelte`: Added `autocomplete="off"` plus `data-lpignore`, `data-1p-ignore`, and `data-bwignore` attributes to all sensitive config fields so LastPass, 1Password, Bitwarden, and browser-native autofill no longer treat them as login credentials
+- `settings/+page.svelte`: "Test" button in the MCP Worker section now falls back to the saved keyring value when the input field is empty, matching how the Worker Connection test works; previously it always failed when no value was typed
 - `e2e/global-setup.ts`: Pre-warms the Vite dev server before parallel test workers start, fixing a cold-start race where `editor.spec.ts` tests timed out on blank pages (closes #138)
 - `e2e/global-teardown.ts`: Removed stale `results.json` read that printed a misleading `FAILURE` line from the previous run even when all tests passed; Playwright's native summary is accurate
 - `+layout.svelte`: Auto-sync interval now skips a tick if a sync is already in progress, preventing overlapping concurrent syncs when a sync run exceeds the configured interval period

@@ -136,6 +136,7 @@
     if (!confirm(`Delete ${selected.size} selected topic${selected.size !== 1 ? 's' : ''}? This cannot be undone.`)) return;
     let deleted = 0;
     for (const key of selected) {
+      enqueuePendingDelete(key);
       await deleteTopic(key);
       deleted++;
     }

@@ -3,6 +3,7 @@ import {
   PerlinNoise,
   hashString,
   generateTiles,
+  initializeWorld,
   createChildRegion,
   hexToPixel,
   hexPoints,
@@ -17,6 +18,7 @@ import {
   mergeRegions,
   TERRAIN_OPTIONS,
   HEX_SIZE,
+  ROOT_ID,
 } from '../worldmap'
 import type { WorldMap, Tile, Overlay } from '../worldmap'
 
@@ -39,6 +41,30 @@ function makeMap(overrides: Partial<WorldMap> = {}): WorldMap {
 function makeTile(terrain = 'grassland', elevation = 5, overlays: Overlay[] = []): Tile {
   return { terrain, elevation, overlays, label: null, lore_key: null, features: [] }
 }
+
+// ── initializeWorld (line 161) ────────────────────────────────────────────────
+
+describe('initializeWorld', () => {
+  it('returns a record containing the root map', () => {
+    const world = initializeWorld()
+    expect(world[ROOT_ID]).toBeDefined()
+  })
+
+  it('root map has east_west wrapping', () => {
+    const world = initializeWorld()
+    expect(world[ROOT_ID].wraps?.east_west).toBe(true)
+  })
+
+  it('root map has tiles generated (non-empty)', () => {
+    const world = initializeWorld()
+    expect(Object.keys(world[ROOT_ID].tiles).length).toBeGreaterThan(0)
+  })
+
+  it('root map has no parent', () => {
+    const world = initializeWorld()
+    expect(world[ROOT_ID].parent).toBeNull()
+  })
+})
 
 // ── PerlinNoise ────────────────────────────────────────────────────────────────
 
@@ -205,6 +231,17 @@ describe('createChildRegion', () => {
     expect(createChildRegion('Europe', 'country', 10, 10, 'world:continents', maps)).toBeNull()
   })
 
+  // Line 195: the `: undefined` branch — parentId not found in maps
+  it('still creates the child when parentId is not present in maps (orphan create)', () => {
+    // Passing an empty maps object means maps[parentId] is undefined,
+    // so updatedParent = undefined, and the spread omits the parent entry.
+    const result = createChildRegion('Orphan Region', 'country', 5, 5, 'nonexistent-parent', {})
+    expect(result).not.toBeNull()
+    expect(result?.id).toBe('nonexistent-parent:orphan-region')
+    // Parent is not in result.maps since it wasn't in the input
+    expect(result?.maps['nonexistent-parent']).toBeUndefined()
+  })
+
   it('fills child with all expected tiles', () => {
     const result = createChildRegion('Europe', 'country', 5, 5, 'world:continents', baseMaps)!
     const child = result.maps[result.id]
@@ -214,6 +251,33 @@ describe('createChildRegion', () => {
         expect(child.tiles[`${q},${r}`]).toBeDefined()
       }
     }
+  })
+})
+
+// ── hexPoints (lines 226-232) ─────────────────────────────────────────────────
+
+describe('hexPoints', () => {
+  it('returns a space-separated string of 6 coordinate pairs', () => {
+    const pts = hexPoints(100, 100)
+    const pairs = pts.split(' ')
+    expect(pairs).toHaveLength(6)
+    for (const pair of pairs) {
+      expect(pair).toMatch(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
+    }
+  })
+
+  it('coordinates are centred around (cx, cy) within HEX_SIZE radius', () => {
+    const cx = 50, cy = 80
+    const pts = hexPoints(cx, cy)
+    for (const pair of pts.split(' ')) {
+      const [x, y] = pair.split(',').map(Number)
+      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+      expect(dist).toBeCloseTo(HEX_SIZE, 5)
+    }
+  })
+
+  it('is deterministic for the same center', () => {
+    expect(hexPoints(10, 20)).toBe(hexPoints(10, 20))
   })
 })
 

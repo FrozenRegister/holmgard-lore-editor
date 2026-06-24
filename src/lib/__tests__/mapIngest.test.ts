@@ -247,5 +247,85 @@ describe('mapIngest', () => {
 		it('throws on invalid JSON', async () => {
 			await expect(ingestMap('not valid json')).rejects.toThrow();
 		});
+
+		// Lines 46-52: optional fields mapName, mapType, landmarks?.length ?? 0
+		it('uses fallback "Unnamed Map" when mapName is absent', async () => {
+			const data = {
+				mapInstanceId: 'fallback-name-map',
+				version: '1.0',
+				hexes: [{ q: 0, r: 0, terrain: 'grass', name: '', description: '' }],
+				// mapName intentionally absent
+			};
+			await ingestMap(JSON.stringify(data));
+			const maps = await getMaps();
+			const map = maps.find(m => m.instanceId === 'fallback-name-map');
+			expect(map?.name).toBe('Unnamed Map');
+		});
+
+		it('uses fallback "unknown" when mapType is absent', async () => {
+			const data = {
+				mapInstanceId: 'fallback-type-map',
+				version: '1.0',
+				hexes: [{ q: 0, r: 0, terrain: 'grass', name: '', description: '' }],
+				mapName: 'Test',
+				// mapType intentionally absent
+			};
+			await ingestMap(JSON.stringify(data));
+			const maps = await getMaps();
+			const map = maps.find(m => m.instanceId === 'fallback-type-map');
+			expect(map?.mapType).toBe('unknown');
+		});
+
+		it('uses landmarkCount 0 when landmarks field is absent', async () => {
+			const data = {
+				mapInstanceId: 'no-landmarks-map',
+				version: '1.0',
+				mapName: 'Test',
+				mapType: 'world',
+				hexes: [{ q: 0, r: 0, terrain: 'grass', name: '', description: '' }],
+				// landmarks intentionally absent
+			};
+			await ingestMap(JSON.stringify(data));
+			const maps = await getMaps();
+			const map = maps.find(m => m.instanceId === 'no-landmarks-map');
+			expect(map?.landmarkCount).toBe(0);
+		});
+
+		// Line 87: data.landmarks || [] fallback (landmarks absent)
+		it('handles absent landmarks field gracefully (no crash, 0 landmarks stored)', async () => {
+			const data = {
+				mapInstanceId: 'absent-landmarks',
+				version: '1.0',
+				mapName: 'Test',
+				mapType: 'world',
+				hexes: [{ q: 0, r: 0, terrain: 'grass', name: '', description: '' }],
+				// no landmarks key at all
+			};
+			const result = await ingestMap(JSON.stringify(data));
+			expect(result.landmarks).toBe(0);
+			expect(await getLandmarkCount('absent-landmarks')).toBe(0);
+		});
+
+		// Lines 93-96: optional landmark fields name || '', type || '', notes || '', attributes || {}
+		it('normalises absent optional landmark fields to empty defaults', async () => {
+			const data = {
+				mapInstanceId: 'sparse-landmark-map',
+				version: '1.0',
+				mapName: 'Test',
+				mapType: 'world',
+				hexes: [{ q: 0, r: 0, terrain: 'grass', name: '', description: '' }],
+				landmarks: [
+					// id, q, r required; all other optional fields absent
+					{ id: 'lm-sparse', q: 0, r: 0 },
+				],
+			};
+			await ingestMap(JSON.stringify(data));
+			const landmarks = await getAllLandmarks('sparse-landmark-map');
+			expect(landmarks).toHaveLength(1);
+			expect(landmarks[0].name).toBe('');
+			expect(landmarks[0].type).toBe('');
+			expect(landmarks[0].notes).toBe('');
+			expect(landmarks[0].attributes).toBe('{}');
+		});
 	});
 });
