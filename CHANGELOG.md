@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `settings/+page.svelte`: Added `autocomplete="off"` plus `data-lpignore`, `data-1p-ignore`, and `data-bwignore` attributes to all sensitive config fields so LastPass, 1Password, Bitwarden, and browser-native autofill no longer treat them as login credentials
+- `settings/+page.svelte`: "Test" button in the MCP Worker section now falls back to the saved keyring value when the input field is empty, matching how the Worker Connection test works; previously it always failed when no value was typed
 - `e2e/global-setup.ts`: Pre-warms the Vite dev server before parallel test workers start, fixing a cold-start race where `editor.spec.ts` tests timed out on blank pages (closes #138)
 - `e2e/global-teardown.ts`: Removed stale `results.json` read that printed a misleading `FAILURE` line from the previous run even when all tests passed; Playwright's native summary is accurate
 - `+layout.svelte`: Auto-sync interval now skips a tick if a sync is already in progress, preventing overlapping concurrent syncs when a sync run exceeds the configured interval period
