@@ -14,7 +14,7 @@
     "precheck": "node scripts/check-vendor.mjs",
     "check-pr": "node scripts/check-pr-quality.mjs",
     "prepush": "pnpm run check-pr && pnpm run vendor:check",
-    "build": "pnpm run vendor:build && vite build",
+    "build": "pnpm run vendor:build && vite build && node scripts/patch-csp-headers.mjs",
     "deploy": "pnpm run build && wrangler pages deploy build/ --project-name holmgard-lore-editor --branch main --commit-dirty",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
