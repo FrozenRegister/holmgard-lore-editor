@@ -309,7 +309,7 @@
     <h1>Settings</h1>
   </header>
 
-  <form class="settings-form" on:submit|preventDefault={saveAll}>
+  <form class="settings-form" on:submit|preventDefault={saveAll} autocomplete="off">
     <!-- Worker connection -->
     <section class="settings-section">
       <h2>Worker Connection</h2>
@@ -327,6 +327,10 @@
             placeholder="https://holmgard-lore-mcp.frozenregister.workers.dev"
             class="text-input"
             required
+            autocomplete="off"
+            data-lpignore="true"
+            data-1p-ignore
+            data-bwignore="true"
           />
           <button
             type="button"
@@ -425,6 +429,9 @@
             placeholder="Enter admin secret…"
             class="text-input"
             autocomplete="new-password"
+            data-lpignore="true"
+            data-1p-ignore
+            data-bwignore="true"
           />
         {:else}
           <input
@@ -434,6 +441,9 @@
             placeholder="Enter admin secret…"
             class="text-input"
             autocomplete="new-password"
+            data-lpignore="true"
+            data-1p-ignore
+            data-bwignore="true"
           />
         {/if}
         {#if masterKeySet}
@@ -463,6 +473,9 @@
               placeholder="Enter admin secret…"
               class="text-input"
               autocomplete="new-password"
+              data-lpignore="true"
+              data-1p-ignore
+              data-bwignore="true"
             />
           {:else}
             <input
@@ -472,6 +485,9 @@
               placeholder="Enter admin secret…"
               class="text-input"
               autocomplete="new-password"
+              data-lpignore="true"
+              data-1p-ignore
+              data-bwignore="true"
             />
           {/if}
 
@@ -519,6 +535,9 @@
             placeholder="sk-ant-api03-…"
             class="text-input"
             autocomplete="new-password"
+            data-lpignore="true"
+            data-1p-ignore
+            data-bwignore="true"
           />
           <button
             type="button"
@@ -566,6 +585,9 @@
             placeholder="Enter your MCP API key…"
             class="text-input"
             autocomplete="new-password"
+            data-lpignore="true"
+            data-1p-ignore
+            data-bwignore="true"
           />
           <button
             type="button"
