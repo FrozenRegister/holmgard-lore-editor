@@ -321,6 +321,17 @@ describe('getTopicRemote', () => {
     const [, options] = fetchMock.mock.calls[0];
     expect(options.headers['X-Api-Key']).toBe('secret-key');
   });
+
+  it('normalises missing text field to empty string instead of undefined', async () => {
+    // Same class of bug as batchGetTopicsRemote: backend omits text entirely.
+    fetchMock.mockResolvedValueOnce(okFetch({
+      key: 'results',
+      meta: { version: 0, updatedAt: '2026-06-24T00:00:00.000Z' },
+    }));
+    const topic = await getTopicRemote('http://worker', 'results');
+    expect(topic).not.toBeNull();
+    expect(topic!.text).toBe('');
+  });
 });
 
 // ── adminSave ──────────────────────────────────────────────────────────────────
@@ -477,6 +488,18 @@ describe('batchGetTopicsRemote', () => {
     expect(map.has('good')).toBe(true);
     expect(map.has('bad')).toBe(false);
     expect(map.has('also-good')).toBe(true);
+  });
+
+  it('normalises missing text field to empty string instead of undefined', async () => {
+    // Simulates a backend record stored without a text field (e.g. the "results" topic).
+    // Without the ?? '' guard this would produce RemoteTopic.text === undefined,
+    // which crashes TopicCard's getPreview() reactive statement on first render.
+    fetchMock.mockResolvedValueOnce(okFetch({
+      results: { meta: { version: 0, updatedAt: '2026-06-24T00:00:00.000Z' } },
+    }));
+    const map = await batchGetTopicsRemote('http://worker', ['results']);
+    expect(map.has('results')).toBe(true);
+    expect(map.get('results')!.text).toBe('');
   });
 });
 

@@ -609,3 +609,41 @@ describe('syncAll — errors', () => {
     expect(mocks.syncStateStore.val.lastSync).toBeDefined();
   });
 });
+
+// ── runSync — empty-string text (post-normalisation) ──────────────────────────
+
+describe('runSync — topics with empty-string text (post-normalization)', () => {
+  it('saves a new remote topic that has text: "" (normalised from missing text field)', async () => {
+    mocks.topicsStore.set([]);
+    // batchGetTopicsRemote returns '' (the normalised value from sync.ts ?? '' fix)
+    mocks.pullAllMock.mockResolvedValue(new Map([
+      ['results', { key: 'results', text: '', meta: { version: 1, updatedAt: '2026-06-24T00:00:00.000Z' } }]
+    ]));
+
+    await runSync();
+
+    expect(mocks.saveTopicMock).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'results', text: '' })
+    );
+  });
+});
+
+// ── runSmartSync — empty-string text (post-normalisation) ─────────────────────
+
+describe('runSmartSync — topics with empty-string text (post-normalization)', () => {
+  it('saves a changelog-discovered topic that has text: "" (normalised from missing text field)', async () => {
+    mocks.topicsStore.set([]);
+    mocks.getChangesMock.mockResolvedValue([
+      { key: 'results', op: 'write', updatedAt: '2026-06-24T00:00:00.000Z', version: 1 }
+    ]);
+    mocks.batchGetTopicsRemoteMock.mockResolvedValue(new Map([
+      ['results', { key: 'results', text: '', meta: { version: 1, updatedAt: '2026-06-24T00:00:00.000Z' } }]
+    ]));
+
+    await runSmartSync('2026-06-23T00:00:00.000Z');
+
+    expect(mocks.saveTopicMock).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'results', text: '' })
+    );
+  });
+});

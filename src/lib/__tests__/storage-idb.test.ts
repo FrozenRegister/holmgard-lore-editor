@@ -90,6 +90,28 @@ describe('IndexedDB storage layer', () => {
       const loaded = await idbLoadTopic('nonexistent');
       expect(loaded).toBeNull();
     });
+
+    it('normalises missing text field to empty string on idbLoadAllTopics', async () => {
+      // Simulate a record that was stored before the sync.ts fix (text field absent)
+      await db.topics.put({ key: 'bad-topic', data: { key: 'bad-topic', text: undefined as unknown as string, meta: { version: 1, updatedAt: '2026-01-01T00:00:00Z' } } });
+      const topics = await idbLoadAllTopics();
+      const bad = topics.find(t => t.key === 'bad-topic');
+      expect(bad).toBeDefined();
+      expect(bad!.text).toBe('');
+    });
+
+    it('normalises missing text field to empty string on idbLoadTopic', async () => {
+      await db.topics.put({ key: 'bad-single', data: { key: 'bad-single', text: undefined as unknown as string, meta: { version: 1, updatedAt: '2026-01-01T00:00:00Z' } } });
+      const topic = await idbLoadTopic('bad-single');
+      expect(topic).not.toBeNull();
+      expect(topic!.text).toBe('');
+    });
+
+    it('preserves well-formed text when loading', async () => {
+      await db.topics.put({ key: 'good', data: { key: 'good', text: 'hello world', meta: { version: 1, updatedAt: '2026-01-01T00:00:00Z' } } });
+      const topics = await idbLoadAllTopics();
+      expect(topics.find(t => t.key === 'good')!.text).toBe('hello world');
+    });
   });
 
   describe('Queue', () => {

@@ -170,6 +170,47 @@ describe('mergeTopics', () => {
   });
 });
 
+// ── mergeTopics — malformed input ──────────────────────────────────────────────
+
+describe('mergeTopics — malformed input', () => {
+  it('skips topics where text is undefined', () => {
+    const bad = { key: 'bad', text: undefined as unknown as string, meta: { version: 1, updatedAt: '2026-01-01T00:00:00Z' } };
+    const { merged, imported, skipped } = mergeTopics([], [bad]);
+    expect(imported).toBe(0);
+    expect(skipped).toBe(1);
+    expect(merged).toHaveLength(0);
+  });
+
+  it('skips topics where key is missing', () => {
+    const bad = { key: '', text: 'some text', meta: { version: 1, updatedAt: '2026-01-01T00:00:00Z' } };
+    const { imported, skipped } = mergeTopics([], [bad]);
+    expect(imported).toBe(0);
+    expect(skipped).toBe(1);
+  });
+
+  it('still imports valid topics when bundle contains a mix of good and bad', () => {
+    const good = { key: 'valid', text: 'content', meta: { version: 1, updatedAt: '2026-01-01T00:00:00Z' } };
+    const bad = { key: 'invalid', text: undefined as unknown as string, meta: { version: 1, updatedAt: '2026-01-01T00:00:00Z' } };
+    const { imported, skipped } = mergeTopics([], [good, bad]);
+    expect(imported).toBe(1);
+    expect(skipped).toBe(1);
+  });
+});
+
+describe('parseBundle — malformed JSON', () => {
+  it('returns null for non-JSON input', () => {
+    expect(parseBundle('not json')).toBeNull();
+  });
+
+  it('returns null when topics field is missing', () => {
+    expect(parseBundle(JSON.stringify({ version: 1 }))).toBeNull();
+  });
+
+  it('returns null when version is wrong', () => {
+    expect(parseBundle(JSON.stringify({ version: 2, topics: [] }))).toBeNull();
+  });
+});
+
 // ── ZIP-related (logic only — JSZip integration tested via e2e) ───────────────
 
 describe('ZIP filename derivation', () => {

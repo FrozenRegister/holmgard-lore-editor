@@ -77,3 +77,33 @@ The hex map editor uses the external `game.js` library (`static/hexmap/game.js`)
 ### Testing
 
 Tests use Vitest + jsdom. SvelteKit path aliases (`$lib`, `$app`) are remapped in `vitest.config.ts`; `$app` points to `src/app-mock/` which stubs SvelteKit navigation/stores. `svelte-kit sync` must run before type checking or tests that import generated types.
+
+#### Required: negative / malformed-input test cases
+
+TypeScript types are compile-time contracts. Data from external sources — the MCP network, IndexedDB, Tauri filesystem — can violate them at runtime (missing fields, `null` where a string is expected, etc.).
+
+**Rule:** Any test file covering a function or component that accepts external data must include at least one case where a normally-required field is absent (`undefined`) or the whole object is malformed.
+
+Patterns to use:
+
+```ts
+// Component test — cast to force the bad state TypeScript won't allow normally
+const badTopic = { ...mockTopic, text: undefined as unknown as string };
+expect(() => render(MyComponent, { props: { topic: badTopic } })).not.toThrow();
+
+// Network-boundary function — omit the field from the mock response entirely
+fetchMock.mockResolvedValueOnce(okFetch({ key: 'x', meta: { version: 0, updatedAt: '...' } }));
+// (no `text` field) — assert the function normalises it to ''
+expect((await getTopicRemote('http://w', 'x'))!.text).toBe('');
+
+// Storage layer — write a malformed record then read it back
+await idbSaveTopic({ key: 'bad', text: undefined as unknown as string, meta: {...} });
+const loaded = await idbLoadAllTopics();
+expect(loaded[0].text).toBe('');
+```
+
+This applies to:
+
+- All `$lib/components/*.svelte` tests — add a "malformed props" case alongside every happy-path fixture
+- All `sync.ts` / `storage-idb.ts` function tests — add a missing-field mock response
+- Any new fixture that only tests well-formed data is incomplete
