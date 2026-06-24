@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `e2e/global-setup.ts`: Pre-warms the Vite dev server before parallel test workers start, fixing a cold-start race where `editor.spec.ts` tests timed out on blank pages (closes #138)
+- `e2e/global-teardown.ts`: Removed stale `results.json` read that printed a misleading `FAILURE` line from the previous run even when all tests passed; Playwright's native summary is accurate
 - `+layout.svelte`: Auto-sync interval now skips a tick if a sync is already in progress, preventing overlapping concurrent syncs when a sync run exceeds the configured interval period
 - Tests now work in GitHub Codespaces and fresh checkouts — `postinstall` hook runs `svelte-kit sync` so `.svelte-kit/tsconfig.json` is generated before any test command
 - Hex editor: canvas now sizes correctly on first paint — a ResizeObserver on `.canvas-container` drives game.js's `resizeCanvas` when the container gets its real layout box, replacing the fragile timing guess that left hexes squished/elongated until a manual window resize
