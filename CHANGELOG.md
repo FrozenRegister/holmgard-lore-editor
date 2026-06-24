@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `scripts/patch-csp-headers.mjs`: Post-build script now computes the SHA256 hash of SvelteKit's injected inline `<script>` block and inserts it into `build/_headers` automatically; silences the `script-src` CSP report-only violation that appeared on every Cloudflare Pages deploy without requiring `'unsafe-inline'`.
 - `e2e/home.spec.ts`, `e2e/editor.spec.ts`, `e2e/navigation.spec.ts`: Updated three E2E assertions from `"Lore Topics"` to `"All Topics"` to match the heading rename introduced in Phase 1 entity navigation.
 - `sync.ts`: Fixed `batchGetTopicsRemote()` unwrapping the wrong level of the RPC response — the Worker nests topic data under a `results` key but the function was iterating the outer wrapper object, producing one fake topic keyed `"results"` and leaving all real topics unfound, causing `runSync()` to flag every local topic `removedFromRemote: true` (red cards)
 - `mcp.ts`: Fixed `checkAuth()` using the wrong tool name (`check_authentication` instead of `lore_manage` with `action: auth_check`); the Worker returned -32601 Method Not Found on every call, causing the Test button in both Worker Connection and MCP Worker sections to always report "rejected" regardless of the actual key value
