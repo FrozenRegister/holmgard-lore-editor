@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Entity navigation (Phase 1 — Holmgard OS)**: Sidebar reorganized into a "World" section with category links (Characters, Locations, Quests, Items, Nations, Regions, Factions, Scenes) showing live topic counts. "All Topics" moved to a legacy fallback link. (closes #143)
+- `src/lib/entities.ts`: Shared entity type registry (`ENTITY_TYPES`, `KNOWN_PREFIXES`, `getTopicPrefix`, `getEntityConfig`) — single source of truth used by both the sidebar and entity pages.
+- `src/lib/d1-reads.ts`: Typed fetch functions for the new `/api/entities/*` REST endpoints; includes `getEntityName` and `getEntitySummary` display helpers for all six D1 entity types.
+- `src/routes/entities/[type]/+page.svelte`: Dynamic entity category page showing a "World Records" section (D1 data via REST) and a "Lore Topics" section (filtered topic cards) per entity type. Characters with a `kv_origin` field show a "Lore" link to their markdown topic.
+- `holmgard-lore-mcp` — `src/api/entity-reads.ts`: Six REST GET endpoints (`/api/entities/characters`, `/locations`, `/nations`, `/regions`, `/quests`, `/items`) reading from D1 with defensive field normalization; registered at `/api/entities` in `src/index.ts`.
 - `storage.ts`: `saveTopic` now debounces writes 300ms per topic key to reduce IndexedDB/Tauri FS contention during rapid keystroke saves (closes #26)
 - `storage.ts`: Improved error handling separates file-not-found from corruption — uses error codes (`ENOENT`, `notFound`, OS code 2) instead of string matching; corrupted files are logged distinctly (closes #31)
 - `sync.ts`: `flushQueue` now processes offline queue items in parallel batches of 5, reducing flush time from O(n × backoff) to O(n/5 × backoff) for typical queues (closes #27)
