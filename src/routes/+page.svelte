@@ -53,8 +53,8 @@
     .filter(
       (t) =>
         !searchQuery ||
-        t.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.text.toLowerCase().includes(searchQuery.toLowerCase()),
+        (t.key ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.text ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
     )
     .sort((a, b) => {
       if (sortBy === "name-desc") return b.key.localeCompare(a.key);

@@ -32,21 +32,21 @@
     return new Date(iso).toLocaleDateString();
   }
 
-  $: preview = getPreview(topic.text);
+  $: preview = getPreview(topic.text ?? '');
   $: updatedLabel = topic.meta?.updatedAt
     ? timeAgo(topic.meta.updatedAt as string)
     : "—";
 
-  $: typePrefix = topic.key.includes(":") ? topic.key.slice(0, topic.key.indexOf(":")) : null;
+  $: typePrefix = (topic.key ?? '').includes(":") ? topic.key.slice(0, topic.key.indexOf(":")) : null;
 
   // Detect content type hints
-  $: hasJson = /```json/i.test(topic.text);
-  $: hasXml = /```xml/i.test(topic.text);
+  $: hasJson = /```json/i.test(topic.text ?? '');
+  $: hasXml = /```xml/i.test(topic.text ?? '');
 </script>
 
 <div
   class="topic-card"
-  class:removed={topic.meta.removedFromRemote}
+  class:removed={topic.meta?.removedFromRemote}
   on:click={() => dispatch("open")}
   on:keydown={(e) => e.key === "Enter" && dispatch("open")}
   tabindex="0"
