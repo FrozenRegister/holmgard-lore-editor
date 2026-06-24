@@ -132,4 +132,38 @@ describe('TopicCard.svelte', () => {
     render(TopicCard, { props: { topic: xmlTopic } });
     expect(screen.getByText('XML')).toBeInTheDocument();
   });
+
+  // ── Defensive rendering: malformed topics from MCP backend ────────────────
+
+  it('renders without crashing when topic.text is undefined', () => {
+    const badTopic = { ...mockTopic, text: undefined as unknown as string };
+    expect(() => render(TopicCard, { props: { topic: badTopic } })).not.toThrow();
+  });
+
+  it('renders empty preview when topic.text is undefined', () => {
+    const badTopic = { ...mockTopic, text: undefined as unknown as string };
+    const { container } = render(TopicCard, { props: { topic: badTopic } });
+    const preview = container.querySelector('.topic-preview');
+    expect(preview).toBeInTheDocument();
+    expect(preview?.textContent).toBe('');
+  });
+
+  it('renders without crashing when topic.key is undefined', () => {
+    const badTopic = { ...mockTopic, key: undefined as unknown as string };
+    expect(() => render(TopicCard, { props: { topic: badTopic } })).not.toThrow();
+  });
+
+  it('renders without crashing when topic.meta is undefined', () => {
+    const badTopic = { ...mockTopic, meta: undefined as unknown as Topic['meta'] };
+    expect(() => render(TopicCard, { props: { topic: badTopic } })).not.toThrow();
+  });
+
+  it('renders without crashing when both text and key are undefined', () => {
+    const badTopic = {
+      key: undefined as unknown as string,
+      text: undefined as unknown as string,
+      meta: { updatedAt: new Date().toISOString(), version: 0 },
+    };
+    expect(() => render(TopicCard, { props: { topic: badTopic } })).not.toThrow();
+  });
 });
