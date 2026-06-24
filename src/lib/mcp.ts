@@ -65,7 +65,7 @@ export async function checkAuth(
         jsonrpc: JSON_RPC_VERSION,
         id: _reqId++,
         method: 'tools/call',
-        params: { name: 'check_authentication', arguments: {} },
+        params: { name: 'lore_manage', arguments: { action: 'auth_check' } },
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
