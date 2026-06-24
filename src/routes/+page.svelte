@@ -158,7 +158,7 @@
 <div class="page topic-list-page">
   <header class="page-header">
     <div class="header-left">
-      <h1>Lore Topics</h1>
+      <h1>All Topics</h1>
       <span class="badge">{$topics.length}</span>
     </div>
     <div class="header-actions">
