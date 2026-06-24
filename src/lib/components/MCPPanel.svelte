@@ -6,7 +6,7 @@
   import { fly } from 'svelte/transition';
   import hljs from 'highlight.js';
 
-  let method = 'list_topics';
+  let method = 'lore_manage';
   let paramsText = '{}';
   let busy = false;
   let error: string | null = null;
@@ -30,7 +30,7 @@
       const apiKey = await getMcpApiKey();
       tools = await listTools($settings.workerHost, apiKey ?? undefined);
       // Pre-populate params for the default method
-      populateParamsFromTool('list_topics');
+      populateParamsFromTool('lore_manage');
     } catch (e) {
       console.error('Failed to load tools:', e);
     } finally {
