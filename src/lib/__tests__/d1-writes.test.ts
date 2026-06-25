@@ -71,6 +71,22 @@ describe('fetchCharacterById', () => {
     await fetchCharacterById(HOST, 'a b/c');
     expect(fetch).toHaveBeenCalledWith(`${HOST}/api/entities/characters/a%20b%2Fc`);
   });
+
+  it('returns null when character field is explicitly null in response', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ character: null }));
+    const { fetchCharacterById } = await import('../d1-writes');
+    expect(await fetchCharacterById(HOST, 'abc-123')).toBeNull();
+  });
+
+  it('throws when response.json() itself throws (malformed body)', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => { throw new Error('JSON parse error'); },
+    } as unknown as Response);
+    const { fetchCharacterById } = await import('../d1-writes');
+    await expect(fetchCharacterById(HOST, 'abc-123')).rejects.toThrow('JSON parse error');
+  });
 });
 
 // ── fetchCharacterByKvOrigin ──────────────────────────────────────────────────
@@ -103,6 +119,17 @@ describe('fetchCharacterByKvOrigin', () => {
     vi.mocked(fetch).mockResolvedValue(errFetch(503));
     const { fetchCharacterByKvOrigin } = await import('../d1-writes');
     await expect(fetchCharacterByKvOrigin(HOST, 'character:aldric')).rejects.toThrow('503');
+  });
+
+  it('returns the first match when multiple characters share the same kv_origin', async () => {
+    const chars = [
+      makeCharacter({ id: 'first', name: 'First',  kv_origin: 'character:shared' }),
+      makeCharacter({ id: 'second', name: 'Second', kv_origin: 'character:shared' }),
+    ];
+    vi.mocked(fetch).mockResolvedValue(okFetch({ characters: chars, total: 2 }));
+    const { fetchCharacterByKvOrigin } = await import('../d1-writes');
+    const result = await fetchCharacterByKvOrigin(HOST, 'character:shared');
+    expect(result?.id).toBe('first');
   });
 });
 
@@ -145,6 +172,16 @@ describe('patchCharacter', () => {
     expect(fetch).toHaveBeenCalledWith(
       `${HOST}/api/entities/characters/a%20b%2Fc`,
       expect.anything(),
+    );
+  });
+
+  it('sends a patch with only one field', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ ok: true }));
+    const { patchCharacter } = await import('../d1-writes');
+    await patchCharacter(HOST, 'abc-123', { level: 9 }, 'test-secret');
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ body: JSON.stringify({ level: 9 }) }),
     );
   });
 });
