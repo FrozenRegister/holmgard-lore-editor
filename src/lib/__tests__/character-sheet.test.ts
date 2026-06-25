@@ -120,6 +120,57 @@ describe('parseCharacterSheet', () => {
     expect(parseCharacterSheet(undefined as unknown as string)).toBeNull();
     expect(parseCharacterSheet(null as unknown as string)).toBeNull();
   });
+
+  it('does not match a lowercase section heading', () => {
+    const md = `## character sheet\n\n- **Level:** 5`;
+    expect(parseCharacterSheet(md)).toBeNull();
+  });
+
+  it('does not match a heading with an extra leading space', () => {
+    const md = `##  Character Sheet\n\n- **Level:** 5`;
+    expect(parseCharacterSheet(md)).toBeNull();
+  });
+
+  it('stops parsing at a level-1 heading, not only level-2', () => {
+    const md = `## Character Sheet\n\n- **Race:** Orc\n\n# World Title\n\n- **Class:** rogue`;
+    const patch = parseCharacterSheet(md);
+    expect(patch!.race).toBe('Orc');
+    expect(patch!.character_class).toBeUndefined();
+  });
+
+  it('ignores non-bullet prose lines inside the section', () => {
+    const md = `## Character Sheet\n\nSome prose here.\n- **Level:** 4\nMore prose.\n- **Race:** Elf`;
+    const patch = parseCharacterSheet(md);
+    expect(patch!.level).toBe(4);
+    expect(patch!.race).toBe('Elf');
+  });
+
+  it('ignores bullet with asterisk instead of dash', () => {
+    const md = `## Character Sheet\n\n* **Level:** 7`;
+    expect(parseCharacterSheet(md)).toBeNull();
+  });
+
+  it('ignores bullet where no space follows the closing bold', () => {
+    const md = `## Character Sheet\n\n- **Level:**5`;
+    expect(parseCharacterSheet(md)).toBeNull();
+  });
+
+  it('parses float level by truncating to integer', () => {
+    const md = `## Character Sheet\n\n- **Level:** 3.7`;
+    const patch = parseCharacterSheet(md);
+    expect(patch!.level).toBe(3);
+  });
+
+  it('parses negative level (value passes parseInt, no range check)', () => {
+    const md = `## Character Sheet\n\n- **Level:** -2`;
+    const patch = parseCharacterSheet(md);
+    expect(patch!.level).toBe(-2);
+  });
+
+  it('returns null for incomplete HP slash format "30 /"', () => {
+    const md = `## Character Sheet\n\n- **HP:** 30 /`;
+    expect(parseCharacterSheet(md)).toBeNull();
+  });
 });
 
 // ── renderCharacterSheet ───────────────────────────────────────────────────────
@@ -169,6 +220,33 @@ describe('renderCharacterSheet', () => {
     expect(patch!.max_hp).toBe(mockRecord.max_hp);
     expect(patch!.ac).toBe(mockRecord.ac);
   });
+
+  it('round-trips alignment and background through render→parse', () => {
+    const rendered = renderCharacterSheet(mockRecord);
+    const patch = parseCharacterSheet(rendered);
+    expect(patch!.alignment).toBe('Neutral Good');
+    expect(patch!.background).toBe('Soldier');
+  });
+
+  it('defaults character_type to "npc" when field is null', () => {
+    const rec = { ...mockRecord, character_type: null as unknown as string };
+    const md = renderCharacterSheet(rec);
+    expect(md).toContain('- **Type:** npc');
+  });
+
+  it('defaults all numeric fields when explicitly null', () => {
+    const rec = {
+      ...mockRecord,
+      level: null as unknown as number,
+      hp: null as unknown as number,
+      max_hp: null as unknown as number,
+      ac: null as unknown as number,
+    };
+    const md = renderCharacterSheet(rec);
+    expect(md).toContain('- **Level:** 1');
+    expect(md).toContain('- **HP:** 0 / 0');
+    expect(md).toContain('- **AC:** 10');
+  });
 });
 
 // ── generateCharacterTopic ────────────────────────────────────────────────────
@@ -195,5 +273,26 @@ describe('generateCharacterTopic', () => {
     const patch = parseCharacterSheet(md);
     expect(patch).not.toBeNull();
     expect(patch!.race).toBe('Human');
+  });
+
+  it('handles names with apostrophes and special characters without crashing', () => {
+    const rec = { ...mockRecord, name: "Kel'dan the Warlock" };
+    const md = generateCharacterTopic(rec);
+    expect(md.startsWith("# Kel'dan the Warlock")).toBe(true);
+    expect(parseCharacterSheet(md)).not.toBeNull();
+  });
+
+  it('round-trips all D1 fields from a generated topic', () => {
+    const md = generateCharacterTopic(mockRecord);
+    const patch = parseCharacterSheet(md);
+    expect(patch!.character_type).toBe('pc');
+    expect(patch!.race).toBe('Human');
+    expect(patch!.character_class).toBe('fighter');
+    expect(patch!.level).toBe(5);
+    expect(patch!.hp).toBe(42);
+    expect(patch!.max_hp).toBe(60);
+    expect(patch!.ac).toBe(16);
+    expect(patch!.alignment).toBe('Neutral Good');
+    expect(patch!.background).toBe('Soldier');
   });
 });
