@@ -60,6 +60,13 @@
     return (record as CharacterRecord).kv_origin ?? null;
   }
 
+  // Returns the detail page href for a character record, or null for other entity types.
+  function getCharacterDetailHref(entityType: string, record: EntityRecord): string | null {
+    if (entityType !== 'character') return null;
+    const id = (record as CharacterRecord).id;
+    return `/entities/character/${encodeURIComponent(id)}`;
+  }
+
   async function createNewEntity() {
     if (!config) return;
     const suffix = prompt(`Enter a name for the new ${config.singularLabel} (e.g. "aldric"):`);
@@ -117,12 +124,20 @@
           <ul class="record-list" role="list">
             {#each d1Records as record (getEntityName(record) + record)}
               {@const loreKey = getCharacterLoreKey(type, record)}
-              <li class="record-row">
-                <div class="record-main">
-                  <span class="record-name">{getEntityName(record)}</span>
-                  <span class="record-summary">{getEntitySummary(type, record)}</span>
-                </div>
-                {#if loreKey && topicKeySet.has(loreKey)}
+              {@const detailHref = getCharacterDetailHref(type, record)}
+              <li class="record-row" class:record-row--linked={!!detailHref}>
+                {#if detailHref}
+                  <a href={detailHref} class="record-link-area">
+                    <span class="record-name">{getEntityName(record)}</span>
+                    <span class="record-summary">{getEntitySummary(type, record)}</span>
+                  </a>
+                {:else}
+                  <div class="record-main">
+                    <span class="record-name">{getEntityName(record)}</span>
+                    <span class="record-summary">{getEntitySummary(type, record)}</span>
+                  </div>
+                {/if}
+                {#if loreKey && topicKeySet.has(loreKey) && !detailHref}
                   <a
                     href="/editor/{encodeURIComponent(loreKey)}"
                     class="lore-link"
@@ -263,7 +278,22 @@
     transition: border-color 0.12s;
   }
 
-  .record-row:hover {
+  .record-row--linked { padding: 0; overflow: hidden; }
+  .record-row--linked:hover { border-color: var(--accent); }
+
+  .record-link-area {
+    flex: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.6rem 0.85rem;
+    text-decoration: none;
+    color: inherit;
+  }
+  .record-link-area:hover .record-name { color: var(--accent); }
+
+  .record-row:not(.record-row--linked):hover {
     border-color: var(--accent);
   }
 
