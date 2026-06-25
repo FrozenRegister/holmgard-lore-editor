@@ -12,7 +12,12 @@
   import MarkdownPreview from '$lib/components/MarkdownPreview.svelte';
   import { fetchCharacterById, patchCharacter } from '$lib/d1-writes';
   import { parseCharacterSheet, generateCharacterTopic } from '$lib/character-sheet';
-  import type { CharacterRecord } from '$lib/d1-reads';
+  import {
+    fetchCharacterRelationships, fetchCharacterInventory,
+  } from '$lib/d1-reads';
+  import type {
+    CharacterRecord, CharacterRelationships, CharacterInventoryItem,
+  } from '$lib/d1-reads';
   import type { Topic } from '$lib/types';
 
   // ── Route param ───────────────────────────────────────────────────────────────
@@ -22,6 +27,10 @@
   let character: CharacterRecord | null = null;
   let charLoading = false;
   let charError: string | null = null;
+  let relationships: CharacterRelationships = { npc_relationships: [], party_members: [] };
+  let inventory: CharacterInventoryItem[] = [];
+  let showRelationships = false;
+  let showInventory = false;
 
   // ── Topic / editor state ──────────────────────────────────────────────────────
   let topic: Topic | null = null;
@@ -42,9 +51,20 @@
     charError = null;
     character = null;
     topic = null;
+    relationships = { npc_relationships: [], party_members: [] };
+    inventory = [];
     try {
       character = await fetchCharacterById($settings.workerHost, id);
       if (!character) { charError = 'Character not found'; return; }
+
+      // Load topic + contextual data in parallel
+      const [relResult, invResult] = await Promise.allSettled([
+        fetchCharacterRelationships($settings.workerHost, id),
+        fetchCharacterInventory($settings.workerHost, id),
+      ]);
+      if (relResult.status === 'fulfilled') relationships = relResult.value;
+      if (invResult.status === 'fulfilled') inventory = invResult.value;
+
       if (character.kv_origin) {
         await loadTopicForKey(character.kv_origin);
       } else {
@@ -199,24 +219,40 @@
       <span class="d1-chip d1-chip--{d1SyncStatus}">{d1SyncLabel}</span>
     {/if}
 
-    {#if !$isMobile && topic}
+    {#if !$isMobile && character}
       <div class="toolbar-right">
-        {#if isSaving}
-          <span class="status-badge saving">Saving…</span>
-        {:else if isDirty}
-          <span class="status-badge dirty">Unsaved</span>
-        {:else}
-          <span class="status-badge saved">Saved</span>
+        <button class="btn btn-ghost btn-sm" on:click={() => { showRelationships = !showRelationships; showInventory = false; }}
+          title="NPC relationships and party members">
+          Relations
+          {#if relationships.npc_relationships.length + relationships.party_members.length > 0}
+            <span class="ctx-count">{relationships.npc_relationships.length + relationships.party_members.length}</span>
+          {/if}
+        </button>
+        <button class="btn btn-ghost btn-sm" on:click={() => { showInventory = !showInventory; showRelationships = false; }}
+          title="Character inventory">
+          Inventory
+          {#if inventory.length > 0}
+            <span class="ctx-count">{inventory.length}</span>
+          {/if}
+        </button>
+        {#if topic}
+          {#if isSaving}
+            <span class="status-badge saving">Saving…</span>
+          {:else if isDirty}
+            <span class="status-badge dirty">Unsaved</span>
+          {:else}
+            <span class="status-badge saved">Saved</span>
+          {/if}
+          <button class="btn btn-ghost btn-sm" on:click={() => (showPreview = !showPreview)}>
+            {showPreview ? 'Hide Preview' : 'Show Preview'}
+          </button>
+          <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
+            Save
+          </button>
+          <button class="btn btn-primary btn-sm" on:click={syncTopic} disabled={isSyncing}>
+            {isSyncing ? 'Syncing…' : 'Sync ↑'}
+          </button>
         {/if}
-        <button class="btn btn-ghost btn-sm" on:click={() => (showPreview = !showPreview)}>
-          {showPreview ? 'Hide Preview' : 'Show Preview'}
-        </button>
-        <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
-          Save
-        </button>
-        <button class="btn btn-primary btn-sm" on:click={syncTopic} disabled={isSyncing}>
-          {isSyncing ? 'Syncing…' : 'Sync ↑'}
-        </button>
       </div>
     {/if}
   </div>
@@ -305,6 +341,88 @@
     </div>
   {/if}
 </div>
+
+<!-- Relationships drawer -->
+{#if !$isMobile && showRelationships}
+  <div class="ctx-overlay" role="dialog" aria-modal="true" aria-label="Relationships">
+    <div class="ctx-panel">
+      <div class="ctx-header">
+        <h3>Relationships</h3>
+        <button class="btn-icon" on:click={() => (showRelationships = false)} aria-label="Close">✕</button>
+      </div>
+      <div class="ctx-body">
+        {#if relationships.party_members.length > 0}
+          <div class="ctx-section-title">Party</div>
+          <ul class="ctx-list">
+            {#each relationships.party_members as m}
+              <li class="ctx-row">
+                <span class="ctx-name">
+                  {#if m.kv_origin}
+                    <a href="/editor/{encodeURIComponent(m.kv_origin)}">{m.name}</a>
+                  {:else}
+                    {m.name}
+                  {/if}
+                </span>
+                <span class="ctx-tag">{m.role}</span>
+                <span class="ctx-muted">{m.party_name}</span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        {#if relationships.npc_relationships.length > 0}
+          <div class="ctx-section-title">Known Characters</div>
+          <ul class="ctx-list">
+            {#each relationships.npc_relationships as r}
+              <li class="ctx-row">
+                <span class="ctx-name">
+                  {#if r.target_kv_origin}
+                    <a href="/editor/{encodeURIComponent(r.target_kv_origin)}">{r.target_name}</a>
+                  {:else}
+                    {r.target_name}
+                  {/if}
+                </span>
+                <span class="ctx-tag ctx-tag--{r.familiarity}">{r.familiarity}</span>
+                <span class="ctx-muted">{r.disposition} · {r.interaction_count}×</span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        {#if relationships.npc_relationships.length === 0 && relationships.party_members.length === 0}
+          <p class="ctx-empty">No relationships recorded in D1 yet.</p>
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Inventory drawer -->
+{#if !$isMobile && showInventory}
+  <div class="ctx-overlay" role="dialog" aria-modal="true" aria-label="Inventory">
+    <div class="ctx-panel">
+      <div class="ctx-header">
+        <h3>Inventory</h3>
+        <button class="btn-icon" on:click={() => (showInventory = false)} aria-label="Close">✕</button>
+      </div>
+      <div class="ctx-body">
+        {#if inventory.length === 0}
+          <p class="ctx-empty">No items in inventory.</p>
+        {:else}
+          <ul class="ctx-list">
+            {#each inventory as item}
+              <li class="ctx-row">
+                <span class="ctx-name">{item.name}</span>
+                {#if item.equipped}
+                  <span class="ctx-tag ctx-tag--equipped">equipped{item.slot ? ` (${item.slot})` : ''}</span>
+                {/if}
+                <span class="ctx-muted">{item.type}{item.quantity > 1 ? ` ×${item.quantity}` : ''} · {item.value}gp</span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .entity-editor-page {
@@ -482,4 +600,95 @@
   .footer-backlinks { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
   .footer-backlink { color: var(--accent); text-decoration: none; font-size: 0.75rem; }
   .footer-backlink:hover { text-decoration: underline; }
+
+  /* Context count badge in toolbar buttons */
+  .ctx-count {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 0.05rem 0.32rem;
+    border-radius: 999px;
+    margin-left: 0.2rem;
+    line-height: 1.4;
+    vertical-align: middle;
+  }
+
+  /* Context drawer (relationships / inventory) */
+  .ctx-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 500;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .ctx-panel {
+    width: min(360px, 90vw);
+    background: var(--surface);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+  }
+  .ctx-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .ctx-header h3 { margin: 0; font-size: 1rem; }
+  .ctx-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem 0.5rem;
+  }
+  .ctx-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg-muted);
+    padding: 0.5rem 0.75rem 0.25rem;
+  }
+  .ctx-list {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+  }
+  .ctx-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    flex-wrap: wrap;
+  }
+  .ctx-row:hover { background: var(--surface2); }
+  .ctx-name { font-size: 0.875rem; font-weight: 600; }
+  .ctx-name a { color: var(--accent); text-decoration: none; }
+  .ctx-name a:hover { text-decoration: underline; }
+  .ctx-muted { font-size: 0.75rem; color: var(--fg-muted); margin-left: auto; }
+  .ctx-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    background: var(--surface2);
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+  .ctx-tag--friend, .ctx-tag--close_friend { background: rgba(76,175,80,0.15); color: #81c784; }
+  .ctx-tag--rival, .ctx-tag--enemy { background: rgba(229,115,115,0.15); color: #e57373; }
+  .ctx-tag--equipped { background: rgba(100,180,255,0.15); color: #64b4ff; }
+  .ctx-empty { color: var(--fg-muted); text-align: center; padding: 2rem 1rem; font-size: 0.875rem; }
+  .btn-icon {
+    background: none; border: none; color: var(--fg-muted); cursor: pointer;
+    font-size: 1rem; padding: 0.25rem; border-radius: 4px; line-height: 1;
+  }
+  .btn-icon:hover { color: var(--fg); background: var(--surface2); }
 </style>

@@ -87,6 +87,62 @@ export const ENTITY_FETCHERS: Record<string, (host: string) => Promise<EntityRec
   items:      fetchItems      as (host: string) => Promise<EntityRecord[]>,
 };
 
+// ── Character relationship + inventory types ──────────────────────────────────
+
+export interface NpcRelationshipRecord {
+  target_id: string;
+  target_name: string;
+  target_type: string;
+  target_kv_origin: string | null;
+  familiarity: string;
+  disposition: string;
+  interaction_count: number;
+  last_interaction_at: string | null;
+}
+
+export interface PartyMemberRecord {
+  character_id: string;
+  name: string;
+  character_type: string;
+  kv_origin: string | null;
+  role: string;
+  party_id: string;
+  party_name: string;
+}
+
+export interface CharacterRelationships {
+  npc_relationships: NpcRelationshipRecord[];
+  party_members: PartyMemberRecord[];
+}
+
+export interface CharacterInventoryItem {
+  item_id: string;
+  name: string;
+  type: string;
+  quantity: number;
+  equipped: boolean;
+  slot: string | null;
+  value: number;
+  weight: number;
+}
+
+export async function fetchCharacterRelationships(host: string, id: string): Promise<CharacterRelationships> {
+  const res = await fetch(`${host}/api/entities/characters/${encodeURIComponent(id)}/relationships`);
+  if (!res.ok) throw new Error(`Relationships fetch failed: ${res.status}`);
+  const json = await res.json() as Partial<CharacterRelationships>;
+  return {
+    npc_relationships: json.npc_relationships ?? [],
+    party_members: json.party_members ?? [],
+  };
+}
+
+export async function fetchCharacterInventory(host: string, id: string): Promise<CharacterInventoryItem[]> {
+  const res = await fetch(`${host}/api/entities/characters/${encodeURIComponent(id)}/inventory`);
+  if (!res.ok) throw new Error(`Inventory fetch failed: ${res.status}`);
+  const json = await res.json() as { items?: CharacterInventoryItem[] };
+  return json.items ?? [];
+}
+
 /** Get the display name from any entity record (all types share a `name` field). */
 export function getEntityName(record: EntityRecord): string {
   return (record as { name: string }).name ?? 'Unknown';
