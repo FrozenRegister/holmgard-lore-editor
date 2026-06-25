@@ -43,6 +43,7 @@ const mockRecord: CharacterRecord = {
   alignment: 'Neutral Good',
   background: 'Soldier',
   faction_id: null,
+  current_room_id: null,
   kv_origin: 'character:aldric',
 };
 

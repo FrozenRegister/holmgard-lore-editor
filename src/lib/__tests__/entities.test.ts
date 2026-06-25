@@ -138,7 +138,7 @@ describe('ENTITY_FETCHERS', () => {
 
 describe('getEntityName', () => {
   it('returns the name field from any entity record', () => {
-    const char: CharacterRecord = { id: '1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, kv_origin: null };
+    const char: CharacterRecord = { id: '1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, current_room_id: null, kv_origin: null };
     expect(getEntityName(char)).toBe('Aldric');
   });
 
@@ -152,7 +152,7 @@ describe('getEntityName', () => {
 
 describe('getEntitySummary', () => {
   it('formats character summary', () => {
-    const char: CharacterRecord = { id: '1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, kv_origin: null };
+    const char: CharacterRecord = { id: '1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, current_room_id: null, kv_origin: null };
     const summary = getEntitySummary('character', char);
     expect(summary).toContain('Human');
     expect(summary).toContain('fighter');
@@ -206,7 +206,7 @@ describe('getEntitySummary', () => {
   });
 
   it('returns empty string for unknown entity type', () => {
-    const char: CharacterRecord = { id: '1', name: 'X', character_type: 'npc', character_class: 'fighter', race: 'Human', level: 1, hp: 10, max_hp: 10, ac: 10, alignment: null, background: null, faction_id: null, kv_origin: null };
+    const char: CharacterRecord = { id: '1', name: 'X', character_type: 'npc', character_class: 'fighter', race: 'Human', level: 1, hp: 10, max_hp: 10, ac: 10, alignment: null, background: null, faction_id: null, current_room_id: null, kv_origin: null };
     expect(getEntitySummary('dragon', char)).toBe('');
   });
 });
@@ -219,7 +219,7 @@ describe('fetchEntities (mocked fetch)', () => {
   });
 
   it('fetchCharacters returns array on success', async () => {
-    const mockChar: CharacterRecord = { id: 'a1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, kv_origin: 'character:aldric' };
+    const mockChar: CharacterRecord = { id: 'a1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, current_room_id: null, kv_origin: 'character:aldric' };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ characters: [mockChar], total: 1 }),
@@ -253,5 +253,183 @@ describe('fetchEntities (mocked fetch)', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
     const { fetchCharacters } = await import('../d1-reads');
     await expect(fetchCharacters('http://worker')).rejects.toThrow('network down');
+  });
+});
+
+// ── fetchCharacterRelationships (Phase 5 backfill) ───────────────────────────
+
+describe('fetchCharacterRelationships', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns npc_relationships and party_members on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        npc_relationships: [{ target_id: 'c2', target_name: 'Elara', familiarity: 'friend', disposition: 'friendly', interaction_count: 3, target_type: 'pc', target_kv_origin: null, last_interaction_at: null }],
+        party_members: [{ character_id: 'c3', name: 'Borgil', character_type: 'npc', kv_origin: null, role: 'member', party_id: 'p1', party_name: 'The Wanderers' }],
+      }),
+    }));
+    const { fetchCharacterRelationships } = await import('../d1-reads');
+    const result = await fetchCharacterRelationships('http://w', 'c1');
+    expect(result.npc_relationships).toHaveLength(1);
+    expect(result.npc_relationships[0].target_name).toBe('Elara');
+    expect(result.party_members).toHaveLength(1);
+    expect(result.party_members[0].party_name).toBe('The Wanderers');
+  });
+
+  it('defaults missing arrays to empty', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    }));
+    const { fetchCharacterRelationships } = await import('../d1-reads');
+    const result = await fetchCharacterRelationships('http://w', 'c1');
+    expect(result.npc_relationships).toEqual([]);
+    expect(result.party_members).toEqual([]);
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchCharacterRelationships } = await import('../d1-reads');
+    await expect(fetchCharacterRelationships('http://w', 'c1')).rejects.toThrow('500');
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('net fail')));
+    const { fetchCharacterRelationships } = await import('../d1-reads');
+    await expect(fetchCharacterRelationships('http://w', 'c1')).rejects.toThrow('net fail');
+  });
+});
+
+// ── fetchCharacterInventory (Phase 5 backfill) ───────────────────────────────
+
+describe('fetchCharacterInventory', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns items array on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [{ item_id: 'i1', name: 'Sword', type: 'weapon', quantity: 1, equipped: true, slot: 'main_hand', value: 50, weight: 5 }], total: 1 }),
+    }));
+    const { fetchCharacterInventory } = await import('../d1-reads');
+    const result = await fetchCharacterInventory('http://w', 'c1');
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Sword');
+    expect(result[0].equipped).toBe(true);
+  });
+
+  it('defaults to empty array when items key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchCharacterInventory } = await import('../d1-reads');
+    const result = await fetchCharacterInventory('http://w', 'c1');
+    expect(result).toEqual([]);
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    const { fetchCharacterInventory } = await import('../d1-reads');
+    await expect(fetchCharacterInventory('http://w', 'c1')).rejects.toThrow('503');
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('timeout')));
+    const { fetchCharacterInventory } = await import('../d1-reads');
+    await expect(fetchCharacterInventory('http://w', 'c1')).rejects.toThrow('timeout');
+  });
+});
+
+// ── fetchLocationById (Phase 6) ───────────────────────────────────────────────
+
+describe('fetchLocationById', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns LocationDetailRecord on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        location: { id: 'r1', name: 'Eastgate', biome_context: 'urban', base_description: 'A gate.', visited_count: 3, last_visited_at: '2026-01-01', local_x: 5, local_y: 7, network_id: 'net1' },
+      }),
+    }));
+    const { fetchLocationById } = await import('../d1-reads');
+    const result = await fetchLocationById('http://w', 'r1');
+    expect(result).not.toBeNull();
+    expect(result!.name).toBe('Eastgate');
+    expect(result!.biome_context).toBe('urban');
+    expect(result!.base_description).toBe('A gate.');
+    expect(result!.local_x).toBe(5);
+    expect(result!.network_id).toBe('net1');
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { fetchLocationById } = await import('../d1-reads');
+    const result = await fetchLocationById('http://w', 'missing');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when response has no location key', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    }));
+    const { fetchLocationById } = await import('../d1-reads');
+    const result = await fetchLocationById('http://w', 'r1');
+    expect(result).toBeNull();
+  });
+
+  it('throws on non-404 errors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchLocationById } = await import('../d1-reads');
+    await expect(fetchLocationById('http://w', 'r1')).rejects.toThrow('500');
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')));
+    const { fetchLocationById } = await import('../d1-reads');
+    await expect(fetchLocationById('http://w', 'r1')).rejects.toThrow('connection refused');
+  });
+});
+
+// ── fetchLocationOccupants (Phase 6) ─────────────────────────────────────────
+
+describe('fetchLocationOccupants', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns occupants array on success', async () => {
+    const mockChar: CharacterRecord = { id: 'c1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, current_room_id: 'r1', kv_origin: 'character:aldric' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ occupants: [mockChar], total: 1 }),
+    }));
+    const { fetchLocationOccupants } = await import('../d1-reads');
+    const result = await fetchLocationOccupants('http://w', 'r1');
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Aldric');
+    expect(result[0].current_room_id).toBe('r1');
+  });
+
+  it('defaults to empty array when occupants key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchLocationOccupants } = await import('../d1-reads');
+    const result = await fetchLocationOccupants('http://w', 'r1');
+    expect(result).toEqual([]);
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchLocationOccupants } = await import('../d1-reads');
+    await expect(fetchLocationOccupants('http://w', 'r1')).rejects.toThrow('500');
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    const { fetchLocationOccupants } = await import('../d1-reads');
+    await expect(fetchLocationOccupants('http://w', 'r1')).rejects.toThrow('offline');
   });
 });

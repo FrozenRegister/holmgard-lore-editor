@@ -11,6 +11,7 @@ export interface CharacterRecord {
   alignment: string | null;
   background: string | null;
   faction_id: string | null;
+  current_room_id: string | null;
   kv_origin: string | null;
 }
 
@@ -20,6 +21,13 @@ export interface LocationRecord {
   biome_context: string | null;
   visited_count: number;
   last_visited_at: string | null;
+}
+
+export interface LocationDetailRecord extends LocationRecord {
+  base_description: string | null;
+  local_x: number | null;
+  local_y: number | null;
+  network_id: string | null;
 }
 
 export interface NationRecord {
@@ -141,6 +149,21 @@ export async function fetchCharacterInventory(host: string, id: string): Promise
   if (!res.ok) throw new Error(`Inventory fetch failed: ${res.status}`);
   const json = await res.json() as { items?: CharacterInventoryItem[] };
   return json.items ?? [];
+}
+
+export async function fetchLocationById(host: string, id: string): Promise<LocationDetailRecord | null> {
+  const res = await fetch(`${host}/api/entities/locations/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Location fetch failed: ${res.status}`);
+  const json = await res.json() as { location?: LocationDetailRecord };
+  return json.location ?? null;
+}
+
+export async function fetchLocationOccupants(host: string, id: string): Promise<CharacterRecord[]> {
+  const res = await fetch(`${host}/api/entities/locations/${encodeURIComponent(id)}/occupants`);
+  if (!res.ok) throw new Error(`Occupants fetch failed: ${res.status}`);
+  const json = await res.json() as { occupants?: CharacterRecord[] };
+  return json.occupants ?? [];
 }
 
 /** Get the display name from any entity record (all types share a `name` field). */

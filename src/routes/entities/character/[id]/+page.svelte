@@ -13,10 +13,10 @@
   import { fetchCharacterById, patchCharacter } from '$lib/d1-writes';
   import { parseCharacterSheet, generateCharacterTopic } from '$lib/character-sheet';
   import {
-    fetchCharacterRelationships, fetchCharacterInventory,
+    fetchCharacterRelationships, fetchCharacterInventory, fetchLocationById,
   } from '$lib/d1-reads';
   import type {
-    CharacterRecord, CharacterRelationships, CharacterInventoryItem,
+    CharacterRecord, CharacterRelationships, CharacterInventoryItem, LocationDetailRecord,
   } from '$lib/d1-reads';
   import type { Topic } from '$lib/types';
 
@@ -29,6 +29,7 @@
   let charError: string | null = null;
   let relationships: CharacterRelationships = { npc_relationships: [], party_members: [] };
   let inventory: CharacterInventoryItem[] = [];
+  let currentLocation: LocationDetailRecord | null = null;
   let showRelationships = false;
   let showInventory = false;
 
@@ -53,17 +54,22 @@
     topic = null;
     relationships = { npc_relationships: [], party_members: [] };
     inventory = [];
+    currentLocation = null;
     try {
       character = await fetchCharacterById($settings.workerHost, id);
       if (!character) { charError = 'Character not found'; return; }
 
       // Load topic + contextual data in parallel
-      const [relResult, invResult] = await Promise.allSettled([
+      const [relResult, invResult, locResult] = await Promise.allSettled([
         fetchCharacterRelationships($settings.workerHost, id),
         fetchCharacterInventory($settings.workerHost, id),
+        character.current_room_id
+          ? fetchLocationById($settings.workerHost, character.current_room_id)
+          : Promise.resolve(null),
       ]);
       if (relResult.status === 'fulfilled') relationships = relResult.value;
       if (invResult.status === 'fulfilled') inventory = invResult.value;
+      if (locResult.status === 'fulfilled') currentLocation = locResult.value;
 
       if (character.kv_origin) {
         await loadTopicForKey(character.kv_origin);
@@ -221,6 +227,12 @@
 
     {#if !$isMobile && character}
       <div class="toolbar-right">
+        {#if currentLocation}
+          <a class="btn btn-ghost btn-sm location-link" href="/entities/location/{encodeURIComponent(character.current_room_id ?? '')}"
+            title="Current location">
+            📍 {currentLocation.name}
+          </a>
+        {/if}
         <button class="btn btn-ghost btn-sm" on:click={() => { showRelationships = !showRelationships; showInventory = false; }}
           title="NPC relationships and party members">
           Relations
@@ -276,6 +288,12 @@
             {character.race} {character.character_class} · Lv.{character.level} ·
             {character.hp}/{character.max_hp} HP · AC {character.ac}
           </div>
+          {#if currentLocation}
+            <div class="char-location">
+              Currently in:
+              <a href="/entities/location/{encodeURIComponent(character.current_room_id ?? '')}" class="location-inline">{currentLocation.name}</a>
+            </div>
+          {/if}
         </div>
         <p class="no-lore-hint">This character has no lore topic yet.</p>
         <button class="btn btn-primary" on:click={createLoreTopic}>
@@ -563,6 +581,10 @@
   }
   .char-name { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
   .char-meta { font-size: 0.85rem; color: var(--fg-muted); margin-top: 0.25rem; }
+  .char-location { font-size: 0.85rem; color: var(--fg-muted); margin-top: 0.35rem; }
+  .location-inline { color: var(--accent); text-decoration: none; }
+  .location-inline:hover { text-decoration: underline; }
+  .location-link { text-decoration: none; }
 
   .no-lore-hint { color: var(--fg-muted); margin: 0; }
   .no-lore-hint-sub { font-size: 0.8rem; color: var(--fg-muted); opacity: 0.75; margin: 0; }
