@@ -11,7 +11,7 @@ export default defineConfig({
     include: ['src/lib/**/*.{test,spec}.{ts,js}'],
     exclude: ['node_modules', 'src-tauri', 'src/routes/**', 'src/lib/components/**', 'src/lib/**/*.svelte', 'src/lib/**/*.integration.test.*'],
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul',
       reporter: ['text', 'lcov', 'json-summary', 'html'],
       reportsDirectory: './coverage/unit',
       exclude: [
