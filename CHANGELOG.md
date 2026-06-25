@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Character relationships + inventory (Phase 5 — Holmgard OS)**: Character detail page now loads NPC relationships and party membership from D1 alongside the character record. A **Relations** toolbar button (with count badge) opens a drawer showing party members with role and party name, plus known characters with familiarity/disposition/interaction count. An **Inventory** toolbar button opens a drawer listing equipped and carried items with type, quantity, and gold value. Relationship links navigate to the target character's lore topic when `kv_origin` is set. Data loads in parallel with the character fetch and falls back silently if either endpoint is unreachable. (part of #143)
+- Added `NpcRelationshipRecord`, `PartyMemberRecord`, `CharacterRelationships`, `CharacterInventoryItem` types and `fetchCharacterRelationships()` / `fetchCharacterInventory()` helpers to `src/lib/d1-reads.ts`.
+
 - **Wiki-links + backlinks (Phase 4 — Holmgard OS)**: `[[Name]]` syntax in any markdown topic now renders as a clickable link in the preview. Links resolve by matching the name (normalized to slug) against the part of a topic key after the colon (e.g. `[[Aldric]]` → `character:aldric`). Unresolved links render in muted text with a dashed underline. A `backlinksIndex` derived store tracks which topics reference each key. The topic editor toolbar shows a **Backlinks** badge with the reference count; clicking opens a drawer listing all linking topics. The character detail page shows backlinks in both the no-lore state and the editor footer. (part of #143)
 - `src/lib/wiki-links.ts`: `extractWikiLinks()` (regex scan), `normalizeLabel()` (lowercase + hyphenate), `resolveWikiLink()` (exact key + colon-suffix lookup).
 - `src/lib/__tests__/wiki-links.test.ts`: 27 unit tests covering extraction, normalization, and resolution including edge cases.
