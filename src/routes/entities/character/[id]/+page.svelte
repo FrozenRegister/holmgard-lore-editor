@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { topics, settings, showToast, isMobile } from '$lib/stores';
+  import { topics, settings, showToast, isMobile, backlinksIndex } from '$lib/stores';
   import { saveTopic, loadTopic } from '$lib/storage';
   import { pushHistory } from '$lib/history';
   import { adminSave, enqueue } from '$lib/sync';
@@ -176,6 +176,8 @@
     : d1SyncStatus === 'error' ? 'D1 sync failed'
     : d1SyncStatus === 'no-lore' ? 'No lore topic'
     : '';
+
+  $: footerBacklinks = topic ? ($backlinksIndex.get(topic.key) ?? []) : [];
 </script>
 
 <svelte:window on:beforeunload={(e) => { if (!$isMobile && isDirty) { e.preventDefault(); e.returnValue = ''; } }} />
@@ -247,6 +249,19 @@
           Generates a markdown document pre-filled from D1 with a
           <code>## Character Sheet</code> section.
         </p>
+        {#if character.kv_origin}
+          {@const refs = $backlinksIndex.get(character.kv_origin) ?? []}
+          {#if refs.length > 0}
+            <div class="backlinks-hint">
+              <span class="backlinks-hint-label">Referenced by {refs.length} {refs.length === 1 ? 'topic' : 'topics'}:</span>
+              <ul class="backlinks-hint-list">
+                {#each refs as refKey}
+                  <li><a href="/editor/{encodeURIComponent(refKey)}">{refKey}</a></li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+        {/if}
       {/if}
     </div>
 
@@ -278,6 +293,15 @@
         <span>· Synced {new Date(topic.meta.syncedAt).toLocaleString()}</span>
       {/if}
       <span class="footer-key">· {topic.key}</span>
+      {#if footerBacklinks.length > 0}
+        <span class="footer-separator">·</span>
+        <span class="footer-backlinks">
+          Referenced by:
+          {#each footerBacklinks as refKey, i}
+            <a href="/editor/{encodeURIComponent(refKey)}" class="footer-backlink">{refKey}</a>{#if i < footerBacklinks.length - 1},{/if}
+          {/each}
+        </span>
+      {/if}
     </div>
   {/if}
 </div>
@@ -425,4 +449,37 @@
   .no-lore-hint { color: var(--fg-muted); margin: 0; }
   .no-lore-hint-sub { font-size: 0.8rem; color: var(--fg-muted); opacity: 0.75; margin: 0; }
   .no-lore-hint-sub code { background: var(--surface2); padding: 0.1rem 0.3rem; border-radius: 3px; }
+
+  .backlinks-hint {
+    margin-top: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface2);
+    border-radius: 8px;
+    text-align: left;
+    width: 100%;
+  }
+  .backlinks-hint-label { font-size: 0.8rem; color: var(--fg-muted); font-weight: 600; }
+  .backlinks-hint-list {
+    list-style: none;
+    margin: 0.35rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .backlinks-hint-list li a {
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+  }
+  .backlinks-hint-list li a:hover { text-decoration: underline; }
+
+  .footer-separator { opacity: 0.5; }
+  .footer-backlinks { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+  .footer-backlink { color: var(--accent); text-decoration: none; font-size: 0.75rem; }
+  .footer-backlink:hover { text-decoration: underline; }
 </style>

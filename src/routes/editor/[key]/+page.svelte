@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { topics, syncState, settings, showToast, isMobile } from '$lib/stores';
+  import { topics, syncState, settings, showToast, isMobile, backlinksIndex } from '$lib/stores';
   import { saveTopic, loadTopic } from '$lib/storage';
   import { pushHistory, loadHistory } from '$lib/history';
   import { adminSave, enqueue, getTopicHistories } from '$lib/sync';
@@ -47,6 +47,7 @@
   let showMapLocations = false;
   let linkedLandmarks: LandmarkRecord[] = [];
   let mapLocationsLoading = false;
+  let showBacklinks = false;
 
   // ── Load topic ────────────────────────────────────────────────────────────────
   $: if (key) loadCurrent();
@@ -155,6 +156,7 @@
     showEventLog = false;
     showRemoteHistory = false;
     showMapLocations = false;
+    showBacklinks = false;
     historyEntries = await loadHistory(key);
     showHistory = true;
   }
@@ -163,6 +165,7 @@
     showHistory = false;
     showEventLog = false;
     showMapLocations = false;
+    showBacklinks = false;
     remoteHistoryLoading = true;
     remoteHistoryError = null;
     try {
@@ -178,10 +181,19 @@
   }
 
   // ── Event log ─────────────────────────────────────────────────────────────────
+  function openBacklinks() {
+    showHistory = false;
+    showRemoteHistory = false;
+    showEventLog = false;
+    showMapLocations = false;
+    showBacklinks = true;
+  }
+
   async function openMapLocations() {
     showHistory = false;
     showRemoteHistory = false;
     showEventLog = false;
+    showBacklinks = false;
     showMapLocations = true;
     mapLocationsLoading = true;
     try {
@@ -208,6 +220,7 @@
   async function openEventLog() {
     showHistory = false;
     showMapLocations = false;
+    showBacklinks = false;
     showEventLog = true;
     if (availableThreads.length === 0) {
       try {
@@ -280,6 +293,9 @@
         <button class="btn btn-ghost btn-sm" on:click={openRemoteHistory}>Remote History</button>
         <button class="btn btn-ghost btn-sm" on:click={openEventLog}>Event Log</button>
         <button class="btn btn-ghost btn-sm" on:click={openMapLocations} title="View and manage linked map locations">Map Locations</button>
+        <button class="btn btn-ghost btn-sm" on:click={openBacklinks} title="Topics that link here via [[wiki-links]]">
+          Backlinks {#if ($backlinksIndex.get(key) ?? []).length > 0}<span class="backlinks-count">{($backlinksIndex.get(key) ?? []).length}</span>{/if}
+        </button>
         <button class="btn btn-ghost btn-sm" on:click={performSave} disabled={!isDirty || isSaving}>
           Save
         </button>
@@ -416,6 +432,30 @@
                 <button class="btn btn-ghost btn-sm" on:click={() => goto('/world-editor')} title="Open World Map">Map ↗</button>
                 <button class="btn btn-secondary btn-sm" on:click={() => handleUnlinkLandmark(lm.mapId, lm.id)}>Unlink</button>
               </div>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<!-- Backlinks drawer (desktop only) -->
+{#if !$isMobile && showBacklinks}
+  {@const refs = $backlinksIndex.get(key) ?? []}
+  <div class="history-overlay" role="dialog" aria-modal="true" aria-label="Backlinks">
+    <div class="history-panel">
+      <div class="history-header">
+        <h3>Referenced by</h3>
+        <button class="btn-icon" on:click={() => (showBacklinks = false)} aria-label="Close">✕</button>
+      </div>
+      {#if refs.length === 0}
+        <p class="empty-hist">No other topics link to <code>{key}</code> yet.<br><br>Use <code>[[{key}]]</code> in any topic to create a reference.</p>
+      {:else}
+        <ul class="history-list backlinks-list">
+          {#each refs as refKey}
+            <li class="backlink-row">
+              <a href="/editor/{encodeURIComponent(refKey)}" class="backlink-key">{refKey}</a>
             </li>
           {/each}
         </ul>
@@ -616,4 +656,31 @@
   }
   .map-loc-row:hover { background: var(--surface2); }
   .map-loc-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+
+  .backlinks-count {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    margin-left: 0.2rem;
+    line-height: 1.4;
+  }
+
+  .backlink-row {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    border-radius: 6px;
+  }
+  .backlink-row:hover { background: var(--surface2); }
+  .backlink-key {
+    font-size: 0.875rem;
+    color: var(--accent);
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .backlink-key:hover { text-decoration: underline; }
 </style>
