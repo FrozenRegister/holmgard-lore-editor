@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Wiki-links + backlinks (Phase 4 — Holmgard OS)**: `[[Name]]` syntax in any markdown topic now renders as a clickable link in the preview. Links resolve by matching the name (normalized to slug) against the part of a topic key after the colon (e.g. `[[Aldric]]` → `character:aldric`). Unresolved links render in muted text with a dashed underline. A `backlinksIndex` derived store tracks which topics reference each key. The topic editor toolbar shows a **Backlinks** badge with the reference count; clicking opens a drawer listing all linking topics. The character detail page shows backlinks in both the no-lore state and the editor footer. (part of #143)
+- `src/lib/wiki-links.ts`: `extractWikiLinks()` (regex scan), `normalizeLabel()` (lowercase + hyphenate), `resolveWikiLink()` (exact key + colon-suffix lookup).
+- `src/lib/__tests__/wiki-links.test.ts`: 27 unit tests covering extraction, normalization, and resolution including edge cases.
+
 - **Comprehensive tests for Phase 2+3 (character detail + Markdown↔D1 sync)** — Extended unit tests and added a full E2E suite covering the character entity pages:
   - `src/lib/__tests__/character-sheet.test.ts`: 11 new edge-case tests — lowercase heading ignored, double-space heading ignored, float level truncated to integer, negative level accepted, incomplete HP slash format (`30 /`) yields null, asterisk bullet ignored, missing-space-after-bold ignored, non-bullet prose within section skipped, H1 terminates section same as H2, explicit `null` for numeric fields uses defaults, alignment/background round-trip, `generateCharacterTopic` with special chars in name. Total: 34 tests.
   - `src/lib/__tests__/d1-writes.test.ts`: 4 new tests — `null` character field in response, malformed JSON body propagates error, first match returned when multiple records share a `kv_origin`, single-field patch sends correct body. Total: 17 tests.
