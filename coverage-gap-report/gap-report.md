@@ -1,12 +1,12 @@
 # Coverage Gap Analysis Report
 
-**Generated:** 2026-06-25T18:11:27.389Z
+**Generated:** 2026-06-25T22:02:05.905Z
 
 ## Summary
 
 | Suite | Lines | Functions | Branches | Statements |
 |-------|-------|-----------|----------|------------|
-| Unit | 97.49% | 94.79% | 90.07% | 95.65% |
+| Unit | 97.57% | 94.88% | 90.34% | 95.73% |
 | Integration | 3.44% | 21.73% | 52% | 3.44% |
 
 | E2E | Passed | Failed | Total |

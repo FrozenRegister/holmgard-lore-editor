@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-06-25T18:11:27.389Z",
+  "timestamp": "2026-06-25T22:02:05.905Z",
   "summary": {
     "unit": {
-      "lines": 97.49,
-      "functions": 94.79,
-      "branches": 90.07,
-      "statements": 95.65
+      "lines": 97.57,
+      "functions": 94.88,
+      "branches": 90.34,
+      "statements": 95.73
     },
     "integration": {
       "lines": 3.44,
