@@ -16,6 +16,9 @@
   import type { Topic, HistoryEntry, McpEvent, ActiveThread, TopicSnapshot, TopicMeta } from '$lib/types';
   import { getLandmarksForLore, unlinkLandmarkFromLore } from '$lib/mapTools';
   import type { LandmarkRecord } from '$lib/mapDb';
+  import { getTopicPrefix } from '$lib/entities';
+  import { parseCharacterSheet } from '$lib/character-sheet';
+  import { fetchCharacterByKvOrigin, patchCharacter } from '$lib/d1-writes';
 
   // ── Route param ───────────────────────────────────────────────────────────────
   $: key = $page.params.key ? decodeURIComponent($page.params.key) : '';
@@ -78,6 +81,16 @@
     scheduleAutosave();
   }
 
+  async function syncCharacterSheetToD1(markdown: string, topicKey: string) {
+    const patch = parseCharacterSheet(markdown);
+    if (!patch) return;
+    const secret = await getAdminSecret();
+    if (!secret) return;
+    const char = await fetchCharacterByKvOrigin($settings.workerHost, topicKey).catch(() => null);
+    if (!char) return;
+    await patchCharacter($settings.workerHost, char.id, patch, secret);
+  }
+
   async function performSave() {
     if (!topic || !isDirty) return;
     isSaving = true;
@@ -96,6 +109,10 @@
       topic = updated;
       isDirty = false;
       topics.update((ts) => ts.map((t) => (t.key === key ? updated : t)));
+      // Silently sync character sheet fields to D1 when editing a character topic
+      if (getTopicPrefix(key) === 'character') {
+        syncCharacterSheetToD1(editorText, key).catch(() => { /* non-fatal */ });
+      }
     } catch (err) {
       console.error('Save error:', err);
       showToast('Save failed', 'error');
