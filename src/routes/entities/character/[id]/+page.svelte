@@ -18,6 +18,8 @@
   import type {
     CharacterRecord, CharacterRelationships, CharacterInventoryItem, LocationDetailRecord,
   } from '$lib/d1-reads';
+  import { streamInsight } from '$lib/claude';
+  import { buildCharacterContext, buildInsightPrompt } from '$lib/entity-context';
   import type { Topic } from '$lib/types';
 
   // ── Route param ───────────────────────────────────────────────────────────────
@@ -32,6 +34,10 @@
   let currentLocation: LocationDetailRecord | null = null;
   let showRelationships = false;
   let showInventory = false;
+  let showInsights = false;
+  let insightText = '';
+  let insightLoading = false;
+  let insightError: string | null = null;
 
   // ── Topic / editor state ──────────────────────────────────────────────────────
   let topic: Topic | null = null;
@@ -191,6 +197,25 @@
     showToast(`Created lore topic "${key}"`, 'success');
   }
 
+  // ── AI Insights ───────────────────────────────────────────────────────────────
+  async function generateInsight() {
+    if (!character) return;
+    showInsights = true;
+    showRelationships = false;
+    showInventory = false;
+    insightLoading = true;
+    insightText = '';
+    insightError = null;
+    try {
+      const ctx = buildCharacterContext({ character, relationships, inventory, topicText: topic?.text ?? '', currentLocation });
+      await streamInsight(buildInsightPrompt(ctx), (delta) => { insightText += delta; });
+    } catch (e) {
+      insightError = e instanceof Error ? (e.message === 'NO_API_KEY' ? 'No Claude API key — configure in Settings' : e.message) : 'Insight generation failed';
+    } finally {
+      insightLoading = false;
+    }
+  }
+
   // ── Cleanup ───────────────────────────────────────────────────────────────────
   onDestroy(() => {
     if (autosaveTimer) clearTimeout(autosaveTimer);
@@ -233,19 +258,23 @@
             📍 {currentLocation.name}
           </a>
         {/if}
-        <button class="btn btn-ghost btn-sm" on:click={() => { showRelationships = !showRelationships; showInventory = false; }}
+        <button class="btn btn-ghost btn-sm" on:click={() => { showRelationships = !showRelationships; showInventory = false; showInsights = false; }}
           title="NPC relationships and party members">
           Relations
           {#if relationships.npc_relationships.length + relationships.party_members.length > 0}
             <span class="ctx-count">{relationships.npc_relationships.length + relationships.party_members.length}</span>
           {/if}
         </button>
-        <button class="btn btn-ghost btn-sm" on:click={() => { showInventory = !showInventory; showRelationships = false; }}
+        <button class="btn btn-ghost btn-sm" on:click={() => { showInventory = !showInventory; showRelationships = false; showInsights = false; }}
           title="Character inventory">
           Inventory
           {#if inventory.length > 0}
             <span class="ctx-count">{inventory.length}</span>
           {/if}
+        </button>
+        <button class="btn btn-ghost btn-sm" on:click={generateInsight} disabled={insightLoading}
+          title="Generate AI narrative insight from entity data">
+          {insightLoading ? 'Thinking…' : '✦ Insight'}
         </button>
         {#if topic}
           {#if isSaving}
@@ -407,6 +436,30 @@
         {/if}
         {#if relationships.npc_relationships.length === 0 && relationships.party_members.length === 0}
           <p class="ctx-empty">No relationships recorded in D1 yet.</p>
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- AI Insights drawer -->
+{#if !$isMobile && showInsights}
+  <div class="ctx-overlay" role="dialog" aria-modal="true" aria-label="AI Insight">
+    <div class="ctx-panel insight-panel">
+      <div class="ctx-header">
+        <h3>✦ AI Insight</h3>
+        <button class="btn-icon" on:click={() => (showInsights = false)} aria-label="Close">✕</button>
+      </div>
+      <div class="ctx-body">
+        {#if insightLoading && !insightText}
+          <p class="ctx-empty insight-loading">Generating insight…</p>
+        {:else if insightError}
+          <p class="ctx-empty insight-error">{insightError}</p>
+        {:else if insightText}
+          <div class="insight-text">{insightText}</div>
+          {#if !insightLoading}
+            <button class="btn btn-ghost btn-sm insight-regen" on:click={generateInsight}>Regenerate</button>
+          {/if}
         {/if}
       </div>
     </div>
@@ -713,4 +766,20 @@
     font-size: 1rem; padding: 0.25rem; border-radius: 4px; line-height: 1;
   }
   .btn-icon:hover { color: var(--fg); background: var(--surface2); }
+
+  .insight-panel { width: min(440px, 90vw); }
+  .insight-text {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: var(--fg);
+    white-space: pre-wrap;
+  }
+  .insight-loading { font-style: italic; }
+  .insight-error { color: #e57373; }
+  .insight-regen {
+    display: block;
+    margin: 0.5rem 1rem 0.75rem;
+    font-size: 0.78rem;
+  }
 </style>

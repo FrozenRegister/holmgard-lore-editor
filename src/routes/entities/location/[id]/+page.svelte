@@ -4,6 +4,8 @@
   import { settings } from '$lib/stores';
   import { fetchLocationById, fetchLocationOccupants } from '$lib/d1-reads';
   import type { LocationDetailRecord, CharacterRecord } from '$lib/d1-reads';
+  import { streamInsight } from '$lib/claude';
+  import { buildLocationContext, buildInsightPrompt } from '$lib/entity-context';
 
   $: id = $page.params.id ?? '';
 
@@ -12,6 +14,10 @@
   let locLoading = false;
   let locError: string | null = null;
   let showOccupants = false;
+  let showInsights = false;
+  let insightText = '';
+  let insightLoading = false;
+  let insightError: string | null = null;
 
   $: if (id && $settings.workerHost) loadLocation();
 
@@ -40,6 +46,23 @@
   function showOnMap() {
     if (!location || location.local_x == null || location.local_y == null) return;
     goto(`/world-editor?focus_x=${location.local_x}&focus_y=${location.local_y}`);
+  }
+
+  async function generateInsight() {
+    if (!location) return;
+    showInsights = true;
+    showOccupants = false;
+    insightLoading = true;
+    insightText = '';
+    insightError = null;
+    try {
+      const ctx = buildLocationContext({ location, occupants, topicText: '' });
+      await streamInsight(buildInsightPrompt(ctx), (delta) => { insightText += delta; });
+    } catch (e) {
+      insightError = e instanceof Error ? (e.message === 'NO_API_KEY' ? 'No Claude API key — configure in Settings' : e.message) : 'Insight generation failed';
+    } finally {
+      insightLoading = false;
+    }
   }
 </script>
 
@@ -80,12 +103,20 @@
         <button
           class="btn-action"
           class:active={showOccupants}
-          on:click={() => { showOccupants = !showOccupants; }}
+          on:click={() => { showOccupants = !showOccupants; showInsights = false; }}
         >
           Occupants
           {#if occupants.length > 0}
             <span class="ctx-count">{occupants.length}</span>
           {/if}
+        </button>
+        <button
+          class="btn-action"
+          class:active={showInsights}
+          disabled={insightLoading}
+          on:click={generateInsight}
+        >
+          {insightLoading ? 'Thinking…' : '✦ Insight'}
         </button>
       </div>
     </div>
@@ -120,6 +151,30 @@
     {#if location.base_description}
       <div class="loc-desc">
         <p>{location.base_description}</p>
+      </div>
+    {/if}
+
+    <!-- AI Insights overlay -->
+    {#if showInsights}
+      <div class="ctx-overlay" role="dialog" aria-modal="true" aria-label="AI Insight">
+        <div class="ctx-panel insight-panel">
+          <div class="ctx-header">
+            <span>✦ AI Insight</span>
+            <button class="btn-close" on:click={() => { showInsights = false; }}>✕</button>
+          </div>
+          <div class="ctx-body">
+            {#if insightLoading && !insightText}
+              <p class="ctx-empty insight-loading">Generating insight…</p>
+            {:else if insightError}
+              <p class="ctx-empty insight-error">{insightError}</p>
+            {:else if insightText}
+              <div class="insight-text">{insightText}</div>
+              {#if !insightLoading}
+                <button class="btn-action insight-regen" on:click={generateInsight}>Regenerate</button>
+              {/if}
+            {/if}
+          </div>
+        </div>
       </div>
     {/if}
 
@@ -231,4 +286,13 @@
   .ctx-muted { font-size: 0.8rem; color: var(--text-muted, #888); }
   .ctx-tag { font-size: 0.7rem; border-radius: 4px; padding: 0.15rem 0.45rem; font-weight: 600; text-transform: uppercase; background: var(--surface-3, #353550); color: var(--text-muted, #aaa); }
   .ctx-tag--type { background: #2a3a5a; color: #7c9ef8; }
+
+  .insight-panel { width: min(440px, 92vw); }
+  .insight-text {
+    font-size: 0.9rem; line-height: 1.65; color: var(--text, #e0e0e0);
+    white-space: pre-wrap;
+  }
+  .insight-loading { font-style: italic; }
+  .insight-error { color: #e57373; }
+  .insight-regen { margin-top: 1rem; font-size: 0.78rem; }
 </style>
