@@ -138,7 +138,7 @@ describe('ENTITY_FETCHERS', () => {
 
 describe('getEntityName', () => {
   it('returns the name field from any entity record', () => {
-    const char: CharacterRecord = { id: '1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, faction_id: null, kv_origin: null };
+    const char: CharacterRecord = { id: '1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, kv_origin: null };
     expect(getEntityName(char)).toBe('Aldric');
   });
 
@@ -152,7 +152,7 @@ describe('getEntityName', () => {
 
 describe('getEntitySummary', () => {
   it('formats character summary', () => {
-    const char: CharacterRecord = { id: '1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, faction_id: null, kv_origin: null };
+    const char: CharacterRecord = { id: '1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, kv_origin: null };
     const summary = getEntitySummary('character', char);
     expect(summary).toContain('Human');
     expect(summary).toContain('fighter');
@@ -206,7 +206,7 @@ describe('getEntitySummary', () => {
   });
 
   it('returns empty string for unknown entity type', () => {
-    const char: CharacterRecord = { id: '1', name: 'X', character_type: 'npc', character_class: 'fighter', race: 'Human', level: 1, hp: 10, max_hp: 10, faction_id: null, kv_origin: null };
+    const char: CharacterRecord = { id: '1', name: 'X', character_type: 'npc', character_class: 'fighter', race: 'Human', level: 1, hp: 10, max_hp: 10, ac: 10, alignment: null, background: null, faction_id: null, kv_origin: null };
     expect(getEntitySummary('dragon', char)).toBe('');
   });
 });
@@ -219,7 +219,7 @@ describe('fetchEntities (mocked fetch)', () => {
   });
 
   it('fetchCharacters returns array on success', async () => {
-    const mockChar: CharacterRecord = { id: 'a1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, faction_id: null, kv_origin: 'character:aldric' };
+    const mockChar: CharacterRecord = { id: 'a1', name: 'Aldric', character_type: 'pc', character_class: 'fighter', race: 'Human', level: 5, hp: 42, max_hp: 60, ac: 16, alignment: null, background: null, faction_id: null, kv_origin: 'character:aldric' };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ characters: [mockChar], total: 1 }),
