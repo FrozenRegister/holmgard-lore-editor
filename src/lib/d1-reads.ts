@@ -7,6 +7,9 @@ export interface CharacterRecord {
   level: number;
   hp: number;
   max_hp: number;
+  ac: number;
+  alignment: string | null;
+  background: string | null;
   faction_id: string | null;
   kv_origin: string | null;
 }
@@ -94,7 +97,7 @@ export function getEntitySummary(entityType: string, record: EntityRecord): stri
   switch (entityType) {
     case 'character': {
       const r = record as CharacterRecord;
-      return `${r.race} ${r.character_class} · Lv.${r.level} · ${r.hp}/${r.max_hp} HP`;
+      return `${r.race} ${r.character_class} · Lv.${r.level} · ${r.hp}/${r.max_hp} HP · AC ${r.ac}`;
     }
     case 'location': {
       const r = record as LocationRecord;

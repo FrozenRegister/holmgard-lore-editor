@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Character detail page + Markdown↔D1 sync (Phase 2+3 — Holmgard OS)**: Entity category page now links each character D1 row to `/entities/character/[id]`. The detail page loads the character's linked lore topic in a Monaco editor; saving the topic silently patches D1 via `PATCH /api/entities/characters/:id` if the document contains a `## Character Sheet` section. A "Create Lore Topic" button generates a pre-filled markdown template for characters with no existing topic. D1 status chip shows `idle | syncing | synced | no-lore | error`. (part of #143)
+- `src/lib/character-sheet.ts`: Bidirectional bridge between markdown and D1 — `parseCharacterSheet()` extracts `- **Key:** Value` bullets from `## Character Sheet` sections into a typed `CharacterPatch`; `renderCharacterSheet()` generates the section from a `CharacterRecord`; `generateCharacterTopic()` produces a starter markdown document.
+- `src/lib/d1-writes.ts`: `fetchCharacterById()` (by D1 UUID via `GET /api/entities/characters/:id`), `fetchCharacterByKvOrigin()` (scan list for matching `kv_origin`), and `patchCharacter()` (admin-authenticated `PATCH`).
+- `src/routes/entities/character/[id]/+page.svelte`: Character detail editor page with breadcrumb, type chip, D1 sync chip, Monaco editor, and "Create Lore Topic" flow.
+- Extended `CharacterRecord` (`src/lib/d1-reads.ts`) with `ac`, `alignment`, `background` fields now returned by the worker.
+
 - **Entity navigation (Phase 1 — Holmgard OS)**: Sidebar reorganized into a "World" section with category links (Characters, Locations, Quests, Items, Nations, Regions, Factions, Scenes) showing live topic counts. "All Topics" moved to a legacy fallback link. (closes #143)
 - `src/lib/entities.ts`: Shared entity type registry (`ENTITY_TYPES`, `KNOWN_PREFIXES`, `getTopicPrefix`, `getEntityConfig`) — single source of truth used by both the sidebar and entity pages.
 - `src/lib/d1-reads.ts`: Typed fetch functions for the new `/api/entities/*` REST endpoints; includes `getEntityName` and `getEntitySummary` display helpers for all six D1 entity types.
