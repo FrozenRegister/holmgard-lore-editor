@@ -47,12 +47,14 @@ jobs:
             }
 
             const body = pr.body || ''
-            const hasLink = /\b(closes?|fixes?|resolves?)\s+#\d+/i.test(body)
+            // Accept both same-repo (#123) and cross-repo (owner/repo#123) references
+            const hasLink = /\b(closes?|fixes?|resolves?)\s+([\w.-]+\/[\w.-]+#\d+|#\d+)/i.test(body)
             if (!hasLink) {
               core.setFailed(
                 'ERROR **Issue link required**\n\n' +
                 'The PR body must contain a closing keyword referencing an issue:\n' +
-                '  - `Closes #123`\n' +
+                '  - `Closes #123` (same repo)\n' +
+                '  - `Closes owner/repo#123` (cross-repo)\n' +
                 '  - `Fixes #456`\n\n' +
                 'Note: keywords in the PR *title* are ignored by GitHub — they must be in the body.\n\n' +
                 'If this PR has no related issue, apply the `skip-quality-checks` label.'
