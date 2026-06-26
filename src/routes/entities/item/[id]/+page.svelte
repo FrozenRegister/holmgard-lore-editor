@@ -3,12 +3,14 @@
   import { settings } from '$lib/stores';
   import { fetchItemById } from '$lib/d1-reads';
   import type { ItemRecord } from '$lib/d1-reads';
+  import RelationsPanel from '$lib/components/RelationsPanel.svelte';
 
   $: id = $page.params.id ?? '';
 
   let item: ItemRecord | null = null;
   let loading = false;
   let error: string | null = null;
+  let showRelations = false;
 
   $: if (id && $settings.workerHost) load();
 
@@ -49,7 +51,14 @@
       {#if item.type}
         <span class="type-chip">{item.type}</span>
       {/if}
+      <button class="btn-action" class:active={showRelations} on:click={() => (showRelations = !showRelations)}>
+        Relations
+      </button>
     </div>
+
+    {#if showRelations}
+      <RelationsPanel entityTypeSlug="items" entityId={id} onClose={() => (showRelations = false)} />
+    {/if}
 
     <div class="stats-grid">
       <div class="stat-block">
@@ -75,6 +84,13 @@
   .status-msg { color: var(--fg-muted); padding: 2rem 0; }
   .error-card { background: var(--surface); border: 1px solid #e05c5c; border-radius: 8px; padding: 1.5rem; }
   .back-link { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
+
+  .btn-action {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.3rem 0.75rem; font-size: 0.8rem; color: var(--fg-muted); cursor: pointer;
+    margin-left: auto;
+  }
+  .btn-action:hover, .btn-action.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
   .entity-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
   .entity-name { font-size: 1.75rem; font-weight: 700; margin: 0; }
