@@ -60,11 +60,13 @@
     return (record as CharacterRecord).kv_origin ?? null;
   }
 
-  // Returns the detail page href for a character record, or null for other entity types.
+  // Returns the detail page href for entity types that have a dedicated detail page.
   function getCharacterDetailHref(entityType: string, record: EntityRecord): string | null {
-    if (entityType !== 'character') return null;
-    const id = (record as CharacterRecord).id;
-    return `/entities/character/${encodeURIComponent(id)}`;
+    const id = (record as { id: string }).id;
+    if (!id) return null;
+    const types = ['character', 'location', 'nation', 'region', 'quest', 'item'];
+    if (!types.includes(entityType)) return null;
+    return `/entities/${entityType}/${encodeURIComponent(id)}`;
   }
 
   async function createNewEntity() {
