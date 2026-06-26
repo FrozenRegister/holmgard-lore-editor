@@ -89,6 +89,16 @@ describe('storage.ts logic', () => {
         spy.mockRestore();
       }
     });
+
+    it('re-throws non-QuotaExceeded DOMException errors from writeFile', async () => {
+      const domErr = new DOMException('some other dom error', 'NotSupportedError');
+      const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => { throw domErr; });
+      try {
+        await expect(saveSettings({ autoSync: false } as any)).rejects.toThrow('some other dom error');
+      } finally {
+        spy.mockRestore();
+      }
+    });
   });
 
   describe('loadQueue (Browser)', () => {
