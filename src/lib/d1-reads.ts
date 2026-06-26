@@ -176,6 +176,37 @@ export async function fetchLocationOccupants(host: string, id: string): Promise<
   return json.occupants ?? [];
 }
 
+// ── Entity relations ──────────────────────────────────────────────────────────
+
+export interface EntityRelationRecord {
+  id: string;
+  from_type: string;
+  from_id: string;
+  to_type: string;
+  to_id: string;
+  relation_type: string;
+  attitude: number | null;
+  is_bidirectional: boolean;
+  color: string | null;
+  is_pinned: boolean;
+  is_private: boolean;
+  notes: string | null;
+  created_at: string;
+}
+
+export async function fetchEntityRelations(
+  host: string,
+  entityTypeSlug: string,
+  entityId: string,
+): Promise<EntityRelationRecord[]> {
+  const res = await fetch(
+    `${host}/api/entities/${encodeURIComponent(entityTypeSlug)}/${encodeURIComponent(entityId)}/relations`,
+  );
+  if (!res.ok) throw new Error(`Relations fetch failed: ${res.status}`);
+  const json = await res.json() as { relations?: EntityRelationRecord[] };
+  return json.relations ?? [];
+}
+
 /** Get the display name from any entity record (all types share a `name` field). */
 export function getEntityName(record: EntityRecord): string {
   return (record as { name: string }).name ?? 'Unknown';
