@@ -570,6 +570,68 @@ describe('fetchQuestLog', () => {
   });
 });
 
+// ── fetchEntityRelations ──────────────────────────────────────────────────────
+
+describe('fetchEntityRelations', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns array of relations on success', async () => {
+    const mockRel = {
+      id: 'rel-1', from_type: 'characters', from_id: 'c1',
+      to_type: 'nations', to_id: 'n1', relation_type: 'ally',
+      attitude: 75, is_bidirectional: true, color: null,
+      is_pinned: false, is_private: false, notes: null, created_at: '2026-01-01T00:00:00Z',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ relations: [mockRel], total: 1 }),
+    }));
+    const { fetchEntityRelations } = await import('../d1-reads');
+    const result = await fetchEntityRelations('http://w', 'characters', 'c1');
+    expect(result).toHaveLength(1);
+    expect(result[0].relation_type).toBe('ally');
+    expect(result[0].attitude).toBe(75);
+  });
+
+  it('returns empty array when relations key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchEntityRelations } = await import('../d1-reads');
+    const result = await fetchEntityRelations('http://w', 'characters', 'c1');
+    expect(result).toEqual([]);
+  });
+
+  it('handles null attitude field gracefully', async () => {
+    const mockRel = {
+      id: 'rel-2', from_type: 'characters', from_id: 'c2',
+      to_type: 'locations', to_id: 'loc-1', relation_type: 'visits',
+      attitude: null, is_bidirectional: true, color: null,
+      is_pinned: false, is_private: false, notes: null, created_at: '2026-01-02T00:00:00Z',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ relations: [mockRel], total: 1 }),
+    }));
+    const { fetchEntityRelations } = await import('../d1-reads');
+    const result = await fetchEntityRelations('http://w', 'characters', 'c2');
+    expect(result[0].attitude).toBeNull();
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 400 }));
+    const { fetchEntityRelations } = await import('../d1-reads');
+    await expect(fetchEntityRelations('http://w', 'dragons', 'x')).rejects.toThrow('400');
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network timeout')));
+    const { fetchEntityRelations } = await import('../d1-reads');
+    await expect(fetchEntityRelations('http://w', 'characters', 'c1')).rejects.toThrow('network timeout');
+  });
+});
+
 // ── fetchItemById ─────────────────────────────────────────────────────────────
 
 describe('fetchItemById', () => {
