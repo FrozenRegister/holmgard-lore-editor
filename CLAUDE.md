@@ -49,6 +49,27 @@ Run a single test file:
 pnpm vitest run src/lib/__tests__/sync.test.ts
 ```
 
+### Changelog Fragments
+
+**Do not edit `CHANGELOG.md` directly.** Each PR that modifies `src/`, `src-tauri/`, `docs/`, or `CLAUDE.md` must add a `.md` file under `.changelog/fragments/`. Fragments are assembled into `CHANGELOG.md` at release time, eliminating merge conflicts when multiple PRs are open simultaneously.
+
+```bash
+# Create a fragment (any descriptive filename works):
+echo "### My Feature\n- Added X" > .changelog/fragments/my-feature.md
+```
+
+The `check-changelog` PR quality check will fail if a source change has no corresponding fragment. Apply `skip-quality-checks` label for emergency hotfixes.
+
+### Pull Requests and Issue Linking
+
+**Every PR body must include a closing keyword** for GitHub's auto-close to work:
+
+```markdown
+Closes #123
+```
+
+Keywords in the PR **title** are ignored by GitHub — they must be in the body. GitHub cannot auto-close issues in a different repository; close cross-repo issues manually.
+
 ## Architecture
 
 This is a **SvelteKit + Tauri v1** desktop app for editing world-building lore. The frontend is Svelte 4; the Rust backend (`src-tauri/`) exposes a small set of `invoke`-able commands.
