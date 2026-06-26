@@ -48,12 +48,22 @@ export interface RegionRecord {
   owner_nation_id: string | null;
 }
 
+export interface RegionDetailRecord extends RegionRecord {
+  owner_nation_name: string | null;
+}
+
 export interface QuestRecord {
   id: string;
   name: string;
   description: string;
   status: string;
   giver: string | null;
+}
+
+export interface QuestLogEntry {
+  id: string;
+  note: string;
+  created_at: string;
 }
 
 export interface ItemRecord {
@@ -202,4 +212,45 @@ export function getEntitySummary(entityType: string, record: EntityRecord): stri
     default:
       return '';
   }
+}
+
+// ── Entity detail fetch functions ─────────────────────────────────────────────
+
+export async function fetchNationById(host: string, id: string): Promise<NationRecord | null> {
+  const res = await fetch(`${host}/api/entities/nations/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Nation fetch failed: ${res.status}`);
+  const json = await res.json() as { nation?: NationRecord };
+  return json.nation ?? null;
+}
+
+export async function fetchRegionById(host: string, id: string): Promise<RegionDetailRecord | null> {
+  const res = await fetch(`${host}/api/entities/regions/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Region fetch failed: ${res.status}`);
+  const json = await res.json() as { region?: RegionDetailRecord };
+  return json.region ?? null;
+}
+
+export async function fetchQuestById(host: string, id: string): Promise<QuestRecord | null> {
+  const res = await fetch(`${host}/api/entities/quests/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Quest fetch failed: ${res.status}`);
+  const json = await res.json() as { quest?: QuestRecord };
+  return json.quest ?? null;
+}
+
+export async function fetchQuestLog(host: string, id: string): Promise<QuestLogEntry[]> {
+  const res = await fetch(`${host}/api/entities/quests/${encodeURIComponent(id)}/log`);
+  if (!res.ok) throw new Error(`Quest log fetch failed: ${res.status}`);
+  const json = await res.json() as { entries?: QuestLogEntry[] };
+  return json.entries ?? [];
+}
+
+export async function fetchItemById(host: string, id: string): Promise<ItemRecord | null> {
+  const res = await fetch(`${host}/api/entities/items/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Item fetch failed: ${res.status}`);
+  const json = await res.json() as { item?: ItemRecord };
+  return json.item ?? null;
 }

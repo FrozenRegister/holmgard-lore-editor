@@ -433,3 +433,172 @@ describe('fetchLocationOccupants', () => {
     await expect(fetchLocationOccupants('http://w', 'r1')).rejects.toThrow('offline');
   });
 });
+
+// ── fetchNationById ───────────────────────────────────────────────────────────
+
+describe('fetchNationById', () => {
+  it('returns a NationRecord on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ nation: { id: 'n1', name: 'Holmgard', leader: 'King Aldric', ideology: 'monarchy', aggression: 40, trust: 60, paranoia: 30, gdp: 12000 } }),
+    }));
+    const { fetchNationById } = await import('../d1-reads');
+    const result = await fetchNationById('http://w', 'n1');
+    expect(result?.name).toBe('Holmgard');
+    expect(result?.gdp).toBe(12000);
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { fetchNationById } = await import('../d1-reads');
+    expect(await fetchNationById('http://w', 'missing')).toBeNull();
+  });
+
+  it('returns null when nation key is missing in response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }));
+    const { fetchNationById } = await import('../d1-reads');
+    expect(await fetchNationById('http://w', 'n1')).toBeNull();
+  });
+
+  it('throws on non-404 error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchNationById } = await import('../d1-reads');
+    await expect(fetchNationById('http://w', 'n1')).rejects.toThrow('500');
+  });
+});
+
+// ── fetchRegionById ───────────────────────────────────────────────────────────
+
+describe('fetchRegionById', () => {
+  it('returns a RegionDetailRecord with owner nation name', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ region: { id: 'r1', name: 'Northern March', type: 'frontier', owner_nation_id: 'n1', owner_nation_name: 'Holmgard' } }),
+    }));
+    const { fetchRegionById } = await import('../d1-reads');
+    const result = await fetchRegionById('http://w', 'r1');
+    expect(result?.name).toBe('Northern March');
+    expect(result?.owner_nation_name).toBe('Holmgard');
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { fetchRegionById } = await import('../d1-reads');
+    expect(await fetchRegionById('http://w', 'missing')).toBeNull();
+  });
+
+  it('returns null when region key is missing in response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }));
+    const { fetchRegionById } = await import('../d1-reads');
+    expect(await fetchRegionById('http://w', 'r1')).toBeNull();
+  });
+
+  it('throws on non-404 error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    const { fetchRegionById } = await import('../d1-reads');
+    await expect(fetchRegionById('http://w', 'r1')).rejects.toThrow('503');
+  });
+});
+
+// ── fetchQuestById ────────────────────────────────────────────────────────────
+
+describe('fetchQuestById', () => {
+  it('returns a QuestRecord on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ quest: { id: 'q1', name: 'Retrieve the Crown', description: 'Find the Iron Crown.', status: 'active', giver: 'Aldric' } }),
+    }));
+    const { fetchQuestById } = await import('../d1-reads');
+    const result = await fetchQuestById('http://w', 'q1');
+    expect(result?.name).toBe('Retrieve the Crown');
+    expect(result?.giver).toBe('Aldric');
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { fetchQuestById } = await import('../d1-reads');
+    expect(await fetchQuestById('http://w', 'missing')).toBeNull();
+  });
+
+  it('returns null when quest key is missing in response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }));
+    const { fetchQuestById } = await import('../d1-reads');
+    expect(await fetchQuestById('http://w', 'q1')).toBeNull();
+  });
+
+  it('throws on non-404 error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchQuestById } = await import('../d1-reads');
+    await expect(fetchQuestById('http://w', 'q1')).rejects.toThrow('500');
+  });
+});
+
+// ── fetchQuestLog ─────────────────────────────────────────────────────────────
+
+describe('fetchQuestLog', () => {
+  it('returns quest log entries on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ entries: [
+        { id: 'ql1', note: 'Quest received.', created_at: '2026-01-01' },
+        { id: 'ql2', note: 'Crown found.', created_at: '2026-01-05' },
+      ], total: 2 }),
+    }));
+    const { fetchQuestLog } = await import('../d1-reads');
+    const result = await fetchQuestLog('http://w', 'q1');
+    expect(result).toHaveLength(2);
+    expect(result[0].note).toBe('Quest received.');
+    expect(result[1].created_at).toBe('2026-01-05');
+  });
+
+  it('defaults to empty array when entries key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ total: 0 }) }));
+    const { fetchQuestLog } = await import('../d1-reads');
+    expect(await fetchQuestLog('http://w', 'q1')).toEqual([]);
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchQuestLog } = await import('../d1-reads');
+    await expect(fetchQuestLog('http://w', 'q1')).rejects.toThrow('500');
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('net down')));
+    const { fetchQuestLog } = await import('../d1-reads');
+    await expect(fetchQuestLog('http://w', 'q1')).rejects.toThrow('net down');
+  });
+});
+
+// ── fetchItemById ─────────────────────────────────────────────────────────────
+
+describe('fetchItemById', () => {
+  it('returns an ItemRecord on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ item: { id: 'i1', name: 'Iron Crown', type: 'relic', value: 5000, weight: 2 } }),
+    }));
+    const { fetchItemById } = await import('../d1-reads');
+    const result = await fetchItemById('http://w', 'i1');
+    expect(result?.name).toBe('Iron Crown');
+    expect(result?.value).toBe(5000);
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { fetchItemById } = await import('../d1-reads');
+    expect(await fetchItemById('http://w', 'missing')).toBeNull();
+  });
+
+  it('returns null when item key is missing in response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }));
+    const { fetchItemById } = await import('../d1-reads');
+    expect(await fetchItemById('http://w', 'i1')).toBeNull();
+  });
+
+  it('throws on non-404 error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    const { fetchItemById } = await import('../d1-reads');
+    await expect(fetchItemById('http://w', 'i1')).rejects.toThrow('503');
+  });
+});
