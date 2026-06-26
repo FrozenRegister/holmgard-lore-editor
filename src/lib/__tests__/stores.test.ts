@@ -3,6 +3,7 @@ import { get } from 'svelte/store';
 import {
 	topics,
 	topicMap,
+	backlinksIndex,
 	settings,
 	syncState,
 	conflictQueue,
@@ -128,6 +129,69 @@ describe('stores', () => {
 			]);
 			expect(get(topicMap).size).toBe(1);
 			expect(get(topicMap).has('new-topic')).toBe(true);
+		});
+	});
+
+	// ── backlinksIndex derived store ───────────────────────────────────────────
+
+	describe('backlinksIndex derived store', () => {
+		it('returns empty map when no topics', () => {
+			topics.set([]);
+			expect(get(backlinksIndex).size).toBe(0);
+		});
+
+		it('indexes backlinks when a topic contains a wiki-link to a known topic', () => {
+			topics.set([
+				{ key: 'character:alice', text: 'Alice knows [[character:bob]]', meta: { updatedAt: '', version: 1 } },
+				{ key: 'character:bob', text: 'Bob', meta: { updatedAt: '', version: 1 } },
+			]);
+			const index = get(backlinksIndex);
+			expect(index.get('character:bob')).toContain('character:alice');
+		});
+
+		it('ignores wiki-links that do not resolve to any known topic', () => {
+			topics.set([
+				{ key: 'character:alice', text: 'Alice knows [[unknown-entity]]', meta: { updatedAt: '', version: 1 } },
+			]);
+			const index = get(backlinksIndex);
+			expect(index.size).toBe(0);
+		});
+
+		it('does not duplicate source key when topic links to same target twice', () => {
+			topics.set([
+				{
+					key: 'character:alice',
+					text: 'Alice likes [[character:bob]] and also [[character:bob]]',
+					meta: { updatedAt: '', version: 1 },
+				},
+				{ key: 'character:bob', text: 'Bob', meta: { updatedAt: '', version: 1 } },
+			]);
+			const index = get(backlinksIndex);
+			const backlinks = index.get('character:bob');
+			expect(backlinks).toHaveLength(1);
+			expect(backlinks).toContain('character:alice');
+		});
+
+		it('accumulates multiple sources linking to the same target', () => {
+			topics.set([
+				{ key: 'character:alice', text: 'Alice knows [[character:bob]]', meta: { updatedAt: '', version: 1 } },
+				{ key: 'character:carol', text: 'Carol knows [[character:bob]]', meta: { updatedAt: '', version: 1 } },
+				{ key: 'character:bob', text: 'Bob', meta: { updatedAt: '', version: 1 } },
+			]);
+			const index = get(backlinksIndex);
+			const backlinks = index.get('character:bob');
+			expect(backlinks).toHaveLength(2);
+			expect(backlinks).toContain('character:alice');
+			expect(backlinks).toContain('character:carol');
+		});
+
+		it('handles topics with null/undefined text without throwing', () => {
+			topics.set([
+				{ key: 'character:alice', text: null as unknown as string, meta: { updatedAt: '', version: 1 } },
+				{ key: 'character:bob', text: undefined as unknown as string, meta: { updatedAt: '', version: 1 } },
+			]);
+			expect(() => get(backlinksIndex)).not.toThrow();
+			expect(get(backlinksIndex).size).toBe(0);
 		});
 	});
 
