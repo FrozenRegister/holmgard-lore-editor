@@ -3,6 +3,7 @@
   import { settings } from '$lib/stores';
   import { fetchQuestById, fetchQuestLog } from '$lib/d1-reads';
   import type { QuestRecord, QuestLogEntry } from '$lib/d1-reads';
+  import RelationsPanel from '$lib/components/RelationsPanel.svelte';
 
   $: id = $page.params.id ?? '';
 
@@ -11,6 +12,7 @@
   let loading = false;
   let error: string | null = null;
   let showLog = false;
+  let showRelations = false;
 
   $: if (id && $settings.workerHost) load();
 
@@ -78,13 +80,20 @@
 
     <!-- Log drawer toggle -->
     <div class="log-toolbar">
-      <button class="btn-action" class:active={showLog} on:click={() => { showLog = !showLog; }}>
+      <button class="btn-action" class:active={showRelations} on:click={() => { showRelations = !showRelations; showLog = false; }}>
+        Relations
+      </button>
+      <button class="btn-action" class:active={showLog} on:click={() => { showLog = !showLog; showRelations = false; }}>
         Quest Log
         {#if log.length > 0}
           <span class="ctx-count">{log.length}</span>
         {/if}
       </button>
     </div>
+
+    {#if showRelations}
+      <RelationsPanel entityTypeSlug="quests" entityId={id} onClose={() => (showRelations = false)} />
+    {/if}
 
     <!-- Log entries inline -->
     {#if showLog}

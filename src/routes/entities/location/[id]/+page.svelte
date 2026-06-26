@@ -6,6 +6,7 @@
   import type { LocationDetailRecord, CharacterRecord } from '$lib/d1-reads';
   import { streamInsight } from '$lib/claude';
   import { buildLocationContext, buildInsightPrompt } from '$lib/entity-context';
+  import RelationsPanel from '$lib/components/RelationsPanel.svelte';
 
   $: id = $page.params.id ?? '';
 
@@ -15,6 +16,7 @@
   let locError: string | null = null;
   let showOccupants = false;
   let showInsights = false;
+  let showRelations = false;
   let insightText = '';
   let insightLoading = false;
   let insightError: string | null = null;
@@ -102,8 +104,15 @@
         {/if}
         <button
           class="btn-action"
+          class:active={showRelations}
+          on:click={() => { showRelations = !showRelations; showOccupants = false; showInsights = false; }}
+        >
+          Relations
+        </button>
+        <button
+          class="btn-action"
           class:active={showOccupants}
-          on:click={() => { showOccupants = !showOccupants; showInsights = false; }}
+          on:click={() => { showOccupants = !showOccupants; showInsights = false; showRelations = false; }}
         >
           Occupants
           {#if occupants.length > 0}
@@ -152,6 +161,15 @@
       <div class="loc-desc">
         <p>{location.base_description}</p>
       </div>
+    {/if}
+
+    <!-- Entity Relations panel -->
+    {#if showRelations}
+      <RelationsPanel
+        entityTypeSlug="locations"
+        entityId={id}
+        onClose={() => (showRelations = false)}
+      />
     {/if}
 
     <!-- AI Insights overlay -->

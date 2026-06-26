@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { CharacterRecord } from '../d1-reads';
+import type { CharacterRecord, EntityRelationRecord } from '../d1-reads';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -184,5 +184,149 @@ describe('patchCharacter', () => {
       expect.any(String),
       expect.objectContaining({ body: JSON.stringify({ level: 9 }) }),
     );
+  });
+});
+
+// ── createEntityRelation ──────────────────────────────────────────────────────
+
+describe('createEntityRelation', () => {
+  beforeEach(() => { vi.stubGlobal('fetch', vi.fn()); });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  const payload = {
+    from_type: 'characters', from_id: 'c1',
+    to_type: 'nations', to_id: 'n1',
+    relation_type: 'ally', attitude: 75,
+  };
+
+  it('sends POST with correct headers and returns the id', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ ok: true, id: 'rel-abc' }));
+    const { createEntityRelation } = await import('../d1-writes');
+    const id = await createEntityRelation(HOST, payload, 'test-secret');
+    expect(id).toBe('rel-abc');
+    expect(fetch).toHaveBeenCalledWith(
+      `${HOST}/admin/relations`,
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'test-secret' }),
+        body: JSON.stringify(payload),
+      }),
+    );
+  });
+
+  it('returns empty string when id is missing in response', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ ok: true }));
+    const { createEntityRelation } = await import('../d1-writes');
+    const id = await createEntityRelation(HOST, payload, 'secret');
+    expect(id).toBe('');
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.mocked(fetch).mockResolvedValue(errFetch(400));
+    const { createEntityRelation } = await import('../d1-writes');
+    await expect(createEntityRelation(HOST, payload, 'secret')).rejects.toThrow('400');
+  });
+
+  it('throws on non-2xx 401 (unauthorized)', async () => {
+    vi.mocked(fetch).mockResolvedValue(errFetch(401));
+    const { createEntityRelation } = await import('../d1-writes');
+    await expect(createEntityRelation(HOST, payload, 'wrong')).rejects.toThrow('401');
+  });
+
+  it('throws on network failure', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('network down'));
+    const { createEntityRelation } = await import('../d1-writes');
+    await expect(createEntityRelation(HOST, payload, 'secret')).rejects.toThrow('network down');
+  });
+});
+
+// ── updateEntityRelation ──────────────────────────────────────────────────────
+
+describe('updateEntityRelation', () => {
+  beforeEach(() => { vi.stubGlobal('fetch', vi.fn()); });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('sends PATCH with correct headers, URL-encoded id, and patch body', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ ok: true }));
+    const { updateEntityRelation } = await import('../d1-writes');
+    await updateEntityRelation(HOST, 'rel-abc', { relation_type: 'enemy', attitude: -90 }, 'secret');
+    expect(fetch).toHaveBeenCalledWith(
+      `${HOST}/admin/relations/rel-abc`,
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'secret' }),
+        body: JSON.stringify({ relation_type: 'enemy', attitude: -90 }),
+      }),
+    );
+  });
+
+  it('URL-encodes the relation id', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ ok: true }));
+    const { updateEntityRelation } = await import('../d1-writes');
+    await updateEntityRelation(HOST, 'a b/c', { is_pinned: true }, 'secret');
+    expect(fetch).toHaveBeenCalledWith(
+      `${HOST}/admin/relations/a%20b%2Fc`,
+      expect.anything(),
+    );
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.mocked(fetch).mockResolvedValue(errFetch(404));
+    const { updateEntityRelation } = await import('../d1-writes');
+    await expect(updateEntityRelation(HOST, 'bad-id', { relation_type: 'x' }, 'secret')).rejects.toThrow('404');
+  });
+
+  it('throws on network failure', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('offline'));
+    const { updateEntityRelation } = await import('../d1-writes');
+    await expect(updateEntityRelation(HOST, 'rel-1', { is_pinned: false }, 'secret')).rejects.toThrow('offline');
+  });
+});
+
+// ── deleteEntityRelation ──────────────────────────────────────────────────────
+
+describe('deleteEntityRelation', () => {
+  beforeEach(() => { vi.stubGlobal('fetch', vi.fn()); });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('sends DELETE with correct URL and admin secret header', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ ok: true }));
+    const { deleteEntityRelation } = await import('../d1-writes');
+    await deleteEntityRelation(HOST, 'rel-xyz', 'test-secret');
+    expect(fetch).toHaveBeenCalledWith(
+      `${HOST}/admin/relations/rel-xyz`,
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'test-secret' }),
+      }),
+    );
+  });
+
+  it('URL-encodes the relation id', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ ok: true }));
+    const { deleteEntityRelation } = await import('../d1-writes');
+    await deleteEntityRelation(HOST, 'a/b c', 'secret');
+    expect(fetch).toHaveBeenCalledWith(
+      `${HOST}/admin/relations/a%2Fb%20c`,
+      expect.anything(),
+    );
+  });
+
+  it('throws on non-2xx response (404)', async () => {
+    vi.mocked(fetch).mockResolvedValue(errFetch(404));
+    const { deleteEntityRelation } = await import('../d1-writes');
+    await expect(deleteEntityRelation(HOST, 'ghost', 'secret')).rejects.toThrow('404');
+  });
+
+  it('throws on non-2xx response (401)', async () => {
+    vi.mocked(fetch).mockResolvedValue(errFetch(401));
+    const { deleteEntityRelation } = await import('../d1-writes');
+    await expect(deleteEntityRelation(HOST, 'rel-1', 'wrong')).rejects.toThrow('401');
+  });
+
+  it('throws on network failure', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('connection refused'));
+    const { deleteEntityRelation } = await import('../d1-writes');
+    await expect(deleteEntityRelation(HOST, 'rel-1', 'secret')).rejects.toThrow('connection refused');
   });
 });

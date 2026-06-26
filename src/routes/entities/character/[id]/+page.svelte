@@ -20,6 +20,7 @@
   } from '$lib/d1-reads';
   import { streamInsight } from '$lib/claude';
   import { buildCharacterContext, buildInsightPrompt } from '$lib/entity-context';
+  import RelationsPanel from '$lib/components/RelationsPanel.svelte';
   import type { Topic } from '$lib/types';
 
   // ── Route param ───────────────────────────────────────────────────────────────
@@ -35,6 +36,7 @@
   let showRelationships = false;
   let showInventory = false;
   let showInsights = false;
+  let showEntityRelations = false;
   let insightText = '';
   let insightLoading = false;
   let insightError: string | null = null;
@@ -258,7 +260,11 @@
             📍 {currentLocation.name}
           </a>
         {/if}
-        <button class="btn btn-ghost btn-sm" on:click={() => { showRelationships = !showRelationships; showInventory = false; showInsights = false; }}
+        <button class="btn btn-ghost btn-sm" on:click={() => { showEntityRelations = !showEntityRelations; showRelationships = false; showInventory = false; showInsights = false; }}
+          title="Entity relations">
+          Entity Rels
+        </button>
+        <button class="btn btn-ghost btn-sm" on:click={() => { showRelationships = !showRelationships; showInventory = false; showInsights = false; showEntityRelations = false; }}
           title="NPC relationships and party members">
           Relations
           {#if relationships.npc_relationships.length + relationships.party_members.length > 0}
@@ -388,6 +394,15 @@
     </div>
   {/if}
 </div>
+
+<!-- Entity Relations drawer -->
+{#if !$isMobile && showEntityRelations}
+  <RelationsPanel
+    entityTypeSlug="characters"
+    entityId={id}
+    onClose={() => (showEntityRelations = false)}
+  />
+{/if}
 
 <!-- Relationships drawer -->
 {#if !$isMobile && showRelationships}
