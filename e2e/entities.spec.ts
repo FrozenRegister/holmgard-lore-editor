@@ -202,7 +202,6 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
   });
 
   test('Create Lore Topic warns when D1 link fails', async ({ page }) => {
-    await mockDetail(page);
     await page.route(`**/api/entities/characters/${charId}`, (route) => {
       if (route.request().method() === 'PATCH') {
         route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'broken' }) });
