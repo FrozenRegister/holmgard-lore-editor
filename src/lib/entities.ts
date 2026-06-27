@@ -16,6 +16,7 @@ export const ENTITY_TYPES: EntityTypeConfig[] = [
   { prefix: 'region',    label: 'Regions',    singularLabel: 'Region',    description: 'Geographic and cultural regions.',   hasD1: true,  apiSlug: 'regions'    },
   { prefix: 'faction',   label: 'Factions',   singularLabel: 'Faction',   description: 'Organizations and guilds.',          hasD1: false                        },
   { prefix: 'scene',     label: 'Scenes',     singularLabel: 'Scene',     description: 'Narrative scenes and encounters.',   hasD1: false                        },
+  { prefix: 'note',      label: 'Notes',      singularLabel: 'Note',      description: 'Zero-friction freeform lore entries.', hasD1: false                      },
 ];
 
 export const KNOWN_PREFIXES = new Set(ENTITY_TYPES.map(e => e.prefix));
