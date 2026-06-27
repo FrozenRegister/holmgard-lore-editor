@@ -201,6 +201,24 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
     await expect(page.locator('button', { hasText: 'Save' })).toBeVisible({ timeout: 10000 });
   });
 
+  test('Create Lore Topic warns when D1 link fails', async ({ page }) => {
+    await mockDetail(page);
+    await page.route(`**/api/entities/characters/${charId}`, (route) => {
+      if (route.request().method() === 'PATCH') {
+        route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'broken' }) });
+        return;
+      }
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ character: { ...CHAR_PC, id: charId, kv_origin: null } }),
+      });
+    });
+    await page.goto(`/entities/character/${charId}`);
+    await page.locator('button', { hasText: 'Create Lore Topic' }).click();
+    await expect(page.getByText('D1 link failed')).toBeVisible({ timeout: 10000 });
+  });
+
   test('breadcrumb link returns to /entities/character', async ({ page }) => {
     await mockDetail(page);
     await page.goto(`/entities/character/${charId}`);
