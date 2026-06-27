@@ -216,6 +216,11 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
       });
     });
     await page.goto(`/entities/character/${charId}`);
+
+    // Must set the admin secret in localStorage so createLoreTopic
+    // proceeds past the getAdminSecret() guard and actually issues PATCH.
+    await page.evaluate(() => localStorage.setItem('hle:adminSecret', 'e2e-test-secret'));
+
     await page.locator('button', { hasText: 'Create Lore Topic' }).click();
 
     // The PATCH should fire after the button click for a character
