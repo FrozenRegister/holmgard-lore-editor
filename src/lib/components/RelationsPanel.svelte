@@ -169,3 +169,266 @@
     return `${typeLabel}: ${id}`;
   }
 </script>
+
+<div class="ctx-overlay" role="dialog" aria-modal="true" aria-label="Relations">
+  <div class="ctx-panel">
+    <div class="ctx-header">
+      <h3>Relations</h3>
+      <button class="btn-icon" on:click={onClose} aria-label="Close">✕</button>
+    </div>
+
+    <div class="ctx-body">
+      {#if loading}
+        <p class="ctx-empty">Loading…</p>
+      {:else if error}
+        <p class="ctx-empty ctx-error">{error}</p>
+      {:else if relations.length === 0 && !showAddForm}
+        <p class="ctx-empty">No relations yet.</p>
+      {:else}
+        <ul class="ctx-list">
+          {#each relations as rel (rel.id)}
+            <li class="ctx-row" class:pinned={rel.is_pinned}>
+              {#if rel.is_pinned}
+                <span class="pin-indicator" title="Pinned">📌</span>
+              {/if}
+              <span class="ctx-name">{otherEntityLabel(rel)}</span>
+              <span class="ctx-tag">{rel.relation_type}</span>
+              {#if rel.attitude !== null}
+                <span class="ctx-tag attitude-chip {attitudeClass(rel.attitude)}">{attitudeLabel(rel.attitude)}</span>
+              {/if}
+              {#if rel.is_private}
+                <span class="ctx-tag private-chip">private</span>
+              {/if}
+              <span class="row-actions">
+                <button class="btn-icon-sm" title={rel.is_pinned ? 'Unpin' : 'Pin'} on:click={() => togglePin(rel)}>
+                  {rel.is_pinned ? '📌' : '·'}
+                </button>
+                <button class="btn-icon-sm danger" title="Delete" on:click={() => handleDelete(rel.id)}>✕</button>
+              </span>
+              {#if rel.notes}
+                <div class="ctx-notes">{rel.notes}</div>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      <!-- Add form -->
+      {#if showAddForm}
+        <div class="add-form">
+          <div class="form-row">
+            <label class="form-label">Target type</label>
+            <select class="form-select" bind:value={form.to_type}>
+              {#each ENTITY_TYPES as et}
+                <option value={et.slug}>{et.label}</option>
+              {/each}
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Target entity</label>
+            {#if loadingTargets}
+              <span class="form-hint">Loading…</span>
+            {:else if targetOptions.length > 0}
+              <select class="form-select" bind:value={form.to_id}>
+                <option value="">— select —</option>
+                {#each targetOptions as opt}
+                  <option value={opt.id}>{opt.name}</option>
+                {/each}
+              </select>
+            {:else}
+              <input class="form-input" type="text" placeholder="Entity ID" bind:value={form.to_id} />
+            {/if}
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Relation type</label>
+            <input
+              class="form-input"
+              type="text"
+              placeholder="e.g. ally, serves, knows…"
+              list="relation-suggestions"
+              bind:value={form.relation_type}
+            />
+            <datalist id="relation-suggestions">
+              {#each RELATION_SUGGESTIONS as s}
+                <option value={s} />
+              {/each}
+            </datalist>
+          </div>
+
+          <div class="form-row form-row--inline">
+            <label class="form-label">
+              <input type="checkbox" bind:checked={form.has_attitude} /> Attitude
+            </label>
+            {#if form.has_attitude}
+              <input class="form-range" type="range" min="-100" max="100" step="5" bind:value={form.attitude} />
+              <span class="attitude-chip {attitudeClass(form.attitude)}">{attitudeLabel(form.attitude)}</span>
+            {/if}
+          </div>
+
+          <div class="form-row form-row--inline">
+            <label class="form-label">
+              <input type="checkbox" bind:checked={form.is_bidirectional} /> Bidirectional
+            </label>
+            <label class="form-label">
+              <input type="checkbox" bind:checked={form.is_pinned} /> Pin
+            </label>
+            <label class="form-label">
+              <input type="checkbox" bind:checked={form.is_private} /> Private
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Notes (optional)</label>
+            <textarea class="form-textarea" rows="2" placeholder="Brief note…" bind:value={form.notes}></textarea>
+          </div>
+
+          {#if addError}
+            <p class="add-error">{addError}</p>
+          {/if}
+
+          <div class="form-actions">
+            <button class="btn btn-primary btn-sm" on:click={handleAdd} disabled={adding}>
+              {adding ? 'Adding…' : 'Add Relation'}
+            </button>
+            <button class="btn btn-ghost btn-sm" on:click={() => { showAddForm = false; resetForm(); }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      {:else}
+        <button class="btn btn-ghost btn-sm add-btn" on:click={() => (showAddForm = true)}>
+          + Add Relation
+        </button>
+      {/if}
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Context drawer */
+  .ctx-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 500;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .ctx-panel {
+    width: min(400px, 90vw);
+    background: var(--surface);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+  }
+  .ctx-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .ctx-header h3 { margin: 0; font-size: 1rem; }
+  .ctx-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem 0.5rem;
+  }
+  .ctx-list { list-style: none; margin: 0 0 0.5rem; padding: 0; }
+  .ctx-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  .ctx-row:hover { background: var(--surface2); }
+  .ctx-row.pinned { border-left: 2px solid var(--accent); }
+  .ctx-name { font-size: 0.875rem; font-weight: 600; }
+  .ctx-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    background: var(--surface2);
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+  .ctx-notes {
+    width: 100%;
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+    padding-top: 0.2rem;
+    font-style: italic;
+  }
+  .ctx-empty { color: var(--fg-muted); text-align: center; padding: 2rem 1rem; font-size: 0.875rem; }
+  .ctx-error { color: #e57373; }
+
+  /* Attitude chips */
+  .attitude-chip { }
+  .attitude--ally { background: rgba(76,175,80,0.15); color: #81c784; }
+  .attitude--hostile { background: rgba(229,115,115,0.15); color: #e57373; }
+  .attitude--neutral { background: var(--surface2); color: var(--fg-muted); }
+  .private-chip { background: rgba(201,168,76,0.2); color: var(--accent); }
+
+  .pin-indicator { font-size: 0.75rem; }
+
+  /* Row actions */
+  .row-actions {
+    display: flex;
+    gap: 0.2rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .btn-icon-sm {
+    background: none; border: none; cursor: pointer;
+    font-size: 0.8rem; padding: 0.15rem 0.25rem; border-radius: 3px;
+    color: var(--fg-muted); line-height: 1;
+  }
+  .btn-icon-sm:hover { background: var(--surface2); color: var(--fg); }
+  .btn-icon-sm.danger:hover { color: #e57373; }
+  .btn-icon {
+    background: none; border: none; color: var(--fg-muted); cursor: pointer;
+    font-size: 1rem; padding: 0.25rem; border-radius: 4px; line-height: 1;
+  }
+  .btn-icon:hover { color: var(--fg); background: var(--surface2); }
+
+  /* Add button */
+  .add-btn { margin: 0.5rem 0.75rem; }
+
+  /* Add form */
+  .add-form {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .form-row { display: flex; flex-direction: column; gap: 0.25rem; }
+  .form-row--inline { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+  .form-label { font-size: 0.75rem; color: var(--fg-muted); font-weight: 600; display: flex; align-items: center; gap: 0.3rem; }
+  .form-input, .form-select, .form-textarea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+    color: var(--fg);
+    width: 100%;
+  }
+  .form-range { flex: 1; accent-color: var(--accent); }
+  .form-textarea { resize: vertical; }
+  .form-hint { font-size: 0.75rem; color: var(--fg-muted); }
+
+  .add-error { font-size: 0.8rem; color: #e57373; margin: 0; }
+  .form-actions { display: flex; gap: 0.5rem; }
+</style>
