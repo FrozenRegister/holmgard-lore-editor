@@ -197,6 +197,20 @@
     isDirty = false;
     d1SyncStatus = 'idle';
     showToast(`Created lore topic "${key}"`, 'success');
+    if (!character) return;
+    const secret = await getAdminSecret();
+    if (!secret) {
+      showToast('Topic created, but no admin secret to link it in D1', 'warning');
+      return;
+    }
+    try {
+      await patchCharacter($settings.workerHost, character.id, { kv_origin: key }, secret);
+      character = { ...character, kv_origin: key };
+      showToast('Linked lore topic to character', 'success');
+    } catch (err) {
+      console.error('[kv_origin] failed to link lore topic to character:', err);
+      showToast('Topic created, but D1 link failed', 'warning');
+    }
   }
 
   // ── AI Insights ───────────────────────────────────────────────────────────────
