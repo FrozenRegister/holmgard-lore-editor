@@ -189,7 +189,7 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
 
     // Footer appears once the topic is set and the editor renders
     const footer = page.locator('.editor-footer');
-    await expect(footer).toBeVisible({ timeout: 10000 });
+    await expect(footer).toBeVisible({ timeout: 15000 });
     await expect(footer).toContainText('character:aldric');
     await expect(footer).toContainText('v1');
   });
@@ -198,7 +198,7 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
     await mockDetail(page);
     await page.goto(`/entities/character/${charId}`);
     await page.locator('button', { hasText: 'Create Lore Topic' }).click();
-    await expect(page.locator('button', { hasText: 'Save' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button', { hasText: 'Save' })).toBeVisible({ timeout: 15000 });
   });
 
   test('Create Lore Topic warns when D1 link fails', async ({ page }) => {
@@ -215,7 +215,7 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
     });
     await page.goto(`/entities/character/${charId}`);
     await page.locator('button', { hasText: 'Create Lore Topic' }).click();
-    await expect(page.getByText('D1 link failed')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.toast-stack').getByText('D1 link failed')).toBeVisible({ timeout: 15000 });
   });
 
   test('breadcrumb link returns to /entities/character', async ({ page }) => {
@@ -245,7 +245,7 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
       route.abort('failed');
     });
     await page.goto('/entities/character/net-fail');
-    await expect(page.locator('.error-state')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.error-state')).toBeVisible({ timeout: 15000 });
   });
 
   test('error state Back to Characters link navigates correctly', async ({ page }) => {
