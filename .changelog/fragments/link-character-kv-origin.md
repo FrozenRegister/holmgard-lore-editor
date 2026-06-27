@@ -1,0 +1,1 @@
+- **fix(entity): link character D1 row to lore topic after creation** — `createLoreTopic()` on `/entities/character/[id]` now PATCHes `kv_origin` back to D1 and updates local page state, preventing the “no lore topic” state on reload for newly created topics. Closes #182.

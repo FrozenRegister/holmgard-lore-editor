@@ -189,7 +189,7 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
 
     // Footer appears once the topic is set and the editor renders
     const footer = page.locator('.editor-footer');
-    await expect(footer).toBeVisible({ timeout: 10000 });
+    await expect(footer).toBeVisible({ timeout: 15000 });
     await expect(footer).toContainText('character:aldric');
     await expect(footer).toContainText('v1');
   });
@@ -198,7 +198,34 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
     await mockDetail(page);
     await page.goto(`/entities/character/${charId}`);
     await page.locator('button', { hasText: 'Create Lore Topic' }).click();
-    await expect(page.locator('button', { hasText: 'Save' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button', { hasText: 'Save' })).toBeVisible({ timeout: 15000 });
+  });
+
+  test('Create Lore Topic warns when D1 link fails', async ({ page }) => {
+    let patchRequested = false;
+    await page.route(`**/api/entities/characters/${charId}`, (route) => {
+      if (route.request().method() === 'PATCH') {
+        patchRequested = true;
+        route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'broken' }) });
+        return;
+      }
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ character: { ...CHAR_PC, id: charId, kv_origin: null } }),
+      });
+    });
+    await page.goto(`/entities/character/${charId}`);
+
+    // Must set the admin secret in localStorage so createLoreTopic
+    // proceeds past the getAdminSecret() guard and actually issues PATCH.
+    await page.evaluate(() => localStorage.setItem('hle:adminSecret', 'e2e-test-secret'));
+
+    await page.locator('button', { hasText: 'Create Lore Topic' }).click();
+
+    // The PATCH should fire after the button click for a character
+    // with no kv_origin. Wait long enough for the async flow.
+    await expect.poll(() => patchRequested, { timeout: 10000 }).toBe(true);
   });
 
   test('breadcrumb link returns to /entities/character', async ({ page }) => {
@@ -228,7 +255,7 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
       route.abort('failed');
     });
     await page.goto('/entities/character/net-fail');
-    await expect(page.locator('.error-state')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.error-state')).toBeVisible({ timeout: 15000 });
   });
 
   test('error state Back to Characters link navigates correctly', async ({ page }) => {

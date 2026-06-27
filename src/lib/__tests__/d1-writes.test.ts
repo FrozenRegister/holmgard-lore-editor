@@ -185,6 +185,20 @@ describe('patchCharacter', () => {
       expect.objectContaining({ body: JSON.stringify({ level: 9 }) }),
     );
   });
+
+  it('patches kv_origin for a character topic link', async () => {
+    vi.mocked(fetch).mockResolvedValue(okFetch({ ok: true }));
+    const { patchCharacter } = await import('../d1-writes');
+    await patchCharacter(HOST, 'abc-123', { kv_origin: 'character:aldric' }, 'test-secret');
+    expect(fetch).toHaveBeenCalledWith(
+      `${HOST}/api/entities/characters/abc-123`,
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'test-secret' }),
+        body: JSON.stringify({ kv_origin: 'character:aldric' }),
+      }),
+    );
+  });
 });
 
 // ── createEntityRelation ──────────────────────────────────────────────────────
