@@ -248,3 +248,60 @@ export async function streamChat(
 
   return fullResponse;
 }
+
+// ── Entity insight streaming ──────────────────────────────────────────────────
+// Single-turn, no tool loop — used by the AI Insights panel on entity pages.
+
+export async function streamInsight(
+  prompt: string,
+  onDelta: (text: string) => void,
+): Promise<void> {
+  const apiKey = await getClaudeApiKey();
+  if (!apiKey) throw new Error('NO_API_KEY');
+
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 512,
+      stream: true,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    const msg = (errBody as any)?.error?.message ?? `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6).trim();
+      if (data === '[DONE]') return;
+      try {
+        const evt = JSON.parse(data);
+        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+          onDelta(evt.delta.text ?? '');
+        }
+      } catch {
+        // ignore malformed SSE lines
+      }
+    }
+  }
+}

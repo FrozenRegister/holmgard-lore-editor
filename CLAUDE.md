@@ -49,6 +49,27 @@ Run a single test file:
 pnpm vitest run src/lib/__tests__/sync.test.ts
 ```
 
+### Changelog Fragments
+
+**Do not edit `CHANGELOG.md` directly.** Each PR that modifies `src/`, `src-tauri/`, `docs/`, or `CLAUDE.md` must add a `.md` file under `.changelog/fragments/`. Fragments are assembled into `CHANGELOG.md` at release time, eliminating merge conflicts when multiple PRs are open simultaneously.
+
+```bash
+# Create a fragment (any descriptive filename works):
+echo "### My Feature\n- Added X" > .changelog/fragments/my-feature.md
+```
+
+The `check-changelog` PR quality check will fail if a source change has no corresponding fragment. Apply `skip-quality-checks` label for emergency hotfixes.
+
+### Pull Requests and Issue Linking
+
+**Every PR body must include a closing keyword** for GitHub's auto-close to work:
+
+```markdown
+Closes #123
+```
+
+Keywords in the PR **title** are ignored by GitHub — they must be in the body. GitHub cannot auto-close issues in a different repository; close cross-repo issues manually.
+
 ## Architecture
 
 This is a **SvelteKit + Tauri v1** desktop app for editing world-building lore. The frontend is Svelte 4; the Rust backend (`src-tauri/`) exposes a small set of `invoke`-able commands.
@@ -89,6 +110,28 @@ The hex map editor uses the external `game.js` library (`static/hexmap/game.js`)
 ### Testing
 
 Tests use Vitest + jsdom. SvelteKit path aliases (`$lib`, `$app`) are remapped in `vitest.config.ts`; `$app` points to `src/app-mock/` which stubs SvelteKit navigation/stores. `svelte-kit sync` must run before type checking or tests that import generated types.
+
+#### Coverage protocol
+
+Coverage provider is **Istanbul** (`@vitest/coverage-istanbul`) — not v8, not codecov's patch analysis. The Istanbul-based `Coverage Gate & Gap Analysis` CI check is the enforced gate; codecov's `/patch` check is informational only.
+
+**Pre-push checklist (run locally before every PR):**
+
+```bash
+pnpm test:coverage    # runs Istanbul, writes coverage/unit/coverage-summary.json
+pnpm coverage:gaps    # reads summary, flags any src/lib file below 80% lines
+```
+
+If `coverage:gaps` prints red files, add tests before pushing. The CI `Coverage Gate & Gap Analysis` job runs the same script and will fail the PR if any unit-suite file is below **80% lines**.
+
+**Rule for new code:** every new exported function that touches external data (fetch, D1, IDB, Tauri) must have at least these cases before the PR ships:
+
+- happy path (expected shape returned)
+- missing/null key in response → safe default returned
+- non-2xx HTTP → error thrown
+- network failure → error propagates
+
+See `src/lib/__tests__/entities.test.ts` `describe('fetchLocationById')` for the canonical pattern.
 
 #### Required: negative / malformed-input test cases
 

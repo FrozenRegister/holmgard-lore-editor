@@ -49,6 +49,6 @@ test.describe('Sidebar Navigation', () => {
     await page.waitForSelector('h1');
     await page.locator('nav[aria-label="Main navigation"] a', { hasText: 'Topics' }).click();
     await expect(page).toHaveURL('/');
-    await expect(page.locator('h1')).toHaveText('Lore Topics');
+    await expect(page.locator('h1')).toHaveText('All Topics');
   });
 });

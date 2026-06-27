@@ -1,9 +1,10 @@
 <script lang="ts">
   import { renderMarkdown } from '$lib/marked-config';
+  import { topics } from '$lib/stores';
 
   export let markdown = '';
 
-  $: html = renderMarkdown(markdown);
+  $: html = renderMarkdown(markdown, $topics.map(t => t.key));
 </script>
 
 <div class="preview-wrapper">
@@ -44,5 +45,18 @@
     width: 100%;
     border-collapse: collapse;
     margin: 1rem 0;
+  }
+
+  /* Wiki-link styles */
+  .prose :global(a.wiki-link) {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .prose :global(.wiki-link--unresolved) {
+    color: var(--fg-muted);
+    border-bottom: 1px dashed currentColor;
+    cursor: help;
   }
 </style>

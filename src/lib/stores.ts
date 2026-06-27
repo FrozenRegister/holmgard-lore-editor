@@ -4,6 +4,7 @@
 import { writable, derived } from 'svelte/store';
 import type { Topic, SyncState, ConflictInfo, AppSettings } from './types';
 import { DEFAULT_SETTINGS } from './defaults';
+import { extractWikiLinks, resolveWikiLink } from './wiki-links';
 
 // ── Topics ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,22 @@ export const topicMap = derived(topics, ($topics) => {
   const map = new Map<string, Topic>();
   for (const t of $topics) map.set(t.key, t);
   return map;
+});
+
+/** Map from target topic key → list of source topic keys that reference it via [[wiki-links]]. */
+export const backlinksIndex = derived(topics, ($topics) => {
+  const keys = $topics.map(t => t.key);
+  const index = new Map<string, string[]>();
+  for (const t of $topics) {
+    for (const label of extractWikiLinks(t.text ?? '')) {
+      const target = resolveWikiLink(label, keys);
+      if (!target) continue;
+      const list = index.get(target) ?? [];
+      if (!list.includes(t.key)) list.push(t.key);
+      index.set(target, list);
+    }
+  }
+  return index;
 });
 
 // ── Settings ──────────────────────────────────────────────────────────────────

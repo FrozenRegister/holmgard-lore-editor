@@ -10,41 +10,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Changelog format migrated to fragments** — PRs no longer edit `CHANGELOG.md` directly. Each PR adds a `.md` file under `.changelog/fragments/`; fragments are assembled into this file at release time, eliminating merge conflicts on parallel PRs.
+
 ### Added
 
-- **Entity navigation (Phase 1 — Holmgard OS)**: Sidebar reorganized into a "World" section with category links (Characters, Locations, Quests, Items, Nations, Regions, Factions, Scenes) showing live topic counts. "All Topics" moved to a legacy fallback link. (closes #143)
-- `src/lib/entities.ts`: Shared entity type registry (`ENTITY_TYPES`, `KNOWN_PREFIXES`, `getTopicPrefix`, `getEntityConfig`) — single source of truth used by both the sidebar and entity pages.
-- `src/lib/d1-reads.ts`: Typed fetch functions for the new `/api/entities/*` REST endpoints; includes `getEntityName` and `getEntitySummary` display helpers for all six D1 entity types.
-- `src/routes/entities/[type]/+page.svelte`: Dynamic entity category page showing a "World Records" section (D1 data via REST) and a "Lore Topics" section (filtered topic cards) per entity type. Characters with a `kv_origin` field show a "Lore" link to their markdown topic.
-- `holmgard-lore-mcp` — `src/api/entity-reads.ts`: Six REST GET endpoints (`/api/entities/characters`, `/locations`, `/nations`, `/regions`, `/quests`, `/items`) reading from D1 with defensive field normalization; registered at `/api/entities` in `src/index.ts`.
-- `storage.ts`: `saveTopic` now debounces writes 300ms per topic key to reduce IndexedDB/Tauri FS contention during rapid keystroke saves (closes #26)
-- `storage.ts`: Improved error handling separates file-not-found from corruption — uses error codes (`ENOENT`, `notFound`, OS code 2) instead of string matching; corrupted files are logged distinctly (closes #31)
-- `sync.ts`: `flushQueue` now processes offline queue items in parallel batches of 5, reducing flush time from O(n × backoff) to O(n/5 × backoff) for typical queues (closes #27)
-- `static/hexmap/worker-patch.js`: Replaced direct `Worker.prototype` assignment with `Object.setPrototypeOf` for safer prototype patching in non-standard runtimes (closes #28)
-- `static/hexmap/river-edges.js`: Added hysteresis band (16–20px) to `autoGridLevel()` to prevent zoom flicker, and added reverse projection in `renderRivers()` for visual continuity when zooming across grid levels (closes #38)
+- **Explicit entity relations panel (Phase 9 — Holmgard OS #161)** — New `RelationsPanel.svelte` component (right-side drawer) added to all six entity detail pages (character, location, nation, region, quest, item). Displays user-created typed relations between any two entities fetched from the new `entity_relations` D1 table. Pinned relations appear first with a pin indicator; attitude rendered as a colored chip (green ≥ 34 = ally, red ≤ -34 = hostile, grey = neutral). Add-relation form: target entity type dropdown with autocomplete from live entity list, free-text relation type with datalist suggestions, attitude slider (−100–100), bidirectional/pin/private toggles, and optional notes. Relations can be pinned/unpinned inline and deleted. New types: `EntityRelationRecord`. New fetch function: `fetchEntityRelations` in `src/lib/d1-reads.ts`. New write functions: `createEntityRelation`, `updateEntityRelation`, `deleteEntityRelation` in `src/lib/d1-writes.ts`. 5 new `fetchEntityRelations` tests in `entities.test.ts`; 15 new write-function tests in `d1-writes.test.ts`. Closes #161.
+- **Test coverage improvements**: Added `backlinksIndex` derived store test suite (6 cases: empty state, resolving wiki-links, ignoring unresolvable links, deduplication, multiple sources, null/undefined text guard) and a non-QuotaExceeded DOMException re-throw test for `writeFile`. Improves `stores.ts` from 54% → 88% branch coverage and 79% → 100% statement coverage; improves `storage.ts` branch coverage from 93.5% → 95.2%. Overall suite: 96.6% statements / 91.5% branches.
+- **Entity detail pages for nations, regions, quests, and items (Phase 8 — Holmgard OS)**: New read-only D1 detail pages at `/entities/nation/[id]`, `/entities/region/[id]`, `/entities/quest/[id]`, and `/entities/item/[id]`. Nations show geopolitical stat bars (aggression, trust, paranoia) and GDP. Regions show type chip and a link to the controlling nation. Quests show status chip, giver, description, and a collapsible **Quest Log** drawer sourced from `quest_logs`. Items show type, value, and weight. Entity list page (`/entities/[type]`) now links to detail pages for all six supported types (character, location, nation, region, quest, item). New types: `RegionDetailRecord`, `QuestLogEntry`. New fetch functions: `fetchNationById`, `fetchRegionById`, `fetchQuestById`, `fetchQuestLog`, `fetchItemById` in `src/lib/d1-reads.ts`. 20 new unit tests in `entities.test.ts`. (part of #143)
+- **AI Insights panel (Phase 7 — Holmgard OS)**: Both the character detail page and location detail page now have a **✦ Insight** toolbar button. Clicking it opens a right-side drawer that streams a short GM-actionable narrative from Claude Sonnet, synthesizing the entity's D1 profile, relationships/inventory/occupants, and lore topic text into 3–5 sentences. New `src/lib/entity-context.ts` provides pure builder functions (`buildCharacterContext`, `buildLocationContext`, `buildInsightPrompt`) that assemble the structured prompt; new `streamInsight()` in `src/lib/claude.ts` handles the single-turn streaming call with no tool loop. Requires a Claude API key set in Settings. (part of #143)
+- `src/lib/__tests__/entity-context.test.ts`: 26 unit tests covering all branches of `buildCharacterContext`, `buildLocationContext`, and `buildInsightPrompt`.
+- **Coverage protocol documentation**: Added a detailed `### Coverage Quality Gate` section to `docs/testing-and-linting-guide.md`.
+- **Location detail pages + current location (Phase 6 — Holmgard OS)**: New `/entities/location/[id]` detail page. Character detail page now loads the character's current location. (part of #143)
+- **Character relationships + inventory (Phase 5 — Holmgard OS)**: Character detail page now loads NPC relationships and party membership from D1. (part of #143)
+- **Wiki-links + backlinks (Phase 4 — Holmgard OS)**: `[[Name]]` syntax renders as clickable links. `backlinksIndex` derived store tracks references. (part of #143)
+- **Character detail page + Markdown↔D1 sync (Phase 2+3 — Holmgard OS)**: Entity category page links each character D1 row to `/entities/character/[id]`. (part of #143)
+- **Entity navigation (Phase 1 — Holmgard OS)**: Sidebar reorganized with World section. (closes #143)
 
 ### Fixed
 
-- `sync.ts`: Fixed `batchGetTopicsRemote()` unwrapping the wrong level of the RPC response — the Worker nests topic data under a `results` key but the function was iterating the outer wrapper object, producing one fake topic keyed `"results"` and leaving all real topics unfound, causing `runSync()` to flag every local topic `removedFromRemote: true` (red cards)
-- `mcp.ts`: Fixed `checkAuth()` using the wrong tool name (`check_authentication` instead of `lore_manage` with `action: auth_check`); the Worker returned -32601 Method Not Found on every call, causing the Test button in both Worker Connection and MCP Worker sections to always report "rejected" regardless of the actual key value
-- `MCPPanel.svelte`: Changed default tool from `list_topics` to `lore_manage`; `list_topics` is a legacy bare-RPC method not registered in the Worker's `toolRegistry`, so every default invocation via `callTool` (which uses `tools/call`) returned -32601 Method Not Found
-- `settings/+page.svelte`: Added `autocomplete="off"` plus `data-lpignore`, `data-1p-ignore`, and `data-bwignore` attributes to all sensitive config fields so LastPass, 1Password, Bitwarden, and browser-native autofill no longer treat them as login credentials
-- `settings/+page.svelte`: "Test" button in the MCP Worker section now falls back to the saved keyring value when the input field is empty, matching how the Worker Connection test works; previously it always failed when no value was typed
-- `e2e/global-setup.ts`: Pre-warms the Vite dev server before parallel test workers start, fixing a cold-start race where `editor.spec.ts` tests timed out on blank pages (closes #138)
-- `e2e/global-teardown.ts`: Removed stale `results.json` read that printed a misleading `FAILURE` line from the previous run even when all tests passed; Playwright's native summary is accurate
-- `+layout.svelte`: Auto-sync interval now skips a tick if a sync is already in progress, preventing overlapping concurrent syncs when a sync run exceeds the configured interval period
-- Tests now work in GitHub Codespaces and fresh checkouts — `postinstall` hook runs `svelte-kit sync` so `.svelte-kit/tsconfig.json` is generated before any test command
-- Hex editor: canvas now sizes correctly on first paint — a ResizeObserver on `.canvas-container` drives game.js's `resizeCanvas` when the container gets its real layout box, replacing the fragile timing guess that left hexes squished/elongated until a manual window resize
-- Hex editor: river edges now survive a full page reload — `riverEdges`/`rivers` are persisted in the IndexedDB autosave (inside the `layersSettings` record, since game.js has no rivers store), not just kept in-memory across SPA navigation
-- Hex editor: removed a latent `NotFoundError` in the E2E seeded-map loader that opened a transaction on a nonexistent `rivers` object store
-- Hex editor: painted maps now persist when navigating to Lore and back — debounced IndexedDB autosave + game.js re-init on remount (closes #118)
-- Rivers now properly clear between map loads to prevent cross-contamination (fixes #39)
-- River edges now sync bidirectionally across parent and detail grid levels (fixes #37)
-- Worker path patch now uses safer prototype handling with `Object.setPrototypeOf` (fixes #28)
-- saveTopic now debounces writes to reduce I/O during rapid typing (fixes #26)
-- Storage error handling now distinguishes file-not-found from corruption (fixes #31)
-- Offline sync queue now processes items in parallel batches for faster recovery (fixes #27)
-- Rivers no longer flicker when zooming — added hysteresis and reverse projection (fixes #38)
+- `scripts/patch-csp-headers.mjs`: Post-build script now computes SHA256 hash of SvelteKit's injected inline script and inserts it into `build/_headers` automatically.
+- Various E2E, sync, settings, and hex editor fixes — see git log for full details.
 
 ## [0.1.0] - 2026-06-10
 

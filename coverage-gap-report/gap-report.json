@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-06-10T16:32:25.519Z",
+  "timestamp": "2026-06-25T22:02:05.905Z",
   "summary": {
     "unit": {
-      "lines": 91.98,
-      "functions": 91.92,
-      "branches": 87.9,
-      "statements": 91.98
+      "lines": 97.57,
+      "functions": 94.88,
+      "branches": 90.34,
+      "statements": 95.73
     },
     "integration": {
       "lines": 3.44,
@@ -20,22 +20,6 @@
     }
   },
   "gaps": [
-    {
-      "file": "src/lib/importMap.ts",
-      "type": "unit",
-      "uncoveredLines": [],
-      "uncoveredBranches": [],
-      "pct": 39.15,
-      "threshold": 80
-    },
-    {
-      "file": "src/lib/storage.ts",
-      "type": "unit",
-      "uncoveredLines": [],
-      "uncoveredBranches": [],
-      "pct": 64.38,
-      "threshold": 80
-    },
     {
       "file": "src/lib/auth.ts",
       "type": "integration",
@@ -174,18 +158,6 @@
     }
   ],
   "actionItems": [
-    {
-      "priority": "high",
-      "file": "src/lib/importMap.ts",
-      "message": "🟠 HIGH: src/lib/importMap.ts\n> File has 39.15% coverage, 40.85% below unit threshold.",
-      "suggestedTest": "Add tests for uncovered lines: "
-    },
-    {
-      "priority": "medium",
-      "file": "src/lib/storage.ts",
-      "message": "🟡 MEDIUM: src/lib/storage.ts\n> File has 64.38% coverage, 15.62% below unit threshold.",
-      "suggestedTest": "Add tests for uncovered lines: "
-    },
     {
       "priority": "high",
       "file": "src/lib/auth.ts",

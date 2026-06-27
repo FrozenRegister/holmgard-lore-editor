@@ -19,7 +19,6 @@ pnpm test:e2e:ui            # Run E2E tests with UI
 
 - **2026-06-16**: Fixed unhandled rejection in `saveTopic` function when Tauri `fs_write` fails. The function now properly catches and propagates errors in Tauri mode, matching the error handling pattern used in browser mode.
 
-
 - **Status**: Tests configured with SvelteKit and jsdom
 - **Tool**: Vitest + jsdom + @testing-library/svelte
 - **Coverage**: Tests use path aliases ($lib, $app) remapped in vitest.config.ts
@@ -66,7 +65,48 @@ Tests use the app's built-in demo data seeding — each fresh Playwright context
 
 ## Coverage Quality Gate
 
-All source files in `src/lib/` must have at least **80% line coverage** in the unit test suite. Run `pnpm coverage:gaps` to check for files below threshold. The gap analysis report is written to `coverage-gap-report/gap-report.md`.
+### Provider: Istanbul
+
+Coverage is collected using **Istanbul** (`@vitest/coverage-istanbul`). The package version must match the `vitest` minor version — e.g., `vitest@1.6.x` requires `@vitest/coverage-istanbul@^1.6.0`. Do **not** use `@vitest/coverage-v8` or rely on Codecov's differential patch analysis as the gate to meet; both are present but non-authoritative.
+
+### Thresholds
+
+| Metric | Threshold | Scope |
+|--------|-----------|-------|
+| Lines | 80% | per `src/lib/` file (unit suite) |
+| Functions | 80% | global unit suite |
+| Statements | 80% | global unit suite |
+| Branches | 75% | global unit suite |
+
+The `Coverage Gate & Gap Analysis` CI job enforces the **per-file 80% line** threshold by reading `coverage/unit/coverage-summary.json` (produced by the unit-tests job) and running `scripts/coverage-gap-analysis.ts`. The integration coverage summary is **not** downloaded in CI, so only the unit suite gate is enforced in PRs.
+
+### Pre-push protocol
+
+Run these two commands locally before opening any PR that adds or changes `src/lib/` code:
+
+```bash
+pnpm test:coverage      # runs Istanbul, writes coverage/unit/coverage-summary.json
+pnpm coverage:gaps      # reads summary, flags any file below 80% lines, exits 1 on failure
+```
+
+If `coverage:gaps` prints `🔴 [unit] src/lib/foo.ts: 62%`, add tests for `foo.ts` before pushing. The CI job runs the same script and blocks the PR on failure.
+
+### Required cases for new external-data functions
+
+Every new exported function that calls `fetch`, reads from IndexedDB, invokes a Tauri command, or otherwise crosses a runtime boundary must have **all four** of the following test cases before the PR ships:
+
+| Case | What to assert |
+|------|----------------|
+| Happy path | Returns the expected shape |
+| Missing/null key in response | Safe default returned (e.g., `[]` or `null`) |
+| Non-2xx HTTP status | Error thrown with status code in message |
+| Network failure | Error propagates from the rejected promise |
+
+See `src/lib/__tests__/entities.test.ts` → `describe('fetchLocationById')` for the canonical four-case pattern.
+
+### Codecov patch analysis
+
+Codecov's `/patch` check (which measures diff coverage) is **informational only** — it does not block merges. If it turns red, verify the new code is exercised by the unit tests; if it is, the Istanbul gate is satisfied.
 
 ## Linting
 

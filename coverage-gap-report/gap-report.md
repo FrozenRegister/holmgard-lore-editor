@@ -1,12 +1,12 @@
 # Coverage Gap Analysis Report
 
-**Generated:** 2026-06-10T16:32:25.519Z
+**Generated:** 2026-06-25T22:02:05.905Z
 
 ## Summary
 
 | Suite | Lines | Functions | Branches | Statements |
 |-------|-------|-----------|----------|------------|
-| Unit | 91.98% | 91.92% | 87.9% | 91.98% |
+| Unit | 97.57% | 94.88% | 90.34% | 95.73% |
 | Integration | 3.44% | 21.73% | 52% | 3.44% |
 
 | E2E | Passed | Failed | Total |
@@ -17,15 +17,7 @@
 
 ### Unit
 
-### src/lib/importMap.ts (unit)
-- **Coverage:** 39.15% (threshold: 80%)
-- **Uncovered lines:** 0
-- **Uncovered branches:** 0
-
-### src/lib/storage.ts (unit)
-- **Coverage:** 64.38% (threshold: 80%)
-- **Uncovered lines:** 0
-- **Uncovered branches:** 0
+✅ All unit files meet the coverage threshold!
 
 ### Integration
 
@@ -115,14 +107,6 @@
 - **Uncovered branches:** 0
 
 ## Action Items
-
-### 🟠 HIGH: src/lib/importMap.ts
-> File has 39.15% coverage, 40.85% below unit threshold.
-> **Suggested:** Add tests for uncovered lines: 
-
-### 🟡 MEDIUM: src/lib/storage.ts
-> File has 64.38% coverage, 15.62% below unit threshold.
-> **Suggested:** Add tests for uncovered lines: 
 
 ### 🟠 HIGH: src/lib/auth.ts
 > File has 0% coverage, 80% below integration threshold.

@@ -11,7 +11,7 @@ export default defineConfig({
     include: ['src/lib/**/*.integration.test.ts'],
     exclude: ['node_modules', 'src-tauri'],
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul',
       reporter: ['text', 'lcov', 'json-summary', 'html'],
       reportsDirectory: './coverage/integration',
       exclude: [
