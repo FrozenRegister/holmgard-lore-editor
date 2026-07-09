@@ -42,6 +42,11 @@ jobs:
                 r.name !== 'E2E Tests (Playwright)'
               )
 
+              if (checks.length === 0) {
+                console.log(`PR #${prNumber}: no checks found — CI may not have run yet`)
+                return false
+              }
+
               const pending = checks.filter(r => r.status !== 'completed')
               if (pending.length > 0) {
                 console.log(`PR #${prNumber}: still pending: ${pending.map(r => r.name).join(', ')}`)
