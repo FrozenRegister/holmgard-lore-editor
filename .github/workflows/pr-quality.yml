@@ -6,8 +6,49 @@ on:
 
 permissions:
   pull-requests: read
+  contents: read
 
 jobs:
+  check-merge-conflicts:
+    name: Merge Conflicts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for merge conflicts
+        run: |
+          # Fetch the base branch to compare against
+          git fetch origin ${{ github.base_ref }}
+
+          # Try to merge-base check
+          if ! git merge-base --is-ancestor origin/${{ github.base_ref }} HEAD; then
+            echo "⚠️ WARNING: This branch is not based on the latest ${{ github.base_ref }}"
+            echo "You may need to rebase to resolve conflicts"
+
+            # Check if there would be conflicts
+            if ! git merge --no-commit --no-ff origin/${{ github.base_ref }} 2>/dev/null; then
+              git merge --abort
+              echo ""
+              echo "ERROR: Merge conflicts detected with ${{ github.base_ref }}"
+              echo ""
+              echo "**To fix locally:**"
+              echo "\`\`\`bash"
+              echo "git fetch origin && git rebase origin/${{ github.base_ref }}"
+              echo "# Resolve conflicts, then:"
+              echo "git rebase --continue"
+              echo "git push -u origin HEAD --force-with-lease"
+              echo "\`\`\`"
+              exit 1
+            else
+              git merge --abort
+              echo "OK: No conflicts detected, but branch needs rebase to be current"
+            fi
+          else
+            echo "OK: Branch is up-to-date with ${{ github.base_ref }}"
+          fi
+
   check-vendor-integrity:
     name: Vendor Integrity
     runs-on: ubuntu-latest
