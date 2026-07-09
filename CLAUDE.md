@@ -29,6 +29,18 @@ When asked to review changes and push, always split changes into multiple logica
 - **UI page** — a route page + related component changes (e.g. sidebar nav link)
 - **independent features** — separate commits for unrelated additions
 
+**Before pushing, always check for merge conflicts** with the latest main branch:
+
+```bash
+git fetch origin main && git merge-base --is-ancestor origin/main HEAD || echo "⚠️ Conflict risk: rebase onto origin/main"
+```
+
+If the merge-base check fails, rebase onto main to resolve conflicts locally before pushing:
+
+```bash
+git rebase origin/main  # Resolve any conflicts interactively
+```
+
 After all commits are made, push once. This is the default behavior — no need for the user to ask explicitly.
 
 After a PR merges to main, always clean up the local branch:
