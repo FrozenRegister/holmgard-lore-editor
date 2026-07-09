@@ -266,4 +266,48 @@ test.describe('Character Detail Page — /entities/character/[id]', () => {
     await page.locator('.error-state a', { hasText: 'Back to Characters' }).click();
     await expect(page).toHaveURL('/entities/character');
   });
+
+  test('RelationsPanel renders with all UI elements when opened', async ({ page }) => {
+    const charId = 'e2e-relations-test-char';
+    await page.route(`**/api/entities/characters/${charId}`, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ character: { ...CHAR_PC, id: charId } }),
+      });
+    });
+    await page.route(`**/api/entities/characters/${charId}/relations`, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ relations: [] }),
+      });
+    });
+
+    await page.goto(`/entities/character/${charId}`);
+    await page.waitForLoadState('networkidle');
+
+    // Click "Entity Rels" button to open the relations panel
+    await page.locator('button', { hasText: 'Entity Rels' }).click();
+
+    // Verify relations panel renders with all UI elements
+    const relationsPanelDialog = page.locator('[role="dialog"][aria-label="Relations"]');
+    await expect(relationsPanelDialog).toBeVisible();
+
+    // Verify panel header with title and close button
+    await expect(relationsPanelDialog.locator('h3')).toContainText('Relations');
+    await expect(relationsPanelDialog.locator('button[aria-label="Close"]')).toBeVisible();
+
+    // Verify panel body with empty state or add button
+    const panelBody = relationsPanelDialog.locator('.ctx-body');
+    await expect(panelBody).toBeVisible();
+
+    // Should show either empty state or add button
+    const addButton = relationsPanelDialog.locator('button', { hasText: /Add Relation|No relations/ });
+    await expect(addButton).toBeVisible();
+
+    // Verify close button works
+    await relationsPanelDialog.locator('button[aria-label="Close"]').click();
+    await expect(relationsPanelDialog).not.toBeVisible();
+  });
 });
