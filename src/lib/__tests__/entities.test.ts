@@ -771,6 +771,199 @@ describe('getEntitySummary for races', () => {
   });
 });
 
+// ── fetchQuestMilestones ────────────────────────────────────────────────────
+
+describe('fetchQuestMilestones', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns milestones array on success', async () => {
+    const mockMilestone = {
+      id: 'qm1', quest_id: 'q1', sort_order: 1, title: 'Find the Crown',
+      notes: 'Must be gold', status: 'in_progress' as const,
+      linked_entity_type: 'location', linked_entity_id: 'loc1',
+      color: '#FF5733', is_private: false,
+      created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-02T00:00:00Z',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ milestones: [mockMilestone], total: 1 }),
+    }));
+    const { fetchQuestMilestones } = await import('../d1-reads');
+    const result = await fetchQuestMilestones('http://w', 'q1');
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe('Find the Crown');
+    expect(result[0].status).toBe('in_progress');
+    expect(result[0].sort_order).toBe(1);
+  });
+
+  it('defaults to empty array when milestones key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchQuestMilestones } = await import('../d1-reads');
+    const result = await fetchQuestMilestones('http://w', 'q1');
+    expect(result).toEqual([]);
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchQuestMilestones } = await import('../d1-reads');
+    await expect(fetchQuestMilestones('http://w', 'q1')).rejects.toThrow('500');
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection fail')));
+    const { fetchQuestMilestones } = await import('../d1-reads');
+    await expect(fetchQuestMilestones('http://w', 'q1')).rejects.toThrow('connection fail');
+  });
+});
+
+// ── createQuestMilestone ─────────────────────────────────────────────────────
+
+describe('createQuestMilestone', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns id and sort_order on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, id: 'qm2', sort_order: 2 }),
+    }));
+    const { createQuestMilestone } = await import('../d1-reads');
+    const result = await createQuestMilestone('http://w', 'q1', { title: 'New Step' }, 'secret123');
+    expect(result.id).toBe('qm2');
+    expect(result.sort_order).toBe(2);
+  });
+
+  it('sends POST request with admin secret header', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, id: 'qm3', sort_order: 1 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { createQuestMilestone } = await import('../d1-reads');
+    await createQuestMilestone('http://w', 'q1', { title: 'Step', status: 'pending' }, 'secret123');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/quests/q1/milestones'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'secret123' }),
+      }),
+    );
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+    const { createQuestMilestone } = await import('../d1-reads');
+    await expect(createQuestMilestone('http://w', 'q1', { title: 'X' }, 'bad')).rejects.toThrow('403');
+  });
+
+  it('throws when response.ok is false', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: false, error: 'duplicate' }),
+    }));
+    const { createQuestMilestone } = await import('../d1-reads');
+    await expect(createQuestMilestone('http://w', 'q1', { title: 'X' }, 'secret')).rejects.toThrow('failed');
+  });
+});
+
+// ── updateQuestMilestone ─────────────────────────────────────────────────────
+
+describe('updateQuestMilestone', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('sends PATCH request with admin secret', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { updateQuestMilestone } = await import('../d1-reads');
+    await updateQuestMilestone('http://w', 'q1', 'qm1', { status: 'completed' }, 'secret123');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/quests/q1/milestones/qm1'),
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'secret123' }),
+      }),
+    );
+  });
+
+  it('returns void on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    }));
+    const { updateQuestMilestone } = await import('../d1-reads');
+    const result = await updateQuestMilestone('http://w', 'q1', 'qm1', { title: 'Updated' }, 'secret');
+    expect(result).toBeUndefined();
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { updateQuestMilestone } = await import('../d1-reads');
+    await expect(updateQuestMilestone('http://w', 'q1', 'qm1', {}, 'secret')).rejects.toThrow('404');
+  });
+
+  it('throws when response.ok is false', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: false }),
+    }));
+    const { updateQuestMilestone } = await import('../d1-reads');
+    await expect(updateQuestMilestone('http://w', 'q1', 'qm1', {}, 'secret')).rejects.toThrow('failed');
+  });
+});
+
+// ── deleteQuestMilestone ─────────────────────────────────────────────────────
+
+describe('deleteQuestMilestone', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('sends DELETE request with admin secret', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { deleteQuestMilestone } = await import('../d1-reads');
+    await deleteQuestMilestone('http://w', 'q1', 'qm1', 'secret123');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/quests/q1/milestones/qm1'),
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'secret123' }),
+      }),
+    );
+  });
+
+  it('returns void on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    }));
+    const { deleteQuestMilestone } = await import('../d1-reads');
+    const result = await deleteQuestMilestone('http://w', 'q1', 'qm1', 'secret');
+    expect(result).toBeUndefined();
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+    const { deleteQuestMilestone } = await import('../d1-reads');
+    await expect(deleteQuestMilestone('http://w', 'q1', 'qm1', 'bad')).rejects.toThrow('403');
+  });
+
+  it('throws when response.ok is false', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: false }),
+    }));
+    const { deleteQuestMilestone } = await import('../d1-reads');
+    await expect(deleteQuestMilestone('http://w', 'q1', 'qm1', 'secret')).rejects.toThrow('failed');
+  });
+});
+
 // ── fetchJournals ────────────────────────────────────────────────────────────
 
 describe('fetchJournals', () => {
