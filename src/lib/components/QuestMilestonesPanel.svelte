@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { settings, auth } from '$lib/stores';
+  import { settings } from '$lib/stores';
+  import { getAdminSecret } from '$lib/auth';
   import { fetchQuestMilestones, updateQuestMilestone, createQuestMilestone, deleteQuestMilestone, type QuestMilestone, type CreateMilestoneParams } from '$lib/d1-reads';
-  import type { EntityRecord } from '$lib/d1-reads';
 
   export let questId: string;
   export let onClose: () => void = () => {};
@@ -11,9 +11,18 @@
   let error: string | null = null;
   let showForm = false;
   let editingId: string | null = null;
-  let adminSecret = '';
 
-  let formData: CreateMilestoneParams = {
+  interface FormState extends CreateMilestoneParams {
+    title: string;
+    notes: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'failed';
+    linked_entity_type: string | null;
+    linked_entity_id: string | null;
+    color: string | null;
+    is_private: boolean;
+  }
+
+  let formData: FormState = {
     title: '',
     notes: '',
     status: 'pending',
@@ -24,8 +33,6 @@
   };
 
   $: if (questId && $settings.workerHost) load();
-
-  $: if ($auth.adminSecret) adminSecret = $auth.adminSecret;
 
   async function load() {
     loading = true;
@@ -46,6 +53,12 @@
     }
 
     try {
+      const adminSecret = await getAdminSecret();
+      if (!adminSecret) {
+        error = 'Admin secret not available';
+        return;
+      }
+
       if (editingId) {
         await updateQuestMilestone($settings.workerHost, questId, editingId, formData, adminSecret);
       } else {
@@ -61,6 +74,11 @@
   async function handleDelete(id: string) {
     if (!confirm('Delete this milestone?')) return;
     try {
+      const adminSecret = await getAdminSecret();
+      if (!adminSecret) {
+        error = 'Admin secret not available';
+        return;
+      }
       await deleteQuestMilestone($settings.workerHost, questId, id, adminSecret);
       await load();
     } catch (e) {
@@ -70,7 +88,15 @@
 
   function editMilestone(milestone: QuestMilestone) {
     editingId = milestone.id;
-    formData = { ...milestone };
+    formData = {
+      title: milestone.title,
+      notes: milestone.notes ?? '',
+      status: milestone.status,
+      linked_entity_type: milestone.linked_entity_type,
+      linked_entity_id: milestone.linked_entity_id,
+      color: milestone.color,
+      is_private: milestone.is_private,
+    };
     showForm = true;
   }
 
@@ -105,6 +131,11 @@
     if (targetIdx < 0 || targetIdx >= milestones.length) return;
 
     try {
+      const adminSecret = await getAdminSecret();
+      if (!adminSecret) {
+        error = 'Admin secret not available';
+        return;
+      }
       const newOrder = milestones[targetIdx].sort_order;
       await updateQuestMilestone($settings.workerHost, questId, id, { sort_order: newOrder }, adminSecret);
       await load();
@@ -118,6 +149,11 @@
     const nextStatus = statuses[(statuses.indexOf(currentStatus as any) + 1) % statuses.length];
 
     try {
+      const adminSecret = await getAdminSecret();
+      if (!adminSecret) {
+        error = 'Admin secret not available';
+        return;
+      }
       await updateQuestMilestone($settings.workerHost, questId, id, { status: nextStatus }, adminSecret);
       await load();
     } catch (e) {

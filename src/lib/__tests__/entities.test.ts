@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ENTITY_TYPES, KNOWN_PREFIXES, getTopicPrefix, getEntityConfig } from '../entities';
 import { ENTITY_FETCHERS, getEntityName, getEntitySummary } from '../d1-reads';
-import type { CharacterRecord, LocationRecord, NationRecord, RegionRecord, QuestRecord, ItemRecord } from '../d1-reads';
+import type { CharacterRecord, LocationRecord, NationRecord, RegionRecord, QuestRecord, ItemRecord, JournalRecord } from '../d1-reads';
 
 // ── getTopicPrefix ────────────────────────────────────────────────────────────
 
@@ -731,7 +731,7 @@ describe('fetchJournalById', () => {
   });
 
   it('returns null on 404', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
     const { fetchJournalById } = await import('../d1-reads');
     const result = await fetchJournalById('http://w', 'missing');
     expect(result).toBeNull();
@@ -795,25 +795,25 @@ describe('fetchJournalParticipants', () => {
 
 describe('getEntitySummary for journals', () => {
   it('formats journal summary with full date', () => {
-    const journal = { id: 'j1', name: 'Session', date_year: 2026, date_month: 1, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const journal: JournalRecord = { id: 'j1', name: 'Session', date_year: 2026, date_month: 1, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
     const summary = getEntitySummary('journal', journal);
-    expect(summary).toBe('2026-01-01-15');
+    expect(summary).toBe('2026-01-15');
   });
 
   it('formats journal summary with zero-padded month and day', () => {
-    const journal = { id: 'j1', name: 'Session', date_year: 2026, date_month: 3, date_day: 5, calendar_id: null, is_private: false, created_at: '2026-03-05T12:00:00Z' };
+    const journal: JournalRecord = { id: 'j1', name: 'Session', date_year: 2026, date_month: 3, date_day: 5, calendar_id: null, is_private: false, created_at: '2026-03-05T12:00:00Z' };
     const summary = getEntitySummary('journal', journal);
     expect(summary).toBe('2026-03-05');
   });
 
   it('returns empty string when date is incomplete', () => {
-    const journal = { id: 'j1', name: 'Session', date_year: 2026, date_month: null, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const journal: JournalRecord = { id: 'j1', name: 'Session', date_year: 2026, date_month: null, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
     const summary = getEntitySummary('journal', journal);
     expect(summary).toBe('');
   });
 
   it('returns empty string when all date fields are null', () => {
-    const journal = { id: 'j1', name: 'Session', date_year: null, date_month: null, date_day: null, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const journal: JournalRecord = { id: 'j1', name: 'Session', date_year: null, date_month: null, date_day: null, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
     const summary = getEntitySummary('journal', journal);
     expect(summary).toBe('');
   });

@@ -66,6 +66,21 @@ export interface QuestLogEntry {
   created_at: string;
 }
 
+export interface QuestMilestone {
+  id: string;
+  quest_id: string;
+  sort_order: number;
+  title: string;
+  notes: string | null;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  linked_entity_type: string | null;
+  linked_entity_id: string | null;
+  color: string | null;
+  is_private: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ItemRecord {
   id: string;
   name: string;
@@ -82,6 +97,28 @@ export interface RaceRecord {
   parent_race_id: string | null;
 }
 
+export interface JournalRecord {
+  id: string;
+  name: string;
+  date_year: number | null;
+  date_month: number | null;
+  date_day: number | null;
+  calendar_id: string | null;
+  is_private: boolean;
+  created_at: string;
+}
+
+export interface JournalDetailRecord extends JournalRecord {
+  entry: string;
+  updated_at: string;
+}
+
+export interface JournalParticipant {
+  entity_type: string;
+  entity_id: string;
+  entity_name: string;
+}
+
 export type EntityRecord =
   | CharacterRecord
   | LocationRecord
@@ -89,7 +126,8 @@ export type EntityRecord =
   | RegionRecord
   | QuestRecord
   | ItemRecord
-  | RaceRecord;
+  | RaceRecord
+  | JournalRecord;
 
 async function fetchEntities<T>(host: string, slug: string): Promise<T[]> {
   const res = await fetch(`${host}/api/entities/${slug}`);
@@ -105,6 +143,7 @@ export const fetchRegions    = (host: string) => fetchEntities<RegionRecord>(hos
 export const fetchQuests     = (host: string) => fetchEntities<QuestRecord>(host, 'quests');
 export const fetchItems      = (host: string) => fetchEntities<ItemRecord>(host, 'items');
 export const fetchRaces      = (host: string) => fetchEntities<RaceRecord>(host, 'races');
+export const fetchJournals   = (host: string) => fetchEntities<JournalRecord>(host, 'journals');
 
 export const ENTITY_FETCHERS: Record<string, (host: string) => Promise<EntityRecord[]>> = {
   characters: fetchCharacters as (host: string) => Promise<EntityRecord[]>,
@@ -114,6 +153,7 @@ export const ENTITY_FETCHERS: Record<string, (host: string) => Promise<EntityRec
   quests:     fetchQuests     as (host: string) => Promise<EntityRecord[]>,
   items:      fetchItems      as (host: string) => Promise<EntityRecord[]>,
   races:      fetchRaces      as (host: string) => Promise<EntityRecord[]>,
+  journals:   fetchJournals   as (host: string) => Promise<EntityRecord[]>,
 };
 
 // ── Character relationship + inventory types ──────────────────────────────────
@@ -255,6 +295,13 @@ export function getEntitySummary(entityType: string, record: EntityRecord): stri
       const r = record as RaceRecord;
       return r.is_extinct ? 'Extinct' : 'Active';
     }
+    case 'journal': {
+      const r = record as JournalRecord;
+      if (r.date_year && r.date_month && r.date_day) {
+        return `${r.date_year}-${String(r.date_month).padStart(2, '0')}-${String(r.date_day).padStart(2, '0')}`;
+      }
+      return '';
+    }
     default:
       return '';
   }
@@ -293,6 +340,77 @@ export async function fetchQuestLog(host: string, id: string): Promise<QuestLogE
   return json.entries ?? [];
 }
 
+export async function fetchQuestMilestones(host: string, id: string): Promise<QuestMilestone[]> {
+  const res = await fetch(`${host}/api/entities/quests/${encodeURIComponent(id)}/milestones`);
+  if (!res.ok) throw new Error(`Quest milestones fetch failed: ${res.status}`);
+  const json = await res.json() as { milestones?: QuestMilestone[] };
+  return json.milestones ?? [];
+}
+
+export interface CreateMilestoneParams {
+  title: string;
+  notes?: string;
+  status?: 'pending' | 'in_progress' | 'completed' | 'failed';
+  linked_entity_type?: string | null;
+  linked_entity_id?: string | null;
+  color?: string | null;
+  is_private?: boolean;
+}
+
+export interface UpdateMilestoneParams extends Partial<CreateMilestoneParams> {
+  sort_order?: number;
+}
+
+export async function createQuestMilestone(
+  host: string,
+  questId: string,
+  params: CreateMilestoneParams,
+  adminSecret: string,
+): Promise<{ id: string; sort_order: number }> {
+  const res = await fetch(`${host}/admin/quests/${encodeURIComponent(questId)}/milestones`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Create milestone failed: ${res.status}`);
+  const json = await res.json() as { ok: boolean; id: string; sort_order: number };
+  if (!json.ok) throw new Error('Create milestone failed');
+  return { id: json.id, sort_order: json.sort_order };
+}
+
+export async function updateQuestMilestone(
+  host: string,
+  questId: string,
+  milestoneId: string,
+  params: UpdateMilestoneParams,
+  adminSecret: string,
+): Promise<void> {
+  const res = await fetch(`${host}/admin/quests/${encodeURIComponent(questId)}/milestones/${encodeURIComponent(milestoneId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Update milestone failed: ${res.status}`);
+  const json = await res.json() as { ok: boolean };
+  if (!json.ok) throw new Error('Update milestone failed');
+}
+
+export async function deleteQuestMilestone(
+  host: string,
+  questId: string,
+  milestoneId: string,
+  adminSecret: string,
+): Promise<void> {
+  const res = await fetch(`${host}/admin/quests/${encodeURIComponent(questId)}/milestones/${encodeURIComponent(milestoneId)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) throw new Error(`Delete milestone failed: ${res.status}`);
+  const json = await res.json() as { ok: boolean };
+  if (!json.ok) throw new Error('Delete milestone failed');
+}
+
 export async function fetchItemById(host: string, id: string): Promise<ItemRecord | null> {
   const res = await fetch(`${host}/api/entities/items/${encodeURIComponent(id)}`);
   if (res.status === 404) return null;
@@ -307,4 +425,19 @@ export async function fetchRaceById(host: string, id: string): Promise<RaceRecor
   if (!res.ok) throw new Error(`Race fetch failed: ${res.status}`);
   const json = await res.json() as { race?: RaceRecord };
   return json.race ?? null;
+}
+
+export async function fetchJournalById(host: string, id: string): Promise<JournalDetailRecord | null> {
+  const res = await fetch(`${host}/api/entities/journals/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Journal fetch failed: ${res.status}`);
+  const json = await res.json() as { journal?: JournalDetailRecord };
+  return json.journal ?? null;
+}
+
+export async function fetchJournalParticipants(host: string, id: string): Promise<JournalParticipant[]> {
+  const res = await fetch(`${host}/api/entities/journals/${encodeURIComponent(id)}/participants`);
+  if (!res.ok) throw new Error(`Journal participants fetch failed: ${res.status}`);
+  const json = await res.json() as { participants?: JournalParticipant[] };
+  return json.participants ?? [];
 }
