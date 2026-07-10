@@ -664,3 +664,157 @@ describe('fetchItemById', () => {
     await expect(fetchItemById('http://w', 'i1')).rejects.toThrow('503');
   });
 });
+
+// ── fetchJournals ────────────────────────────────────────────────────────────
+
+describe('fetchJournals', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns array on success', async () => {
+    const mockJournal = { id: 'j1', name: 'Session 14', date_year: 2026, date_month: 1, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ journals: [mockJournal], total: 1 }),
+    }));
+    const { fetchJournals } = await import('../d1-reads');
+    const result = await fetchJournals('http://worker');
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Session 14');
+    expect(result[0].date_year).toBe(2026);
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    const { fetchJournals } = await import('../d1-reads');
+    await expect(fetchJournals('http://worker')).rejects.toThrow('503');
+  });
+
+  it('returns empty array when response key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchJournals } = await import('../d1-reads');
+    const result = await fetchJournals('http://worker');
+    expect(result).toEqual([]);
+  });
+});
+
+// ── fetchJournalById ──────────────────────────────────────────────────────────
+
+describe('fetchJournalById', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns JournalDetailRecord on success', async () => {
+    const mockJournal = {
+      id: 'j1',
+      name: 'Session 14 — The Bridge',
+      entry: '# Session Notes\nThey crossed the bridge.',
+      date_year: 2026,
+      date_month: 1,
+      date_day: 15,
+      calendar_id: null,
+      is_private: false,
+      created_at: '2026-01-15T12:00:00Z',
+      updated_at: '2026-01-15T14:30:00Z',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ journal: mockJournal }),
+    }));
+    const { fetchJournalById } = await import('../d1-reads');
+    const result = await fetchJournalById('http://w', 'j1');
+    expect(result).not.toBeNull();
+    expect(result!.name).toBe('Session 14 — The Bridge');
+    expect(result!.entry).toContain('bridge');
+    expect(result!.updated_at).toBe('2026-01-15T14:30:00Z');
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 });
+    const { fetchJournalById } = await import('../d1-reads');
+    const result = await fetchJournalById('http://w', 'missing');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when journal key is missing in response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    }));
+    const { fetchJournalById } = await import('../d1-reads');
+    expect(await fetchJournalById('http://w', 'j1')).toBeNull();
+  });
+
+  it('throws on non-404 error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchJournalById } = await import('../d1-reads');
+    await expect(fetchJournalById('http://w', 'j1')).rejects.toThrow('500');
+  });
+});
+
+// ── fetchJournalParticipants ──────────────────────────────────────────────────
+
+describe('fetchJournalParticipants', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns participants array on success', async () => {
+    const mockParticipants = [
+      { entity_type: 'character', entity_id: 'c1', entity_name: 'Aldric' },
+      { entity_type: 'location', entity_id: 'l2', entity_name: 'The Bridge' },
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ participants: mockParticipants, total: 2 }),
+    }));
+    const { fetchJournalParticipants } = await import('../d1-reads');
+    const result = await fetchJournalParticipants('http://w', 'j1');
+    expect(result).toHaveLength(2);
+    expect(result[0].entity_name).toBe('Aldric');
+    expect(result[1].entity_type).toBe('location');
+  });
+
+  it('defaults to empty array when participants key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchJournalParticipants } = await import('../d1-reads');
+    const result = await fetchJournalParticipants('http://w', 'j1');
+    expect(result).toEqual([]);
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchJournalParticipants } = await import('../d1-reads');
+    await expect(fetchJournalParticipants('http://w', 'j1')).rejects.toThrow('500');
+  });
+});
+
+// ── getEntitySummary for journals ─────────────────────────────────────────────
+
+describe('getEntitySummary for journals', () => {
+  it('formats journal summary with full date', () => {
+    const journal = { id: 'j1', name: 'Session', date_year: 2026, date_month: 1, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const summary = getEntitySummary('journal', journal);
+    expect(summary).toBe('2026-01-01-15');
+  });
+
+  it('formats journal summary with zero-padded month and day', () => {
+    const journal = { id: 'j1', name: 'Session', date_year: 2026, date_month: 3, date_day: 5, calendar_id: null, is_private: false, created_at: '2026-03-05T12:00:00Z' };
+    const summary = getEntitySummary('journal', journal);
+    expect(summary).toBe('2026-03-05');
+  });
+
+  it('returns empty string when date is incomplete', () => {
+    const journal = { id: 'j1', name: 'Session', date_year: 2026, date_month: null, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const summary = getEntitySummary('journal', journal);
+    expect(summary).toBe('');
+  });
+
+  it('returns empty string when all date fields are null', () => {
+    const journal = { id: 'j1', name: 'Session', date_year: null, date_month: null, date_day: null, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const summary = getEntitySummary('journal', journal);
+    expect(summary).toBe('');
+  });
+});

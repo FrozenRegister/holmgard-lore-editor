@@ -14,6 +14,7 @@ export const ENTITY_TYPES: EntityTypeConfig[] = [
   { prefix: 'item',      label: 'Items',      singularLabel: 'Item',      description: 'Artifacts, equipment, and objects.', hasD1: true,  apiSlug: 'items'      },
   { prefix: 'nation',    label: 'Nations',    singularLabel: 'Nation',    description: 'Sovereign states and polities.',     hasD1: true,  apiSlug: 'nations'    },
   { prefix: 'region',    label: 'Regions',    singularLabel: 'Region',    description: 'Geographic and cultural regions.',   hasD1: true,  apiSlug: 'regions'    },
+  { prefix: 'race',      label: 'Races',      singularLabel: 'Race',      description: 'Ancestries and species.',            hasD1: true,  apiSlug: 'races'      },
   { prefix: 'faction',   label: 'Factions',   singularLabel: 'Faction',   description: 'Organizations and guilds.',          hasD1: false                        },
   { prefix: 'scene',     label: 'Scenes',     singularLabel: 'Scene',     description: 'Narrative scenes and encounters.',   hasD1: false                        },
   { prefix: 'note',      label: 'Notes',      singularLabel: 'Note',      description: 'Zero-friction freeform lore entries.', hasD1: false                      },

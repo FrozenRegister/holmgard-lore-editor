@@ -74,13 +74,22 @@ export interface ItemRecord {
   weight: number;
 }
 
+export interface RaceRecord {
+  id: string;
+  name: string;
+  description: string;
+  is_extinct: boolean;
+  parent_race_id: string | null;
+}
+
 export type EntityRecord =
   | CharacterRecord
   | LocationRecord
   | NationRecord
   | RegionRecord
   | QuestRecord
-  | ItemRecord;
+  | ItemRecord
+  | RaceRecord;
 
 async function fetchEntities<T>(host: string, slug: string): Promise<T[]> {
   const res = await fetch(`${host}/api/entities/${slug}`);
@@ -95,6 +104,7 @@ export const fetchNations    = (host: string) => fetchEntities<NationRecord>(hos
 export const fetchRegions    = (host: string) => fetchEntities<RegionRecord>(host, 'regions');
 export const fetchQuests     = (host: string) => fetchEntities<QuestRecord>(host, 'quests');
 export const fetchItems      = (host: string) => fetchEntities<ItemRecord>(host, 'items');
+export const fetchRaces      = (host: string) => fetchEntities<RaceRecord>(host, 'races');
 
 export const ENTITY_FETCHERS: Record<string, (host: string) => Promise<EntityRecord[]>> = {
   characters: fetchCharacters as (host: string) => Promise<EntityRecord[]>,
@@ -103,6 +113,7 @@ export const ENTITY_FETCHERS: Record<string, (host: string) => Promise<EntityRec
   regions:    fetchRegions    as (host: string) => Promise<EntityRecord[]>,
   quests:     fetchQuests     as (host: string) => Promise<EntityRecord[]>,
   items:      fetchItems      as (host: string) => Promise<EntityRecord[]>,
+  races:      fetchRaces      as (host: string) => Promise<EntityRecord[]>,
 };
 
 // ── Character relationship + inventory types ──────────────────────────────────
@@ -240,6 +251,10 @@ export function getEntitySummary(entityType: string, record: EntityRecord): stri
       const r = record as ItemRecord;
       return `${r.type} · ${r.value}gp`;
     }
+    case 'race': {
+      const r = record as RaceRecord;
+      return r.is_extinct ? 'Extinct' : 'Active';
+    }
     default:
       return '';
   }
@@ -284,4 +299,12 @@ export async function fetchItemById(host: string, id: string): Promise<ItemRecor
   if (!res.ok) throw new Error(`Item fetch failed: ${res.status}`);
   const json = await res.json() as { item?: ItemRecord };
   return json.item ?? null;
+}
+
+export async function fetchRaceById(host: string, id: string): Promise<RaceRecord | null> {
+  const res = await fetch(`${host}/api/entities/races/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Race fetch failed: ${res.status}`);
+  const json = await res.json() as { race?: RaceRecord };
+  return json.race ?? null;
 }
