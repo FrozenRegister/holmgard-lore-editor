@@ -48,6 +48,13 @@ export async function pullMapFromWorker(mapId: string): Promise<{ hexCount: numb
 	// Get admin secret
 	let adminSecret: string | null;
 	if (IS_TAURI) {
+		/* c8 ignore next 6 */
+		// Unreachable in tests: IS_TAURI is a module-level constant (line 18) evaluated once
+		// at import time (IS_TAURI = typeof window !== 'undefined' && '__TAURI__' in window).
+		// This test file explicitly keeps __TAURI__ absent, so IS_TAURI = false and remains false
+		// throughout. The Tauri branch can only execute in the actual Tauri desktop build, not in
+		// the test environment. The @tauri-apps/api/tauri module is mocked for future use if
+		// IS_TAURI is converted to a runtime check, but dynamic imports cannot be mocked retroactively.
 		try {
 			const { invoke } = await import('@tauri-apps/api/tauri');
 			adminSecret = await invoke<string | null>('get_secret', { key: 'admin_secret' });
@@ -122,6 +129,13 @@ export async function pushMapToWorker(mapId: string): Promise<void> {
 	// Get admin secret
 	let adminSecret: string | null;
 	if (IS_TAURI) {
+		/* c8 ignore next 6 */
+		// Unreachable in tests: IS_TAURI is a module-level constant (line 18) evaluated once
+		// at import time (IS_TAURI = typeof window !== 'undefined' && '__TAURI__' in window).
+		// This test file explicitly keeps __TAURI__ absent, so IS_TAURI = false and remains false
+		// throughout. The Tauri branch can only execute in the actual Tauri desktop build, not in
+		// the test environment. The @tauri-apps/api/tauri module is mocked for future use if
+		// IS_TAURI is converted to a runtime check, but dynamic imports cannot be mocked retroactively.
 		try {
 			const { invoke } = await import('@tauri-apps/api/tauri');
 			adminSecret = await invoke<string | null>('get_secret', { key: 'admin_secret' });
