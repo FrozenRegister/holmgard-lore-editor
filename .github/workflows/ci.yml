@@ -93,6 +93,9 @@ jobs:
         run: pnpm exec svelte-kit sync
 
       - name: Build app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          R2_BUCKET_NAME: holmgard-vendor-files
         run: pnpm build
 
   unit-tests:

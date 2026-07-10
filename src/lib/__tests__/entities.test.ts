@@ -665,6 +665,112 @@ describe('fetchItemById', () => {
   });
 });
 
+// ── fetchRaces ───────────────────────────────────────────────────────────────
+
+describe('fetchRaces', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns array on success', async () => {
+    const mockRace = { id: 'r1', name: 'Human', description: 'Adaptable and versatile.', is_extinct: false, parent_race_id: null };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ races: [mockRace], total: 1 }),
+    }));
+    const { fetchRaces } = await import('../d1-reads');
+    const result = await fetchRaces('http://worker');
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Human');
+    expect(result[0].is_extinct).toBe(false);
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    const { fetchRaces } = await import('../d1-reads');
+    await expect(fetchRaces('http://worker')).rejects.toThrow('503');
+  });
+
+  it('returns empty array when response key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchRaces } = await import('../d1-reads');
+    const result = await fetchRaces('http://worker');
+    expect(result).toEqual([]);
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection lost')));
+    const { fetchRaces } = await import('../d1-reads');
+    await expect(fetchRaces('http://worker')).rejects.toThrow('connection lost');
+  });
+});
+
+// ── fetchRaceById ────────────────────────────────────────────────────────────
+
+describe('fetchRaceById', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns RaceRecord on success', async () => {
+    const mockRace = { id: 'r1', name: 'Elf', description: 'Long-lived and graceful.', is_extinct: false, parent_race_id: null };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ race: mockRace }),
+    }));
+    const { fetchRaceById } = await import('../d1-reads');
+    const result = await fetchRaceById('http://w', 'r1');
+    expect(result).not.toBeNull();
+    expect(result!.name).toBe('Elf');
+    expect(result!.is_extinct).toBe(false);
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { fetchRaceById } = await import('../d1-reads');
+    expect(await fetchRaceById('http://w', 'missing')).toBeNull();
+  });
+
+  it('returns null when race key is missing in response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }));
+    const { fetchRaceById } = await import('../d1-reads');
+    expect(await fetchRaceById('http://w', 'r1')).toBeNull();
+  });
+
+  it('throws on non-404 error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchRaceById } = await import('../d1-reads');
+    await expect(fetchRaceById('http://w', 'r1')).rejects.toThrow('500');
+  });
+
+  it('handles extinct race with parent_race_id', async () => {
+    const extinctRace = { id: 'r2', name: 'Ancient Draconic Race', description: 'Extinct draconic ancestors.', is_extinct: true, parent_race_id: 'r1' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ race: extinctRace }),
+    }));
+    const { fetchRaceById } = await import('../d1-reads');
+    const result = await fetchRaceById('http://w', 'r2');
+    expect(result!.is_extinct).toBe(true);
+    expect(result!.parent_race_id).toBe('r1');
+  });
+});
+
+// ── getEntitySummary for races ───────────────────────────────────────────────
+
+describe('getEntitySummary for races', () => {
+  it('returns "Active" for non-extinct races', () => {
+    const race = { id: 'r1', name: 'Dwarf', description: 'Stout folk.', is_extinct: false, parent_race_id: null };
+    const summary = getEntitySummary('race', race);
+    expect(summary).toBe('Active');
+  });
+
+  it('returns "Extinct" for extinct races', () => {
+    const race = { id: 'r2', name: 'Ancient Ones', description: 'Long gone.', is_extinct: true, parent_race_id: null };
+    const summary = getEntitySummary('race', race);
+    expect(summary).toBe('Extinct');
+  });
+});
+
 // ── fetchJournals ────────────────────────────────────────────────────────────
 
 describe('fetchJournals', () => {
