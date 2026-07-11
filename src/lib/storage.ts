@@ -74,13 +74,6 @@ async function writeFile(path: string, content: string): Promise<void> {
   }
 }
 
-async function deleteFile(path: string): Promise<void> {
-  if (isTauri()) {
-    await invoke('fs_delete', { path });
-  } else {
-    localStorage.removeItem(`hle:file:${path}`);
-  }
-}
 
 /**
  * Safely parse JSON string into a typed object.
@@ -151,17 +144,13 @@ export async function loadTopic(key: string): Promise<Topic | null> {
       return null;
     }
 
-    // Parse JSON separately to distinguish corruption from missing files
-    try {
-      const topic = safeParseJson<Topic>(raw, undefined);
-      if (!topic) {
-        console.warn(`Failed to parse topic file "${key}" (corrupted JSON):`, raw);
-      }
-      return topic;
-    } catch (parseErr) {
-      console.warn(`Failed to parse topic file "${key}" (corrupted JSON):`, parseErr);
-      return null;
+    // Parse JSON separately to distinguish corruption from missing files.
+    // safeParseJson never throws (it catches internally), so no outer try/catch needed.
+    const topic = safeParseJson<Topic>(raw, undefined);
+    if (!topic) {
+      console.warn(`Failed to parse topic file "${key}" (corrupted JSON):`, raw);
     }
+    return topic;
   }
 
   // Browser: use IndexedDB

@@ -64,7 +64,7 @@
   function getCharacterDetailHref(entityType: string, record: EntityRecord): string | null {
     const id = (record as { id: string }).id;
     if (!id) return null;
-    const types = ['character', 'location', 'nation', 'region', 'quest', 'item'];
+    const types = ['character', 'location', 'nation', 'region', 'quest', 'item', 'journal'];
     if (!types.includes(entityType)) return null;
     return `/entities/${entityType}/${encodeURIComponent(id)}`;
   }
