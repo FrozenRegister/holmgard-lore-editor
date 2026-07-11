@@ -24,6 +24,7 @@ import {
   pullAll,
   listTopicsRemote,
   getTopicRemote,
+  getWorldBiomesRemote,
   adminSave,
   adminSaveBatch,
   adminDelete,
@@ -331,6 +332,45 @@ describe('getTopicRemote', () => {
     const topic = await getTopicRemote('http://worker', 'results');
     expect(topic).not.toBeNull();
     expect(topic!.text).toBe('');
+  });
+});
+
+// ── getWorldBiomesRemote (#321) ─────────────────────────────────────────────────
+describe('getWorldBiomesRemote', () => {
+  it('returns the biomes array on success', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({
+      worldId: 'world-1',
+      biomes: [
+        { id: 'b1', name: 'forest', glyph: 'T', category: 'terrain', color_hex: '#1A472A', movement_cost: 1.5, base_threat: 0, description: null },
+      ],
+      count: 1,
+    }));
+    const biomes = await getWorldBiomesRemote('http://worker', 'world-1');
+    expect(biomes).toHaveLength(1);
+    expect(biomes[0].name).toBe('forest');
+  });
+
+  it('returns empty array when biomes field is missing', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({ worldId: 'world-1', count: 0 }));
+    const biomes = await getWorldBiomesRemote('http://worker', 'world-1');
+    expect(biomes).toEqual([]);
+  });
+
+  it('includes API key header when provided', async () => {
+    fetchMock.mockResolvedValueOnce(okFetch({ worldId: 'world-1', biomes: [] }));
+    await getWorldBiomesRemote('http://worker', 'world-1', 'secret-key');
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.headers['X-Api-Key']).toBe('secret-key');
+  });
+
+  it('throws on HTTP error', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Error' } as Response);
+    await expect(getWorldBiomesRemote('http://worker', 'world-1')).rejects.toThrow('HTTP 500');
+  });
+
+  it('propagates a network failure', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('network down'));
+    await expect(getWorldBiomesRemote('http://worker', 'world-1')).rejects.toThrow('network down');
   });
 });
 
