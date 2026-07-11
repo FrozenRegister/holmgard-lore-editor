@@ -19,6 +19,12 @@ jobs:
   vendor-check:
     name: Vendor Integrity Check
     runs-on: ubuntu-latest
+    # Advisory only — upstream drift at hexatlas.net doesn't affect the running app
+    # (new files aren't pulled in until `pnpm vendor:sync` runs and its PR merges),
+    # so a mismatch here must never block unrelated PRs from merging.
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +47,62 @@ jobs:
         run: pnpm vendor:fetch
 
       - name: Verify vendor checksums
+        id: check
+        continue-on-error: true
         run: pnpm vendor:check
+
+      - name: Annotate drift (advisory, non-blocking)
+        if: steps.check.outcome == 'failure'
+        run: echo "::warning::Vendor checksums drifted from vendor-manifest.json — advisory only, does not block merge. See the auto-filed tracking issue (or run 'pnpm vendor:sync')."
+
+      - name: File tracking issue for vendor drift (idempotent — skips if one is already open)
+        if: steps.check.outcome == 'failure'
+        continue-on-error: true # never block a PR on issue-filing itself failing (e.g. label race)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Vendor files drifted from manifest - run pnpm vendor:sync'
+            const existing = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open in:title "${title}"`,
+            })
+            if (existing.data.total_count > 0) {
+              console.log(`Tracking issue already open: #${existing.data.items[0].number} — skipping (idempotent)`)
+              return
+            }
+            const body = [
+              'One or more vendor files (pulled from hexatlas.net via the private R2 bucket) have a checksum mismatch against `vendor-manifest.json`.',
+              '',
+              `Detected during CI run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              "This does **not** affect the running app — the new upstream files aren't pulled into the app until `pnpm vendor:sync` runs and the resulting PR merges. The Vendor Integrity Check is advisory and will not block other PRs while this is open.",
+              '',
+              '## Fix',
+              'Run the `Vendor Sync` workflow (`workflow_dispatch` on `vendor-sync.yml`), or wait for its weekly Monday run — it opens its own PR updating `vendor-manifest.json` with the new checksums.',
+              '',
+              'Close this issue once that PR merges. A new one will be filed automatically if drift is detected again afterward.',
+            ].join('\n')
+
+            try {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                labels: ['vendor-drift'],
+                body,
+              })
+              console.log('Filed new vendor-drift tracking issue (with label).')
+            } catch (err) {
+              // Label may not exist yet if `Setup Labels` hasn't been run — retry unlabeled
+              // rather than lose the tracking issue entirely.
+              console.log(`Issue creation with label failed (${err.message}), retrying without label`)
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              })
+              console.log('Filed new vendor-drift tracking issue (unlabeled).')
+            }
 
   lint-and-typecheck:
     name: Lint & Typecheck
@@ -93,6 +154,9 @@ jobs:
         run: pnpm exec svelte-kit sync
 
       - name: Build app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          R2_BUCKET_NAME: holmgard-vendor-files
         run: pnpm build
 
   unit-tests:
