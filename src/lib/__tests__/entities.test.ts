@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ENTITY_TYPES, KNOWN_PREFIXES, getTopicPrefix, getEntityConfig } from '../entities';
 import { ENTITY_FETCHERS, getEntityName, getEntitySummary } from '../d1-reads';
-import type { CharacterRecord, LocationRecord, NationRecord, RegionRecord, QuestRecord, ItemRecord } from '../d1-reads';
+import type { CharacterRecord, LocationRecord, NationRecord, RegionRecord, QuestRecord, ItemRecord, JournalRecord } from '../d1-reads';
 
 // ── getTopicPrefix ────────────────────────────────────────────────────────────
 
@@ -662,5 +662,458 @@ describe('fetchItemById', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
     const { fetchItemById } = await import('../d1-reads');
     await expect(fetchItemById('http://w', 'i1')).rejects.toThrow('503');
+  });
+});
+
+// ── fetchRaces ───────────────────────────────────────────────────────────────
+
+describe('fetchRaces', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns array on success', async () => {
+    const mockRace = { id: 'r1', name: 'Human', description: 'Adaptable and versatile.', is_extinct: false, parent_race_id: null };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ races: [mockRace], total: 1 }),
+    }));
+    const { fetchRaces } = await import('../d1-reads');
+    const result = await fetchRaces('http://worker');
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Human');
+    expect(result[0].is_extinct).toBe(false);
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    const { fetchRaces } = await import('../d1-reads');
+    await expect(fetchRaces('http://worker')).rejects.toThrow('503');
+  });
+
+  it('returns empty array when response key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchRaces } = await import('../d1-reads');
+    const result = await fetchRaces('http://worker');
+    expect(result).toEqual([]);
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection lost')));
+    const { fetchRaces } = await import('../d1-reads');
+    await expect(fetchRaces('http://worker')).rejects.toThrow('connection lost');
+  });
+});
+
+// ── fetchRaceById ────────────────────────────────────────────────────────────
+
+describe('fetchRaceById', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns RaceRecord on success', async () => {
+    const mockRace = { id: 'r1', name: 'Elf', description: 'Long-lived and graceful.', is_extinct: false, parent_race_id: null };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ race: mockRace }),
+    }));
+    const { fetchRaceById } = await import('../d1-reads');
+    const result = await fetchRaceById('http://w', 'r1');
+    expect(result).not.toBeNull();
+    expect(result!.name).toBe('Elf');
+    expect(result!.is_extinct).toBe(false);
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { fetchRaceById } = await import('../d1-reads');
+    expect(await fetchRaceById('http://w', 'missing')).toBeNull();
+  });
+
+  it('returns null when race key is missing in response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }));
+    const { fetchRaceById } = await import('../d1-reads');
+    expect(await fetchRaceById('http://w', 'r1')).toBeNull();
+  });
+
+  it('throws on non-404 error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchRaceById } = await import('../d1-reads');
+    await expect(fetchRaceById('http://w', 'r1')).rejects.toThrow('500');
+  });
+
+  it('handles extinct race with parent_race_id', async () => {
+    const extinctRace = { id: 'r2', name: 'Ancient Draconic Race', description: 'Extinct draconic ancestors.', is_extinct: true, parent_race_id: 'r1' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ race: extinctRace }),
+    }));
+    const { fetchRaceById } = await import('../d1-reads');
+    const result = await fetchRaceById('http://w', 'r2');
+    expect(result!.is_extinct).toBe(true);
+    expect(result!.parent_race_id).toBe('r1');
+  });
+});
+
+// ── getEntitySummary for races ───────────────────────────────────────────────
+
+describe('getEntitySummary for races', () => {
+  it('returns "Active" for non-extinct races', () => {
+    const race = { id: 'r1', name: 'Dwarf', description: 'Stout folk.', is_extinct: false, parent_race_id: null };
+    const summary = getEntitySummary('race', race);
+    expect(summary).toBe('Active');
+  });
+
+  it('returns "Extinct" for extinct races', () => {
+    const race = { id: 'r2', name: 'Ancient Ones', description: 'Long gone.', is_extinct: true, parent_race_id: null };
+    const summary = getEntitySummary('race', race);
+    expect(summary).toBe('Extinct');
+  });
+});
+
+// ── fetchQuestMilestones ────────────────────────────────────────────────────
+
+describe('fetchQuestMilestones', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns milestones array on success', async () => {
+    const mockMilestone = {
+      id: 'qm1', quest_id: 'q1', sort_order: 1, title: 'Find the Crown',
+      notes: 'Must be gold', status: 'in_progress' as const,
+      linked_entity_type: 'location', linked_entity_id: 'loc1',
+      color: '#FF5733', is_private: false,
+      created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-02T00:00:00Z',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ milestones: [mockMilestone], total: 1 }),
+    }));
+    const { fetchQuestMilestones } = await import('../d1-reads');
+    const result = await fetchQuestMilestones('http://w', 'q1');
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe('Find the Crown');
+    expect(result[0].status).toBe('in_progress');
+    expect(result[0].sort_order).toBe(1);
+  });
+
+  it('defaults to empty array when milestones key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchQuestMilestones } = await import('../d1-reads');
+    const result = await fetchQuestMilestones('http://w', 'q1');
+    expect(result).toEqual([]);
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchQuestMilestones } = await import('../d1-reads');
+    await expect(fetchQuestMilestones('http://w', 'q1')).rejects.toThrow('500');
+  });
+
+  it('throws on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection fail')));
+    const { fetchQuestMilestones } = await import('../d1-reads');
+    await expect(fetchQuestMilestones('http://w', 'q1')).rejects.toThrow('connection fail');
+  });
+});
+
+// ── createQuestMilestone ─────────────────────────────────────────────────────
+
+describe('createQuestMilestone', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns id and sort_order on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, id: 'qm2', sort_order: 2 }),
+    }));
+    const { createQuestMilestone } = await import('../d1-reads');
+    const result = await createQuestMilestone('http://w', 'q1', { title: 'New Step' }, 'secret123');
+    expect(result.id).toBe('qm2');
+    expect(result.sort_order).toBe(2);
+  });
+
+  it('sends POST request with admin secret header', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, id: 'qm3', sort_order: 1 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { createQuestMilestone } = await import('../d1-reads');
+    await createQuestMilestone('http://w', 'q1', { title: 'Step', status: 'pending' }, 'secret123');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/quests/q1/milestones'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'secret123' }),
+      }),
+    );
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+    const { createQuestMilestone } = await import('../d1-reads');
+    await expect(createQuestMilestone('http://w', 'q1', { title: 'X' }, 'bad')).rejects.toThrow('403');
+  });
+
+  it('throws when response.ok is false', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: false, error: 'duplicate' }),
+    }));
+    const { createQuestMilestone } = await import('../d1-reads');
+    await expect(createQuestMilestone('http://w', 'q1', { title: 'X' }, 'secret')).rejects.toThrow('failed');
+  });
+});
+
+// ── updateQuestMilestone ─────────────────────────────────────────────────────
+
+describe('updateQuestMilestone', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('sends PATCH request with admin secret', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { updateQuestMilestone } = await import('../d1-reads');
+    await updateQuestMilestone('http://w', 'q1', 'qm1', { status: 'completed' }, 'secret123');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/quests/q1/milestones/qm1'),
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'secret123' }),
+      }),
+    );
+  });
+
+  it('returns void on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    }));
+    const { updateQuestMilestone } = await import('../d1-reads');
+    const result = await updateQuestMilestone('http://w', 'q1', 'qm1', { title: 'Updated' }, 'secret');
+    expect(result).toBeUndefined();
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { updateQuestMilestone } = await import('../d1-reads');
+    await expect(updateQuestMilestone('http://w', 'q1', 'qm1', {}, 'secret')).rejects.toThrow('404');
+  });
+
+  it('throws when response.ok is false', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: false }),
+    }));
+    const { updateQuestMilestone } = await import('../d1-reads');
+    await expect(updateQuestMilestone('http://w', 'q1', 'qm1', {}, 'secret')).rejects.toThrow('failed');
+  });
+});
+
+// ── deleteQuestMilestone ─────────────────────────────────────────────────────
+
+describe('deleteQuestMilestone', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('sends DELETE request with admin secret', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { deleteQuestMilestone } = await import('../d1-reads');
+    await deleteQuestMilestone('http://w', 'q1', 'qm1', 'secret123');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/quests/q1/milestones/qm1'),
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: expect.objectContaining({ 'X-Admin-Secret': 'secret123' }),
+      }),
+    );
+  });
+
+  it('returns void on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    }));
+    const { deleteQuestMilestone } = await import('../d1-reads');
+    const result = await deleteQuestMilestone('http://w', 'q1', 'qm1', 'secret');
+    expect(result).toBeUndefined();
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+    const { deleteQuestMilestone } = await import('../d1-reads');
+    await expect(deleteQuestMilestone('http://w', 'q1', 'qm1', 'bad')).rejects.toThrow('403');
+  });
+
+  it('throws when response.ok is false', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: false }),
+    }));
+    const { deleteQuestMilestone } = await import('../d1-reads');
+    await expect(deleteQuestMilestone('http://w', 'q1', 'qm1', 'secret')).rejects.toThrow('failed');
+  });
+});
+
+// ── fetchJournals ────────────────────────────────────────────────────────────
+
+describe('fetchJournals', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns array on success', async () => {
+    const mockJournal = { id: 'j1', name: 'Session 14', date_year: 2026, date_month: 1, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ journals: [mockJournal], total: 1 }),
+    }));
+    const { fetchJournals } = await import('../d1-reads');
+    const result = await fetchJournals('http://worker');
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Session 14');
+    expect(result[0].date_year).toBe(2026);
+  });
+
+  it('throws on non-2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    const { fetchJournals } = await import('../d1-reads');
+    await expect(fetchJournals('http://worker')).rejects.toThrow('503');
+  });
+
+  it('returns empty array when response key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchJournals } = await import('../d1-reads');
+    const result = await fetchJournals('http://worker');
+    expect(result).toEqual([]);
+  });
+});
+
+// ── fetchJournalById ──────────────────────────────────────────────────────────
+
+describe('fetchJournalById', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns JournalDetailRecord on success', async () => {
+    const mockJournal = {
+      id: 'j1',
+      name: 'Session 14 — The Bridge',
+      entry: '# Session Notes\nThey crossed the bridge.',
+      date_year: 2026,
+      date_month: 1,
+      date_day: 15,
+      calendar_id: null,
+      is_private: false,
+      created_at: '2026-01-15T12:00:00Z',
+      updated_at: '2026-01-15T14:30:00Z',
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ journal: mockJournal }),
+    }));
+    const { fetchJournalById } = await import('../d1-reads');
+    const result = await fetchJournalById('http://w', 'j1');
+    expect(result).not.toBeNull();
+    expect(result!.name).toBe('Session 14 — The Bridge');
+    expect(result!.entry).toContain('bridge');
+    expect(result!.updated_at).toBe('2026-01-15T14:30:00Z');
+  });
+
+  it('returns null on 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { fetchJournalById } = await import('../d1-reads');
+    const result = await fetchJournalById('http://w', 'missing');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when journal key is missing in response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    }));
+    const { fetchJournalById } = await import('../d1-reads');
+    expect(await fetchJournalById('http://w', 'j1')).toBeNull();
+  });
+
+  it('throws on non-404 error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchJournalById } = await import('../d1-reads');
+    await expect(fetchJournalById('http://w', 'j1')).rejects.toThrow('500');
+  });
+});
+
+// ── fetchJournalParticipants ──────────────────────────────────────────────────
+
+describe('fetchJournalParticipants', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns participants array on success', async () => {
+    const mockParticipants = [
+      { entity_type: 'character', entity_id: 'c1', entity_name: 'Aldric' },
+      { entity_type: 'location', entity_id: 'l2', entity_name: 'The Bridge' },
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ participants: mockParticipants, total: 2 }),
+    }));
+    const { fetchJournalParticipants } = await import('../d1-reads');
+    const result = await fetchJournalParticipants('http://w', 'j1');
+    expect(result).toHaveLength(2);
+    expect(result[0].entity_name).toBe('Aldric');
+    expect(result[1].entity_type).toBe('location');
+  });
+
+  it('defaults to empty array when participants key is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ total: 0 }),
+    }));
+    const { fetchJournalParticipants } = await import('../d1-reads');
+    const result = await fetchJournalParticipants('http://w', 'j1');
+    expect(result).toEqual([]);
+  });
+
+  it('throws on non-2xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    const { fetchJournalParticipants } = await import('../d1-reads');
+    await expect(fetchJournalParticipants('http://w', 'j1')).rejects.toThrow('500');
+  });
+});
+
+// ── getEntitySummary for journals ─────────────────────────────────────────────
+
+describe('getEntitySummary for journals', () => {
+  it('formats journal summary with full date', () => {
+    const journal: JournalRecord = { id: 'j1', name: 'Session', date_year: 2026, date_month: 1, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const summary = getEntitySummary('journal', journal);
+    expect(summary).toBe('2026-01-15');
+  });
+
+  it('formats journal summary with zero-padded month and day', () => {
+    const journal: JournalRecord = { id: 'j1', name: 'Session', date_year: 2026, date_month: 3, date_day: 5, calendar_id: null, is_private: false, created_at: '2026-03-05T12:00:00Z' };
+    const summary = getEntitySummary('journal', journal);
+    expect(summary).toBe('2026-03-05');
+  });
+
+  it('returns empty string when date is incomplete', () => {
+    const journal: JournalRecord = { id: 'j1', name: 'Session', date_year: 2026, date_month: null, date_day: 15, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const summary = getEntitySummary('journal', journal);
+    expect(summary).toBe('');
+  });
+
+  it('returns empty string when all date fields are null', () => {
+    const journal: JournalRecord = { id: 'j1', name: 'Session', date_year: null, date_month: null, date_day: null, calendar_id: null, is_private: false, created_at: '2026-01-15T12:00:00Z' };
+    const summary = getEntitySummary('journal', journal);
+    expect(summary).toBe('');
   });
 });
