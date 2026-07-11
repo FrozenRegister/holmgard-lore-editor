@@ -198,3 +198,25 @@ jobs:
             } else {
               console.log('OK Changelog fragment found')
             }
+
+  trigger-auto-merge:
+    name: Trigger Auto-Merge Check
+    needs: [check-merge-conflicts, check-vendor-integrity, check-issue-link, check-docs, check-changelog]
+    # workflow_run only reliably fires for push-triggered runs, not pull_request-triggered
+    # ones (see auto-merge.yml) — dispatching directly here is the reliable fast path;
+    # the 15-min cron in auto-merge.yml remains as a fallback if this ever fails to fire.
+    if: always() && contains(github.event.pull_request.labels.*.name, 'auto-merge')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch auto-merge sweep
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'auto-merge.yml',
+              ref: context.payload.repository.default_branch,
+            })
