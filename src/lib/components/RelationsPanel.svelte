@@ -44,6 +44,7 @@
     { slug: 'regions',    label: 'Region' },
     { slug: 'quests',     label: 'Quest' },
     { slug: 'items',      label: 'Item' },
+    { slug: 'notes',      label: 'Note' },
   ];
 
   const RELATION_SUGGESTIONS = [

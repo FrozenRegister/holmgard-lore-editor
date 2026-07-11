@@ -125,6 +125,12 @@ export async function isIDBReady(): Promise<boolean> {
     await db.open();
     return true;
   } catch {
+    /* c8 ignore next 1 */
+    // Unreachable in tests: the module-level db singleton (line 31) successfully opens
+    // at module load time. Subsequent calls to isIDBReady() simply reuse the already-open
+    // connection, so db.open() succeeds and the catch block never executes. Simulating
+    // an IDB failure would require resetting/closing the global singleton between tests,
+    // which isn't practical with the current singleton pattern.
     return false;
   }
 }

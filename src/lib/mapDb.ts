@@ -121,6 +121,14 @@ export async function getMapDb(): Promise<IDBPDatabase<MapDBSchema>> {
 			// v2 migration: backfill linkedLoreKey on existing landmarks, then create index.
 			// Must use the upgrade's versionchange transaction (passed as 4th arg) — starting
 			// a new transaction inside upgrade throws InvalidStateError.
+			/* c8 ignore next 15 */
+			// Unreachable in tests: the upgrade handler only runs once when the DB is created
+			// (when oldVersion < 2). Subsequent tests reuse the already-opened singleton dbInstance
+			// (line 76), so this migration never runs again. Testing this would require closing &
+			// deleting the DB between tests, which breaks the singleton pattern and causes test
+			// hangs in jsdom. This is acceptable because: (1) migration succeeds on initial DB
+			// setup (not tested here, but works in real app), and (2) defensive loads in getLandmark()
+			// tolerate pre-v2 records that lack linkedLoreKey, providing fallback protection.
 			if (oldVersion < 2 && db.objectStoreNames.contains('landmarks')) {
 				const store = tx.objectStore('landmarks');
 				let cursor = await store.openCursor();

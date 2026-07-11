@@ -18,6 +18,7 @@ export interface CharacterPatch {
   ac?: number;
   alignment?: string;
   background?: string;
+  kv_origin?: string;
 }
 
 const SHEET_HEADING = '## Character Sheet';

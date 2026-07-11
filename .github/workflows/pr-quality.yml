@@ -6,12 +6,66 @@ on:
 
 permissions:
   pull-requests: read
+  contents: read
 
 jobs:
+  check-merge-conflicts:
+    name: Merge Conflicts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for merge conflicts
+        run: |
+          # Fetch the base branch to compare against
+          git fetch origin ${{ github.base_ref }}
+
+          # Try to merge-base check
+          if ! git merge-base --is-ancestor origin/${{ github.base_ref }} HEAD; then
+            echo "⚠️ WARNING: This branch is not based on the latest ${{ github.base_ref }}"
+            echo "You may need to rebase to resolve conflicts"
+
+            # Check if there would be conflicts. Stderr is intentionally left
+            # visible (not redirected) so a non-conflict git failure here is
+            # debuggable instead of silently misreported as a real conflict.
+            # `git merge --abort` is best-effort: if the test-merge above failed
+            # before ever creating MERGE_HEAD (a non-conflict git error, not a
+            # content conflict), there is nothing to abort and this must not
+            # crash the step.
+            if ! git merge --no-commit --no-ff origin/${{ github.base_ref }}; then
+              git merge --abort || true
+              echo ""
+              echo "ERROR: Merge conflicts detected with ${{ github.base_ref }}"
+              echo ""
+              echo "**To fix locally:**"
+              echo "\`\`\`bash"
+              echo "git fetch origin && git rebase origin/${{ github.base_ref }}"
+              echo "# Resolve conflicts, then:"
+              echo "git rebase --continue"
+              echo "git push -u origin HEAD --force-with-lease"
+              echo "\`\`\`"
+              exit 1
+            else
+              git merge --abort || true
+              echo "OK: No conflicts detected, but branch needs rebase to be current"
+            fi
+          else
+            echo "OK: Branch is up-to-date with ${{ github.base_ref }}"
+          fi
+
   check-vendor-integrity:
     name: Vendor Integrity
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # NOTE: continue-on-error must be on the checksum step itself, not the job.
+    # Job-level continue-on-error only stops the overall *workflow run* from
+    # failing — the job's own check-run conclusion still reports 'failure',
+    # which auto-merge.yml treats as blocking. Step-level continue-on-error
+    # rewrites the step's conclusion to 'success' (outcome still reflects the
+    # real result), which is what actually makes this check non-blocking.
+    # Same drift check as ci.yml's "Vendor Integrity Check" job — kept
+    # advisory here too rather than duplicating its issue-filing logic.
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-quality-checks') }}
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +80,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           R2_BUCKET_NAME: holmgard-vendor-files
       - name: Verify checksums
+        continue-on-error: true
         run: pnpm run vendor:check
 
   check-issue-link:
@@ -149,3 +204,30 @@ jobs:
             } else {
               console.log('OK Changelog fragment found')
             }
+
+  trigger-auto-merge:
+    name: Trigger Auto-Merge Check
+    needs: [check-merge-conflicts, check-vendor-integrity, check-issue-link, check-docs, check-changelog]
+    # workflow_run only reliably fires for push-triggered runs, not pull_request-triggered
+    # ones (see auto-merge.yml) — dispatching directly here is the reliable fast path;
+    # the 15-min cron in auto-merge.yml remains as a fallback if this ever fails to fire.
+    if: always() && contains(github.event.pull_request.labels.*.name, 'auto-merge')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch auto-merge sweep
+        # Best-effort only — this is a speed optimization, never a merge
+        # requirement. The cron fallback in auto-merge.yml is the real safety
+        # net, so a failed dispatch (e.g. this exact workflow file not yet
+        # updated on the target ref) must never block anything.
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'auto-merge.yml',
+              ref: context.payload.repository.default_branch,
+            })
