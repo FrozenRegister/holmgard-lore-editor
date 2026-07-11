@@ -27,9 +27,15 @@ jobs:
             echo "⚠️ WARNING: This branch is not based on the latest ${{ github.base_ref }}"
             echo "You may need to rebase to resolve conflicts"
 
-            # Check if there would be conflicts
-            if ! git merge --no-commit --no-ff origin/${{ github.base_ref }} 2>/dev/null; then
-              git merge --abort
+            # Check if there would be conflicts. Stderr is intentionally left
+            # visible (not redirected) so a non-conflict git failure here is
+            # debuggable instead of silently misreported as a real conflict.
+            # `git merge --abort` is best-effort: if the test-merge above failed
+            # before ever creating MERGE_HEAD (a non-conflict git error, not a
+            # content conflict), there is nothing to abort and this must not
+            # crash the step.
+            if ! git merge --no-commit --no-ff origin/${{ github.base_ref }}; then
+              git merge --abort || true
               echo ""
               echo "ERROR: Merge conflicts detected with ${{ github.base_ref }}"
               echo ""
@@ -42,7 +48,7 @@ jobs:
               echo "\`\`\`"
               exit 1
             else
-              git merge --abort
+              git merge --abort || true
               echo "OK: No conflicts detected, but branch needs rebase to be current"
             fi
           else
