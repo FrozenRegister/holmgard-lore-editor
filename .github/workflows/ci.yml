@@ -318,6 +318,11 @@ jobs:
       actions: write
     steps:
       - name: Dispatch auto-merge sweep
+        # Best-effort only — this is a speed optimization, never a merge
+        # requirement. The cron fallback in auto-merge.yml is the real safety
+        # net, so a failed dispatch (e.g. this exact workflow file not yet
+        # updated on the target ref) must never block anything.
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
