@@ -24,6 +24,10 @@ export interface HexRecord {
 	terrain: string;
 	name: string;
 	description: string;
+	/** RPG-owned world scoping (#321) — the world this hex's biome assignment belongs to. Null/undefined if unassigned. */
+	worldId?: string | null;
+	/** RPG-owned biome name (#321), assigned via the biome panel — independent of `terrain`, the editor's own freeform paint label. Null/undefined if unassigned. */
+	biome?: string | null;
 }
 
 export interface LandmarkRecord {
@@ -442,6 +446,43 @@ export async function getLandmarksForLoreKeyOnMap(
 export async function saveHex(record: HexRecord): Promise<void> {
 	const db = await getMapDb();
 	await db.put('hexes', record);
+}
+
+/**
+ * Distinct terrain values present across a map's hexes, each with a count.
+ * Used by the biome-assignment panel (#321) to let a narrator map the
+ * editor's freeform terrain vocabulary onto a world's registered biomes in
+ * bulk, without a per-hex picker.
+ */
+export async function getDistinctTerrains(mapId: string): Promise<Array<{ terrain: string; count: number }>> {
+	const hexes = await getAllHexes(mapId);
+	const counts = new Map<string, number>();
+	for (const hex of hexes) {
+		const terrain = hex.terrain || '(unset)';
+		counts.set(terrain, (counts.get(terrain) ?? 0) + 1);
+	}
+	return [...counts.entries()]
+		.map(([terrain, count]) => ({ terrain, count }))
+		.sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Bulk-assign a world_id/biome to every hex on a map whose `terrain` matches
+ * exactly (#321). Preserves every other field on each matched hex — only
+ * `worldId`/`biome` change. Returns the number of hexes updated.
+ */
+export async function assignBiomeToTerrain(
+	mapId: string,
+	terrain: string,
+	worldId: string,
+	biome: string
+): Promise<number> {
+	const hexes = await getAllHexes(mapId);
+	const matched = hexes.filter((hex) => (hex.terrain || '(unset)') === terrain);
+	for (const hex of matched) {
+		await saveHex({ ...hex, worldId, biome });
+	}
+	return matched.length;
 }
 
 /**
