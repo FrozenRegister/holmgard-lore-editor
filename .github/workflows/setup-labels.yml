@@ -41,6 +41,7 @@ jobs:
               { name: 'needs-docs',        color: 'e6ac00', description: 'PR requires documentation update' },
               { name: 'needs-changelog',   color: 'e6ac00', description: 'PR requires CHANGELOG entry' },
               { name: 'skip-quality-checks', color: 'cccccc', description: 'Bypass PR quality checks (emergency hotfix)' },
+              { name: 'vendor-drift', color: 'fbca04', description: 'Upstream vendor file checksums drifted from vendor-manifest.json' },
             ]
 
             for (const label of labels) {

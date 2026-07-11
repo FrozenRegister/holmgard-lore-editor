@@ -52,7 +52,14 @@ jobs:
   check-vendor-integrity:
     name: Vendor Integrity
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # NOTE: continue-on-error must be on the checksum step itself, not the job.
+    # Job-level continue-on-error only stops the overall *workflow run* from
+    # failing — the job's own check-run conclusion still reports 'failure',
+    # which auto-merge.yml treats as blocking. Step-level continue-on-error
+    # rewrites the step's conclusion to 'success' (outcome still reflects the
+    # real result), which is what actually makes this check non-blocking.
+    # Same drift check as ci.yml's "Vendor Integrity Check" job — kept
+    # advisory here too rather than duplicating its issue-filing logic.
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-quality-checks') }}
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +74,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           R2_BUCKET_NAME: holmgard-vendor-files
       - name: Verify checksums
+        continue-on-error: true
         run: pnpm run vendor:check
 
   check-issue-link:
