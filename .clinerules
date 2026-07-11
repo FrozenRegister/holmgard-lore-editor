@@ -204,4 +204,86 @@ Repo: <org>/<repo> | Project: https://github.com/users/FrozenRegister/projects/3
 
 When the user asks for a "session summary" or "wrap up" or "log this", call `Add-SessionSummary`. Always pass `-DryRun` first in a non-obvious case to preview the body, then drop `-DryRun` to actually create it. Always confirm with the user before creating the item unless they explicitly asked for the summary.
 
+
 If `Add-SessionSummary` errors with `missing required scopes [project]`, the gh token needs the **write** project scope. Run `gh auth refresh -h github.com -s project` once and complete the browser prompt.
+
+## Cline tool failures and workarounds
+
+Common failures observed when using Cline in this workspace. Most are Cline/Claude-specific (not general Claude API issues).
+
+### `read_files`: `start_line`/`end_line` placement
+
+These parameters must be **inside each file object**, not at the top level.
+
+```diff
+- { files: [{ path: "..." }], end_line: 200 }       // WRONG — Unrecognized key: "end_line"
++ { files: [{ path: "...", start_line: 1, end_line: 200 }] }  // CORRECT
+```
+
+### `run_commands`: 30-second timeout
+
+All commands time out after **30 seconds**. This means:
+- **E2E/Playwright tests cannot run locally** via `run_commands` — they need a dev server and take minutes. Treat E2E as **CI-only**; rely on the PR check-run status instead.
+- **`Start-Sleep -Seconds N` where N > 25** will always time out.
+- **Workaround for short waits (< 25s):** `ping -n 1 -w <ms> 1.1.1.1` (returns after the specified ms).
+
+### `run_commands`: `args` array form vs plain string
+
+The structured `{ command, args }` format can emit `ENOENT` on some commands (e.g. `git add`, `git commit`, `Remove-Item` with multiple args). Prefer **plain string commands** for reliability:
+
+```diff
+- { command: "git", args: ["add", "file1.ts", "file2.ts"] }  // may ENOENT
++ "git add file1.ts file2.ts"                                // reliable
+```
+
+### PowerShell: bracket paths `[id]`
+
+PowerShell treats `[...]` as a wildcard pattern. Paths like `src/routes/entities/character/[id]/+page.svelte` fail with `Get-Content`. Always use `-LiteralPath`:
+
+```powershell
+Get-Content -LiteralPath "c:\...\character\[id]\+page.svelte"
+```
+
+### PowerShell: complex escaping in command strings
+
+Regex, double backslashes, and embedded quotes fail with parser errors when passed inline. **Use a Python `.py` script on disk** instead:
+
+```python
+# Create fix.py with editor tool, then: python c:\...\fix.py
+import pathlib
+p = pathlib.Path(r'c:/path/to/file.ts')
+t = p.read_text(encoding='utf-8')
+t = t.replace("old", "new")
+p.write_text(t, encoding='utf-8')
+```
+
+### `editor`: exact `old_text` matching
+
+`old_text` must match **byte-for-byte** including whitespace. Indentation mismatches cause silent "text not found" failures. If a replacement fails, fall back to a **Python script** (see previous section).
+
+### `search_codebase`: 30-second timeout
+
+Broad or complex regex patterns can timeout. Narrow patterns are more reliable. If a search times out, break it into smaller, more specific searches.
+
+### `fetch_web_content`: GitHub Actions logs require auth
+
+GitHub Actions job logs return "Sign in to view logs." You can only read **job status/conclusion** via the check-runs API. Detailed test failure output requires alternative approaches (e.g. looking at the PR diff for obvious bugs, or using `get_commit` with `detail: "full_patch"` to reason about changes).
+
+### `github__pull_request_read`: method names
+
+For the MCP tool, use camelCase method names like `get_check_runs`, not `getCheckRuns`. The method parameter takes values from an enum (e.g. `"get"`, `"get_diff"`, `"get_files"`, `"get_commits"`, `"get_review_comments"`, `"get_reviews"`, `"get_comments"`, `"get_check_runs"`, `"get_status"`).
+
+### Playwright `page.route()` ordering
+
+When multiple `page.route()` calls target the same URL pattern, the **last registered** handler wins for matched requests. A `route.fulfill()` in an earlier handler will intercept the request before later handlers run. If you need to override an earlier route, either call the later route after all earlier ones, or avoid calling the earlier route altogether.
+
+### Playwright toast selectors in this project
+
+Toasts render inside a `<div class="toast-stack">` in `src/routes/+layout.svelte`. Use:
+
+```typescript
+page.locator('.toast-stack').getByText('message text')
+```
+
+Not `.toast-container` (that class does not exist in this project).
+

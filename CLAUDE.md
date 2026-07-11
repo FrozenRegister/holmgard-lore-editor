@@ -12,10 +12,22 @@ This file provides guidance to Cline and CLAUDE (the VS Code AI coding agent) wh
 pnpm dev              # SvelteKit dev server (browser, no Tauri)
 pnpm tauri:dev        # Full Tauri desktop app with hot reload
 pnpm tauri:build      # Production desktop build
-pnpm test             # Run all Vitest tests once
+pnpm build            # Production web build (runs vendor:build + vite build)
+pnpm deploy           # Build + deploy to Cloudflare Pages
+pnpm test             # Run all Vitest unit tests once
 pnpm test:watch       # Vitest in watch mode
-pnpm check            # svelte-kit sync + type check (run svelte-kit sync first)
+pnpm test:integration # Run integration tests (fake-indexeddb + fetch mocks)
+pnpm test:coverage    # Unit tests with Istanbul coverage report
 pnpm test:e2e         # Run Playwright E2E tests
+pnpm test:e2e:ui      # Playwright interactive UI mode
+pnpm check            # svelte-kit sync + type check (svelte-check)
+pnpm check:watch      # Type check in watch mode
+pnpm prepush          # Local mirror of CI PR quality checks
+pnpm vendor:build     # Fetch + bundle vendor files from R2
+pnpm vendor:check     # Run vendor integrity check
+pnpm coverage:gaps    # Run coverage gap analysis (≥80% gate)
+pnpm analyze:map      # Analyze working map data
+pnpm changelog        # Generate CHANGELOG.md from conventional commits
 ```
 
 See [Testing and Linting Guide](docs/testing-and-linting-guide.md) for detailed testing documentation.
@@ -72,20 +84,46 @@ Keywords in the PR **title** are ignored by GitHub — they must be in the body.
 
 ## Architecture
 
-This is a **SvelteKit + Tauri v1** desktop app for editing world-building lore. The frontend is Svelte 4; the Rust backend (`src-tauri/`) exposes a small set of `invoke`-able commands.
+This is a **SvelteKit + Tauri v1** desktop app for editing world-building lore. The frontend is Svelte 4; the Rust backend (`src-tauri/`) exposes a small set of `invoke`-able commands (`keyring_get/set/delete`, `fs_read/write/list/delete`). Key dependencies: Dexie (IndexedDB), Monaco editor, marked (Markdown rendering with highlight.js), JSZip (import/export), idb (low-level IndexedDB for map tiles).
+
+### Svelte version
+
+This project uses **Svelte 4** (`^4.2.20`). Do not use Svelte 5 runes (`$state`, `$derived`, `$effect`, `$props`) — the stores pattern (`writable`, `derived`, `subscribe`) is the canonical approach.
 
 ### Dual-environment pattern
 
-Every storage/filesystem call checks `IS_TAURI` (`'__TAURI__' in window`). In Tauri it calls `invoke('fs_*')` or `invoke('keyring_*')`; in the browser (`pnpm dev`) it falls back to `localStorage` with an `hle:file:` prefix. This pattern is used in `src/lib/storage.ts`, `src/lib/history.ts`, and `src/lib/auth.ts`.
+Every storage/filesystem call checks `IS_TAURI` (`'__TAURI__' in window`). In Tauri it calls `invoke('fs_*')` or `invoke('keyring_*')`; in the browser (`pnpm dev`) it falls back to IndexedDB (via Dexie) for topics/map tiles and `localStorage` for settings and secrets. This pattern is used in `src/lib/storage.ts`, `src/lib/storage-idb.ts`, `src/lib/history.ts`, and `src/lib/auth.ts`.
 
 ### Data flow
 
-- **`src/lib/types.ts`** — canonical TypeScript types (`Topic`, `AppSettings`, `ConflictInfo`, etc.)
-- **`src/lib/storage.ts`** — CRUD for topics, settings, and the offline queue
-- **`src/lib/sync.ts`** — JSON-RPC calls to the Cloudflare Worker MCP backend (`/mcp`), conflict detection, and offline queue with exponential backoff (max 8 attempts, capped at 5 min)
-- **`src/lib/stores.ts`** — Svelte writable stores; single source of truth for topics, syncState, conflictQueue, and chat state
-- **`src/lib/claude.ts`** — Anthropic API streaming chat with an agentic tool-call loop (`list_topics`, `get_topic`, `update_topic`, `create_topic`); uses `claude-sonnet-4-6`
-- **`src/lib/auth.ts`** — Secrets (admin secret, Claude API key) stored in OS keyring via Tauri or `localStorage` in browser
+- **`src/lib/types.ts`** — Canonical TypeScript types: `Topic`, `TopicMeta`, `HistoryEntry`, `TopicSnapshot`, `AppSettings`, `SyncState`, `ConflictInfo`, `QueuedSave`, `ChatMessage`, etc.
+- **`src/lib/storage.ts`** — CRUD for topics (IndexedDB/Tauri), settings persistence, offline queue with exponential backoff, image storage
+- **`src/lib/storage-idb.ts`** — Low-level IndexedDB helpers via Dexie
+- **`src/lib/sync.ts`** — JSON-RPC calls to the Cloudflare Worker MCP backend (`/mcp`), conflict detection (three-way diff), offline queue with exponential backoff (max 8 attempts, capped at 5 min)
+- **`src/lib/syncAll.ts`** — Bulk sync all topics (smart sync with change detection)
+- **`src/lib/stores.ts`** — Svelte writable stores; single source of truth for topics, topicMap, settings, syncState, conflictQueue, activeTopicKey, editorMode, chatMessages, and persistent topic-list filters (stored in localStorage)
+- **`src/lib/claude.ts`** — Anthropic API streaming chat with agentic tool-call loop (`list_topics`, `get_topic`, `update_topic`, `create_topic`, `get_entities`, `get_insights`); system prompt built per-call via `buildSystemPrompt()`
+- **`src/lib/auth.ts`** — Secrets (admin secret, Claude API key) stored in OS keyring via Tauri or `localStorage` in browser; helpers: `getMcpApiKey()`, `setMcpApiKey()`, `getAdminSecret()`, `setAdminSecret()`
+- **`src/lib/d1-reads.ts`** — Fetch entities from D1-backed API: Characters, Locations, Nations, Regions, Quests, Items, plus NPC relationships, quest logs, inventory
+- **`src/lib/d1-writes.ts`** — Mutate D1 entities from the UI
+- **`src/lib/entity-context.ts`** — Aggregated entity context for AI chat prompts
+- **`src/lib/character-sheet.ts`** — RPG character sheet data model and formatting
+- **`src/lib/history.ts`** — 50-entry undo/redo stack for topic text edits
+- **`src/lib/diff.ts`** — Three-way merge for conflict resolution
+- **`src/lib/wiki-links.ts`** — `[[wiki-link]]` extraction, resolution, and backlinks indexing
+- **`src/lib/mapSync.ts`** — Map synchronization engine (bidirectional sync with Worker MCP)
+- **`src/lib/mapIngest.ts`** — GeoJSON ingestion pipeline (coastlines → hex grid)
+- **`src/lib/mapTools.ts`** — Map CRUD tools for the agentic loop: axial distance, A* pathfinding, landmark↔lore linking/unlinking with write-back
+- **`src/lib/mapDb.ts`** — IndexedDB-backed map tile storage (`maps`, `hexes`, `landmarks` tables with v2 schema)
+- **`src/lib/mcp.ts`** — MCP protocol helpers: `callTool()`, `listTools()`, `checkAuth()`
+- **`src/lib/entities.ts`** — Entity routing and aggregation
+- **`src/lib/worldmap.ts`** — World map data model
+- **`src/lib/hexmap-utils.ts`** — Hex grid math utilities
+- **`src/lib/importMap.ts`** — Map import logic (GeoJSON → hex grid)
+- **`src/lib/terrain-aggregation.ts`** — Terrain statistics from hex map regions
+- **`src/lib/marked-config.ts`** — Markdown rendering configuration with custom extensions
+- **`src/lib/defaults.ts`** / **`src/lib/demo-data.ts`** — Default settings and demo seed data for first-run experience
+- **`src/lib/crypto.ts`** — Cryptographic utilities
 
 ### Sync & conflict model
 
@@ -101,11 +139,23 @@ The MCP Worker lives at `https://holmgard-lore-mcp.frozenregister.workers.dev` (
 
 `src-tauri/src/main.rs` exposes: `keyring_get`, `keyring_set`, `keyring_delete`, `fs_read`, `fs_write`, `fs_list`, `fs_delete`. All filesystem paths are relative to the OS app-data directory.
 
+### Entities & D1 Backend
+
+Structured game data lives in Cloudflare D1 tables accessed via the Worker MCP at `/api/entities/*`. Six entity types: Characters (with NPC relationships, quest logs, inventory), Locations, Nations, Regions, Quests, Items. Read layer: `src/lib/d1-reads.ts`; write layer: `src/lib/d1-writes.ts`. Entity data is read-through — there is no offline cache yet.
+
 ### Hex Map Editor
 
-The hex map editor uses the external `game.js` library (`static/hexmap/game.js`) for rendering and manipulation. Supporting patch/extension files (e.g., `game-ui-bindings.js`, `worker-patch.js`) provide UI integration and address library limitations.
+The hex map editor renders a hex-grid world map using the external `game.js` library (`static/hexmap/game.js`). Key subsystems live in `src/lib/`:
 
-**⚠️ External JS Files:** Do not edit the `.js` files in `static/hexmap/` that are in `.gitignore` (e.g., `game.js`, `auth.js`, `cloud-storage.js`). These are pulled from external public URLs and are not controlled by this project. Checksums and last-verified dates are tracked in `static/hexmap/EXTERNAL_FILES.md`. Our custom patches (e.g., `game-ui-bindings.js`) are the only editor-maintained JS files in that directory.
+- **mapDb.ts** — IndexedDB store for `maps`, `hexes`, `landmarks` (v2 schema with `linkedLoreKey: string | null`)
+- **mapIngest.ts** — Imports `.json` map files into IndexedDB
+- **mapSync.ts** — Syncs maps between editor and Worker MCP
+- **mapTools.ts** — A* pathfinding, axial distance, landmark↔lore linking/unlinking (with optional `**Map-Position:**` write-back into lore topics)
+- **importMap.ts** / **terrain-aggregation.ts** / **hexmap-utils.ts** — GeoJSON import, terrain stats, hex math
+
+Supporting patch files (`game-ui-bindings.js`, `worker-patch.js`) provide UI integration and address library limitations.
+
+**⚠️ External JS Files:** Do not edit the `.js` files in `static/hexmap/` that are in `.gitignore` (e.g., `game.js`, `auth.js`, `cloud-storage.js`, `compendium.js`, `map-worker.js`, `mcp-auth.js`, `mcp-storage.js`, `region-switcher.js`, `river-edges.js`, `mobile-companion.js`, `parent-child-terrain-sync.js`). These are pulled from external URLs and are not controlled by this project. Checksums and last-verified dates are tracked in `static/hexmap/EXTERNAL_FILES.md`. Our custom patches (`game-ui-bindings.js`, `worker-patch.js`) are the only editor-maintained JS files in that directory.
 
 ### Testing
 
