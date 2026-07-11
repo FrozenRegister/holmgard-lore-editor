@@ -75,6 +75,35 @@ export async function getTopicRemote(host: string, key: string, apiKey?: string)
   }
 }
 
+// ── World biomes (#321) ───────────────────────────────────────────────────────
+// Backs the hex map editor's biome-assignment panel (src/routes/maps/+page.svelte),
+// letting a narrator map the editor's freeform terrain vocabulary onto a
+// world's registered biomes instead of a hardcoded list.
+
+export interface WorldBiome {
+  id: string;
+  name: string;
+  glyph: string;
+  category: string;
+  color_hex: string;
+  movement_cost: number;
+  base_threat: number;
+  description: string | null;
+}
+
+/**
+ * Fetch a world's registered biomes via the `get_world_biomes` bare method.
+ * A world with zero registered biomes (or an unknown worldId) returns an
+ * empty array, not an error — matches the Worker's own backward-compatible
+ * behavior for the biome registry.
+ */
+export async function getWorldBiomesRemote(host: string, worldId: string, apiKey?: string): Promise<WorldBiome[]> {
+  const result = await rpc<{ worldId: string; biomes: WorldBiome[]; count: number }>(
+    host, 'get_world_biomes', { worldId }, apiKey
+  );
+  return result.biomes ?? [];
+}
+
 
 
 

@@ -24,6 +24,8 @@ import {
 	clearMapData,
 	getAllHexes,
 	getAllLandmarks,
+	getDistinctTerrains,
+	assignBiomeToTerrain,
 	type MapMeta,
 	type HexRecord,
 	type LandmarkRecord
@@ -476,6 +478,71 @@ describe('mapDb', () => {
 				const retrieved2 = await getHex('map2', 0, 0);
 				expect(retrieved1?.terrain).toBe('grass');
 				expect(retrieved2?.terrain).toBe('mountain');
+			});
+		});
+
+		describe('getDistinctTerrains (#321)', () => {
+			it('returns distinct terrains with counts, sorted by count descending', async () => {
+				await seedMap('map1', [
+					{ q: 0, r: 0, terrain: 'forest' },
+					{ q: 1, r: 0, terrain: 'forest' },
+					{ q: 2, r: 0, terrain: 'grass' }
+				], []);
+				const result = await getDistinctTerrains('map1');
+				expect(result).toEqual([
+					{ terrain: 'forest', count: 2 },
+					{ terrain: 'grass', count: 1 }
+				]);
+			});
+
+			it('returns an empty array for a map with no hexes', async () => {
+				const result = await getDistinctTerrains('nonexistent-map');
+				expect(result).toEqual([]);
+			});
+
+			it('groups hexes with an empty/falsy terrain under "(unset)"', async () => {
+				// seedMap defaults a falsy terrain to 'grass' — insert directly via
+				// saveHex to exercise the actual empty-string case.
+				await saveHex({ mapId: 'map1', q: 0, r: 0, terrain: '', name: '', description: '' });
+				const result = await getDistinctTerrains('map1');
+				expect(result).toEqual([{ terrain: '(unset)', count: 1 }]);
+			});
+		});
+
+		describe('assignBiomeToTerrain (#321)', () => {
+			it('sets worldId/biome on every hex matching the given terrain', async () => {
+				await seedMap('map1', [
+					{ q: 0, r: 0, terrain: 'forest', name: 'A' },
+					{ q: 1, r: 0, terrain: 'forest', name: 'B' },
+					{ q: 2, r: 0, terrain: 'grass', name: 'C' }
+				], []);
+				const count = await assignBiomeToTerrain('map1', 'forest', 'world-1', 'ancient_forest');
+				expect(count).toBe(2);
+
+				const a = await getHex('map1', 0, 0);
+				const b = await getHex('map1', 1, 0);
+				const c = await getHex('map1', 2, 0);
+				expect(a?.worldId).toBe('world-1');
+				expect(a?.biome).toBe('ancient_forest');
+				expect(b?.worldId).toBe('world-1');
+				expect(c?.worldId).toBeUndefined();
+			});
+
+			it('preserves every other field on matched hexes', async () => {
+				await seedMap('map1', [{ q: 0, r: 0, terrain: 'forest', name: 'Thornwood', description: 'Dense' }], []);
+				await assignBiomeToTerrain('map1', 'forest', 'world-1', 'ancient_forest');
+				const hex = await getHex('map1', 0, 0);
+				expect(hex?.name).toBe('Thornwood');
+				expect(hex?.description).toBe('Dense');
+				expect(hex?.terrain).toBe('forest');
+			});
+
+			it('returns 0 and changes nothing when no hex matches the terrain', async () => {
+				await seedMap('map1', [{ q: 0, r: 0, terrain: 'grass' }], []);
+				const count = await assignBiomeToTerrain('map1', 'nonexistent-terrain', 'world-1', 'bog');
+				expect(count).toBe(0);
+				const hex = await getHex('map1', 0, 0);
+				expect(hex?.worldId).toBeUndefined();
 			});
 		});
 

@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { showToast } from '$lib/stores';
+	import { showToast, settings } from '$lib/stores';
 	import { ingestMap } from '$lib/mapIngest';
 	import { pushMapToWorker, MapSyncError } from '$lib/mapSync';
+	import { getWorldBiomesRemote, type WorldBiome } from '$lib/sync';
+	import { getMcpApiKey } from '$lib/auth';
 	import {
 		getMaps,
 		deleteMap,
+		getDistinctTerrains,
+		assignBiomeToTerrain,
 		type MapMeta
 	} from '$lib/mapDb';
 
@@ -14,6 +18,83 @@
 	let importError = '';
 	let pushingMapId: string | null = null;
 	let showReIngestFor: string | null = null;
+
+	// ── Biome assignment panel (#321) ──────────────────────────────────────────
+	// Lets a narrator map the editor's freeform terrain vocabulary onto a
+	// world's registered biomes in bulk, so pushed hexes carry worldId/biome
+	// instead of just the raw terrain label. A separate, editor-owned panel —
+	// does not touch the live hex-canvas editor's own (vendored) terrain palette.
+	let showBiomePanelFor: string | null = null;
+	let biomeWorldId: Record<string, string> = {};
+	let worldBiomes: Record<string, WorldBiome[]> = {};
+	let distinctTerrains: Record<string, Array<{ terrain: string; count: number }>> = {};
+	let biomeTerrainSelection: Record<string, Record<string, string>> = {};
+	let loadingBiomesFor: string | null = null;
+	let applyingBiomesFor: string | null = null;
+
+	async function toggleBiomePanel(mapId: string) {
+		if (showBiomePanelFor === mapId) {
+			showBiomePanelFor = null;
+			return;
+		}
+		showBiomePanelFor = mapId;
+		if (!distinctTerrains[mapId]) {
+			distinctTerrains[mapId] = await getDistinctTerrains(mapId);
+			biomeTerrainSelection[mapId] = biomeTerrainSelection[mapId] ?? {};
+		}
+	}
+
+	async function loadBiomes(mapId: string) {
+		const worldId = (biomeWorldId[mapId] ?? '').trim();
+		if (!worldId) {
+			showToast('Enter a World ID first', 'error');
+			return;
+		}
+		loadingBiomesFor = mapId;
+		try {
+			const host = $settings.workerHost?.replace(/\/$/, '') ?? '';
+			const apiKey = (await getMcpApiKey()) ?? undefined;
+			const biomes = await getWorldBiomesRemote(host, worldId, apiKey);
+			worldBiomes = { ...worldBiomes, [mapId]: biomes };
+			if (biomes.length === 0) {
+				showToast('No biomes registered for this world yet', 'info');
+			} else {
+				showToast(`Loaded ${biomes.length} biome(s)`, 'success');
+			}
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : 'Unknown error';
+			showToast(`Failed to load biomes: ${msg}`, 'error');
+		} finally {
+			loadingBiomesFor = null;
+		}
+	}
+
+	async function applyBiomeAssignments(mapId: string) {
+		const worldId = (biomeWorldId[mapId] ?? '').trim();
+		if (!worldId) {
+			showToast('Enter a World ID first', 'error');
+			return;
+		}
+		const selections = biomeTerrainSelection[mapId] ?? {};
+		const entries = Object.entries(selections).filter(([, biome]) => biome);
+		if (entries.length === 0) {
+			showToast('Pick a biome for at least one terrain', 'error');
+			return;
+		}
+		applyingBiomesFor = mapId;
+		try {
+			let total = 0;
+			for (const [terrain, biome] of entries) {
+				total += await assignBiomeToTerrain(mapId, terrain, worldId, biome);
+			}
+			showToast(`Assigned biomes to ${total} hex(es) — push to MCP to sync`, 'success');
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : 'Unknown error';
+			showToast(`Failed to assign biomes: ${msg}`, 'error');
+		} finally {
+			applyingBiomesFor = null;
+		}
+	}
 
 	onMount(async () => {
 		await loadMaps();
@@ -230,6 +311,13 @@
 							</button>
 							<button
 								type="button"
+								class="btn btn-ghost btn-sm"
+								on:click={() => toggleBiomePanel(map.instanceId)}
+							>
+								{showBiomePanelFor === map.instanceId ? 'Hide Biomes' : 'Assign Biomes'}
+							</button>
+							<button
+								type="button"
 								class="btn btn-primary btn-sm"
 								disabled={pushingMapId === map.instanceId}
 								on:click={() => handlePushToMcp(map.instanceId)}
@@ -244,6 +332,65 @@
 								Delete
 							</button>
 						</div>
+
+						<!-- Biome assignment panel (#321) -->
+						{#if showBiomePanelFor === map.instanceId}
+							<div class="biome-panel">
+								<p class="section-desc">
+									Map this map's terrain labels onto a world's registered biomes. Assignments
+									are stored locally and included the next time you push this map to MCP.
+								</p>
+								<div class="field">
+									<label for="biome-world-{map.instanceId}">World ID</label>
+									<div class="import-row">
+										<input
+											id="biome-world-{map.instanceId}"
+											type="text"
+											class="text-input"
+											placeholder="e.g. a1b2c3d4-..."
+											bind:value={biomeWorldId[map.instanceId]}
+										/>
+										<button
+											type="button"
+											class="btn btn-ghost btn-sm"
+											disabled={loadingBiomesFor === map.instanceId}
+											on:click={() => loadBiomes(map.instanceId)}
+										>
+											{loadingBiomesFor === map.instanceId ? 'Loading…' : 'Load Biomes'}
+										</button>
+									</div>
+								</div>
+
+								{#if distinctTerrains[map.instanceId]?.length}
+									<div class="terrain-mapping">
+										{#each distinctTerrains[map.instanceId] as { terrain, count } (terrain)}
+											<div class="terrain-row">
+												<span class="terrain-label">{terrain} <span class="terrain-count">({count})</span></span>
+												<select
+													class="text-input"
+													bind:value={biomeTerrainSelection[map.instanceId][terrain]}
+												>
+													<option value="">— unassigned —</option>
+													{#each worldBiomes[map.instanceId] ?? [] as biome (biome.id)}
+														<option value={biome.name}>{biome.glyph} {biome.name}</option>
+													{/each}
+												</select>
+											</div>
+										{/each}
+									</div>
+									<button
+										type="button"
+										class="btn btn-primary btn-sm"
+										disabled={applyingBiomesFor === map.instanceId}
+										on:click={() => applyBiomeAssignments(map.instanceId)}
+									>
+										{applyingBiomesFor === map.instanceId ? 'Applying…' : 'Apply Assignments'}
+									</button>
+								{:else}
+									<p class="empty-state">No terrain data on this map yet.</p>
+								{/if}
+							</div>
+						{/if}
 					</li>
 				{/each}
 			</ul>
@@ -498,5 +645,48 @@
 
 	.btn.danger:hover {
 		background: rgba(229, 115, 115, 0.12);
+	}
+
+	.biome-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+	}
+
+	.text-input {
+		padding: 0.45rem 0.6rem;
+		border-radius: 6px;
+		border: 1px solid var(--border);
+		background: var(--bg);
+		color: var(--fg);
+		font-size: 0.85rem;
+	}
+
+	.terrain-mapping {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.terrain-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.terrain-label {
+		font-size: 0.85rem;
+		color: var(--fg);
+		text-transform: capitalize;
+	}
+
+	.terrain-count {
+		color: var(--fg-muted);
+		font-weight: 400;
 	}
 </style>

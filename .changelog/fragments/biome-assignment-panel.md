@@ -1,0 +1,4 @@
+### Feature — Biome-assignment panel for the hex map editor (#321)
+- The Maps page (`/maps`) gains an "Assign Biomes" panel per map: enter a World ID, load that world's registered biomes (`get_world_biomes`, via the new `getWorldBiomesRemote()` in `src/lib/sync.ts`), then bulk-map the map's freeform `terrain` labels onto biome names. Assignments are stored locally (`HexRecord.worldId`/`biome`, `src/lib/mapDb.ts`) and included automatically the next time the map is pushed to MCP.
+- This is a separate, editor-owned panel — it does not touch the live hex-canvas editor's own (vendored, unreadable) terrain palette, since that palette is rendered entirely by the external `game.js` library this project doesn't control.
+- New `getDistinctTerrains()`/`assignBiomeToTerrain()` helpers in `mapDb.ts` for the bulk terrain→biome mapping.
