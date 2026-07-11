@@ -8,18 +8,24 @@ on:
     # "E2E (Playwright)" — excluded: known failing suite, not a merge prerequisite
     types: [completed]
   schedule:
-    # Fallback poller — workflow_run only reliably fires for CI runs triggered by a
-    # `push` (i.e. after merge to main), not for the `pull_request`-triggered runs
-    # that produce check results on feature branches. Without this, a PR labeled
-    # `auto-merge` before its checks finish never gets re-checked once they do.
-    - cron: '*/15 * * * *'
+    # Last-resort fallback poller — ci.yml and pr-quality.yml each dispatch this
+    # workflow directly via workflow_dispatch the moment their own jobs finish
+    # (reliable, since it's a direct API call rather than workflow_run chaining,
+    # which only reliably fires for push-triggered runs, not pull_request-triggered
+    # ones). This cron only matters if that dispatch itself somehow fails to fire.
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
   pull-requests: write
   contents: write
   checks: read
-  workflows: write
+  # actions: write — required for the workflow_dispatch trigger to work at all.
+  # The old value here was literally `workflows: write`, which isn't a real
+  # permission scope; GitHub silently tolerated it for every trigger except
+  # workflow_dispatch, which strictly parses/validates the target file before
+  # dispatching and rejected it with a schema error.
+  actions: write
 
 jobs:
   merge:
