@@ -2,6 +2,13 @@
 
 Analysis of the two different zoom implementations and recommendations for which to use.
 
+> **Update (#199):** `src/lib/worldmap.ts` (the "Continent/Region Zoom" implementation discussed
+> below) was removed — it was still dead code with zero production imports, and its live presence
+> in the tree was causing coding agents doing codebase searches to read its functions as active
+> and reason about them as part of the current architecture. The analysis below is kept as the
+> historical record of the design comparison; the code itself is recoverable via
+> `git log --all -- src/lib/worldmap.ts` if procedural generation is ever revisited.
+
 ---
 
 ## Overview
@@ -316,20 +323,18 @@ w.zoomIn = function() {
 
 ## What to Do With worldmap.ts
 
-**Keep it as-is** (dead code reference):
+**Removed (#199).** This section originally recommended keeping the module in place as a dead-code
+reference in case procedural generation was revisited later. That trade-off flipped once it became
+clear coding agents doing codebase-wide searches were reading its exported functions as live,
+current-architecture code rather than as an archived approach — the cost of the confusion outweighed
+the convenience of not having to `git log` for it later.
 
-```typescript
-// Status: future leverage potential ─────────────────────
-// This was the original procedural-generation approach.
-// The project pivoted to importing external maps.
-// Keep around for future in-app map creation / procedural generation.
-```
+If any of the following becomes a real need, recover the file from git history
+(`git log --all -- src/lib/worldmap.ts`) rather than reintroducing it as unused dead code:
 
-Use it **only if**:
-
-- You pivot back to procedural generation
-- You want players to create their own maps in-app
-- You need unlimited zoom depth (settlements → buildings → rooms)
+- Pivoting back to procedural generation
+- Letting players create their own maps in-app
+- Needing unlimited zoom depth (settlements → buildings → rooms)
 
 For now: **Don't wire it in. Focus on DetailHex.**
 

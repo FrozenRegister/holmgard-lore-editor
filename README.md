@@ -224,7 +224,6 @@ Six spec files cover the home topic list, navigation, settings, import/export, t
 │   │   ├── mapTools.ts          # Agentic map manipulation tools
 │   │   ├── mapDb.ts             # IndexedDB map tile store
 │   │   ├── importMap.ts         # Map import utilities
-│   │   ├── worldmap.ts          # World map data model
 │   │   ├── terrain-aggregation.ts  # Terrain statistics
 │   │   ├── hexmap-utils.ts      # Hex grid math utilities
 │   │   ├── entities.ts          # Entity routing & aggregation
