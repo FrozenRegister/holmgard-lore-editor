@@ -129,7 +129,6 @@ Every storage/filesystem call checks `IS_TAURI` (`'__TAURI__' in window`). In Ta
 - **`src/lib/mapDb.ts`** — IndexedDB-backed map tile storage (`maps`, `hexes`, `landmarks` tables with v2 schema)
 - **`src/lib/mcp.ts`** — MCP protocol helpers: `callTool()`, `listTools()`, `checkAuth()`
 - **`src/lib/entities.ts`** — Entity routing and aggregation
-- **`src/lib/worldmap.ts`** — World map data model
 - **`src/lib/hexmap-utils.ts`** — Hex grid math utilities
 - **`src/lib/importMap.ts`** — Map import logic (GeoJSON → hex grid)
 - **`src/lib/terrain-aggregation.ts`** — Terrain statistics from hex map regions
@@ -166,6 +165,15 @@ The hex map editor renders a hex-grid world map using the external `game.js` lib
 - **importMap.ts** / **terrain-aggregation.ts** / **hexmap-utils.ts** — GeoJSON import, terrain stats, hex math
 
 Supporting patch files (`game-ui-bindings.js`, `worker-patch.js`) provide UI integration and address library limitations.
+
+**Removed dead code (#199):** `src/lib/worldmap.ts` — a hierarchical continent/region hex proc-gen
+engine (Perlin-noise tile generation, region expand/merge, markdown serialization) from before the
+project pivoted to importing external Wonderdraft maps — was deleted. It had zero production
+imports (only its own test file referenced it) and its live presence in the tree was causing coding
+agents doing codebase searches to read its exported functions as active, current-architecture code.
+See `docs/zoom-mechanisms-comparison.md` for the original design analysis. Recover the full source
+via `git log --all -- src/lib/worldmap.ts` if procedural in-app map generation is ever revisited —
+don't reintroduce it as unused dead code again.
 
 **⚠️ External JS Files:** Do not edit the `.js` files in `static/hexmap/` that are in `.gitignore` (e.g., `game.js`, `auth.js`, `cloud-storage.js`, `compendium.js`, `map-worker.js`, `mcp-auth.js`, `mcp-storage.js`, `region-switcher.js`, `river-edges.js`, `mobile-companion.js`, `parent-child-terrain-sync.js`). These are pulled from external URLs and are not controlled by this project. Checksums and last-verified dates are tracked in `static/hexmap/EXTERNAL_FILES.md`. Our custom patches (`game-ui-bindings.js`, `worker-patch.js`) are the only editor-maintained JS files in that directory.
 
